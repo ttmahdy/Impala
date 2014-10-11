@@ -63,7 +63,9 @@ void impala::TColumnValueToHS2TColumn(const TColumnValue& col_val,
     const TColumnType& type, uint32_t row_idx, thrift::TColumn* column) {
   string* nulls;
   bool is_null;
-  switch (type.types[0].scalar_type.type) {
+  DCHECK(type.__isset.scalar_type);
+  const TScalarType scalar_type = type.scalar_type;
+  switch (scalar_type.type) {
     case TPrimitiveType::NULL_TYPE:
     case TPrimitiveType::BOOLEAN:
       is_null = !col_val.__isset.bool_val;
@@ -107,7 +109,7 @@ void impala::TColumnValueToHS2TColumn(const TColumnValue& col_val,
       break;
     default:
       DCHECK(false) << "Unhandled type: "
-                    << TypeToString(ThriftToType(type.types[0].scalar_type.type));
+                    << TypeToString(ThriftToType(scalar_type.type));
       return;
   }
 
@@ -118,7 +120,9 @@ void impala::TColumnValueToHS2TColumn(const TColumnValue& col_val,
 void impala::ExprValueToHS2TColumn(const void* value, const TColumnType& type,
     uint32_t row_idx, thrift::TColumn* column) {
   string* nulls;
-  switch (type.types[0].scalar_type.type) {
+  DCHECK(type.__isset.scalar_type);
+  const TScalarType scalar_type = type.scalar_type;
+  switch (scalar_type.type) {
     case TPrimitiveType::NULL_TYPE:
     case TPrimitiveType::BOOLEAN:
       column->boolVal.values.push_back(
@@ -176,7 +180,7 @@ void impala::ExprValueToHS2TColumn(const void* value, const TColumnType& type,
     case TPrimitiveType::CHAR:
       column->stringVal.values.push_back("");
       if (value != NULL) {
-        ColumnType char_type = ColumnType::CreateCharType(type.types[0].scalar_type.len);
+        ColumnType char_type = ColumnType::CreateCharType(scalar_type.len);
         column->stringVal.values.back().assign(
             StringValue::CharSlotToPtr(value, char_type), char_type.len);
       }
@@ -209,7 +213,7 @@ void impala::ExprValueToHS2TColumn(const void* value, const TColumnType& type,
     }
     default:
       DCHECK(false) << "Unhandled type: "
-                    << TypeToString(ThriftToType(type.types[0].scalar_type.type));
+                    << TypeToString(ThriftToType(scalar_type.type));
       return;
   }
 
@@ -220,10 +224,9 @@ void impala::ExprValueToHS2TColumn(const void* value, const TColumnType& type,
 void impala::TColumnValueToHS2TColumnValue(const TColumnValue& col_val,
     const TColumnType& type, thrift::TColumnValue* hs2_col_val) {
   // TODO: Handle complex types.
-  DCHECK_EQ(1, type.types.size());
-  DCHECK_EQ(TTypeNodeType::SCALAR, type.types[0].type);
-  DCHECK_EQ(true, type.types[0].__isset.scalar_type);
-  switch (type.types[0].scalar_type.type) {
+  DCHECK(type.__isset.scalar_type);
+  const TScalarType scalar_type = type.scalar_type;
+  switch (scalar_type.type) {
     case TPrimitiveType::BOOLEAN:
       hs2_col_val->__isset.boolVal = true;
       hs2_col_val->boolVal.value = col_val.bool_val;
@@ -270,7 +273,7 @@ void impala::TColumnValueToHS2TColumnValue(const TColumnValue& col_val,
       break;
     default:
       DCHECK(false) << "bad type: "
-                     << TypeToString(ThriftToType(type.types[0].scalar_type.type));
+                     << TypeToString(ThriftToType(scalar_type.type));
       break;
   }
 }
@@ -280,10 +283,9 @@ void impala::ExprValueToHS2TColumnValue(const void* value, const TColumnType& ty
     thrift::TColumnValue* hs2_col_val) {
   bool not_null = (value != NULL);
   // TODO: Handle complex types.
-  DCHECK_EQ(1, type.types.size());
-  DCHECK_EQ(TTypeNodeType::SCALAR, type.types[0].type);
-  DCHECK_EQ(1, type.types[0].__isset.scalar_type);
-  switch (type.types[0].scalar_type.type) {
+  DCHECK(type.__isset.scalar_type);
+  const TScalarType scalar_type = type.scalar_type;
+  switch (scalar_type.type) {
     case TPrimitiveType::NULL_TYPE:
       // Set NULLs in the bool_val.
       hs2_col_val->__isset.boolVal = true;
@@ -340,7 +342,7 @@ void impala::ExprValueToHS2TColumnValue(const void* value, const TColumnType& ty
       hs2_col_val->__isset.stringVal = true;
       hs2_col_val->stringVal.__isset.value = not_null;
       if (not_null) {
-        ColumnType char_type = ColumnType::CreateCharType(type.types[0].scalar_type.len);
+        ColumnType char_type = ColumnType::CreateCharType(scalar_type.len);
         hs2_col_val->stringVal.value.assign(
            StringValue::CharSlotToPtr(value, char_type), char_type.len);
       }
@@ -380,7 +382,7 @@ void impala::ExprValueToHS2TColumnValue(const void* value, const TColumnType& ty
     }
     default:
       DCHECK(false) << "bad type: "
-                     << TypeToString(ThriftToType(type.types[0].scalar_type.type));
+                     << TypeToString(ThriftToType(scalar_type.type));
       break;
   }
 }

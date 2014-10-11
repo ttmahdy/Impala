@@ -67,6 +67,7 @@ public class StructType extends Type {
 
   @Override
   public void toThrift(TColumnType container) {
+    if (container.types == null) container.setTypes(new ArrayList<TTypeNode>());
     TTypeNode node = new TTypeNode();
     container.types.add(node);
     Preconditions.checkNotNull(fields_);

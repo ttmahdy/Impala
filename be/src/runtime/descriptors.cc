@@ -109,7 +109,7 @@ string TableDescriptor::DebugString() const {
 }
 
 HdfsPartitionDescriptor::HdfsPartitionDescriptor(const THdfsPartition& thrift_partition,
-    ObjectPool* pool)
+    const string& base_dir, ObjectPool* pool)
   : line_delim_(thrift_partition.lineDelim),
     field_delim_(thrift_partition.fieldDelim),
     collection_delim_(thrift_partition.collectionDelim),
@@ -122,6 +122,10 @@ HdfsPartitionDescriptor::HdfsPartitionDescriptor(const THdfsPartition& thrift_pa
     exprs_closed_(false),
     file_format_(thrift_partition.fileFormat),
     object_pool_(pool) {
+
+  if (thrift_partition.location_is_relative) {
+    location_ = Substitute("$0$1", base_dir, thrift_partition.location);
+  }
 
   for (int i = 0; i < thrift_partition.partitionKeyExprs.size(); ++i) {
     ExprContext* ctx;
@@ -182,7 +186,8 @@ HdfsTableDescriptor::HdfsTableDescriptor(const TTableDescriptor& tdesc,
   map<int64_t, THdfsPartition>::const_iterator it;
   for (it = tdesc.hdfsTable.partitions.begin(); it != tdesc.hdfsTable.partitions.end();
        ++it) {
-    HdfsPartitionDescriptor* partition = new HdfsPartitionDescriptor(it->second, pool);
+    HdfsPartitionDescriptor* partition =
+        new HdfsPartitionDescriptor(it->second, hdfs_base_dir_, pool);
     object_pool_->Add(partition);
     partition_descriptors_[it->first] = partition;
   }

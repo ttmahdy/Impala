@@ -5,6 +5,8 @@ import com.cloudera.impala.thrift.TTypeNode;
 import com.cloudera.impala.thrift.TTypeNodeType;
 import com.google.common.base.Preconditions;
 
+import java.util.ArrayList;
+
 /**
  * Describes an ARRAY type.
  */
@@ -31,6 +33,7 @@ public class ArrayType extends Type {
 
   @Override
   public void toThrift(TColumnType container) {
+    if (container.types == null) container.setTypes(new ArrayList<TTypeNode>());
     TTypeNode node = new TTypeNode();
     container.types.add(node);
     Preconditions.checkNotNull(itemType_);

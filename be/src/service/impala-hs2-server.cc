@@ -168,7 +168,7 @@ class ImpalaServer::HS2ColumnarResultSet : public ImpalaServer::QueryResultSet {
     for (int j = 0; j < metadata_.columns.size(); ++j) {
       thrift::TColumn* from = &o->result_set_->columns[j];
       thrift::TColumn* to = &result_set_->columns[j];
-      switch (metadata_.columns[j].columnType.types[0].scalar_type.type) {
+      switch (metadata_.columns[j].columnType.scalar_type.type) {
         case TPrimitiveType::NULL_TYPE:
         case TPrimitiveType::BOOLEAN:
           StitchNulls(num_rows_, rows_added, start_idx, from->boolVal.nulls,
@@ -232,7 +232,7 @@ class ImpalaServer::HS2ColumnarResultSet : public ImpalaServer::QueryResultSet {
           break;
         default:
           DCHECK(false) << "Unsupported type: " << TypeToString(ThriftToType(
-              metadata_.columns[j].columnType.types[0].scalar_type.type));
+              metadata_.columns[j].columnType.scalar_type.type));
           break;
       }
     }
@@ -267,10 +267,10 @@ class ImpalaServer::HS2ColumnarResultSet : public ImpalaServer::QueryResultSet {
   void InitColumns() {
     result_set_->__isset.columns = true;
     BOOST_FOREACH(const TColumn& col, metadata_.columns) {
-      DCHECK(col.columnType.types.size() == 1) <<
+      DCHECK(col.columnType.__isset.scalar_type) <<
           "Structured columns unsupported in HS2 interface";
       thrift::TColumn column;
-      switch (col.columnType.types[0].scalar_type.type) {
+      switch (col.columnType.scalar_type.type) {
         case TPrimitiveType::NULL_TYPE:
         case TPrimitiveType::BOOLEAN:
           column.__isset.boolVal = true;
@@ -301,7 +301,7 @@ class ImpalaServer::HS2ColumnarResultSet : public ImpalaServer::QueryResultSet {
         default:
           DCHECK(false) << "Unhandled column type: "
                         << TypeToString(
-                            ThriftToType(col.columnType.types[0].scalar_type.type));
+                            ThriftToType(col.columnType.scalar_type.type));
       }
       result_set_->columns.push_back(column);
     }

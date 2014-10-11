@@ -5,6 +5,8 @@ import com.cloudera.impala.thrift.TTypeNode;
 import com.cloudera.impala.thrift.TTypeNodeType;
 import com.google.common.base.Preconditions;
 
+import java.util.ArrayList;
+
 /**
  * Describes a MAP type. MAP types have a scalar key and an arbitrarily-typed value.
  */
@@ -29,6 +31,7 @@ public class MapType extends Type {
 
   @Override
   public void toThrift(TColumnType container) {
+    if (container.types == null) container.setTypes(new ArrayList<TTypeNode>());
     TTypeNode node = new TTypeNode();
     container.types.add(node);
     Preconditions.checkNotNull(keyType_);

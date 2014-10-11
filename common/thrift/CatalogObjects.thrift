@@ -233,6 +233,10 @@ struct THdfsPartition {
   9: optional list<THdfsFileDesc> file_desc
   10: optional string location
 
+  // If true, the location field is relative to the base HDFS table directory. If false,
+  // the location is an absolute path (for external partitions).
+  16: optional bool location_is_relative
+
   // The access level Impala has on this partition (READ_WRITE, READ_ONLY, etc).
   11: optional TAccessLevel access_level
 

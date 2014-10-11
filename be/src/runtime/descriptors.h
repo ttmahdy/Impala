@@ -21,6 +21,7 @@
 #include <vector>
 #include <boost/scoped_ptr.hpp>
 #include <ostream>
+#include <gutil/strings/substitute.h>
 
 #include "common/status.h"
 #include "common/global-types.h"
@@ -28,6 +29,8 @@
 
 #include "gen-cpp/Descriptors_types.h"  // for TTupleId
 #include "gen-cpp/Types_types.h"
+
+using namespace strings;
 
 namespace llvm {
   class Function;
@@ -178,7 +181,8 @@ class TableDescriptor {
 /// Metadata for a single partition inside an Hdfs table.
 class HdfsPartitionDescriptor {
  public:
-  HdfsPartitionDescriptor(const THdfsPartition& thrift_partition, ObjectPool* pool);
+  HdfsPartitionDescriptor(const THdfsPartition& thrift_partition,
+      const std::string& base_dir, ObjectPool* pool);
   char line_delim() const { return line_delim_; }
   char field_delim() const { return field_delim_; }
   char collection_delim() const { return collection_delim_; }

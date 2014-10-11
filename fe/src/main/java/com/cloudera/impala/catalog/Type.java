@@ -200,7 +200,6 @@ public abstract class Type {
 
   public TColumnType toThrift() {
     TColumnType container = new TColumnType();
-    container.setTypes(new ArrayList<TTypeNode>());
     toThrift(container);
     return container;
   }
@@ -291,9 +290,11 @@ public abstract class Type {
   }
 
   public static Type fromThrift(TColumnType thrift) {
-    Preconditions.checkState(thrift.types.size() > 0);
+    Preconditions.checkState(thrift.isSetScalar_type() || thrift.types.size() > 0);
     Pair<Type, Integer> t = fromThrift(thrift, 0);
-    Preconditions.checkState(t.second.equals(thrift.getTypesSize()));
+    Preconditions.checkState((thrift.isSetScalar_type() && t.second.equals(1)) ||
+        t.second.equals(thrift.getTypesSize()));
+    Preconditions.checkState(t.first != null);
     return t.first;
   }
 
@@ -303,8 +304,28 @@ public abstract class Type {
    * type of the result.
    */
   protected static Pair<Type, Integer> fromThrift(TColumnType col, int nodeIdx) {
-    TTypeNode node = col.getTypes().get(nodeIdx);
     Type type = null;
+    if (col.isSetScalar_type()) {
+      TScalarType scalarType = col.getScalar_type();
+      if (scalarType.getType() == TPrimitiveType.CHAR) {
+        Preconditions.checkState(scalarType.isSetLen());
+        type = ScalarType.createCharType(scalarType.getLen());
+      } else if (scalarType.getType() == TPrimitiveType.VARCHAR) {
+        Preconditions.checkState(scalarType.isSetLen());
+        type = ScalarType.createVarcharType(scalarType.getLen());
+      } else if (scalarType.getType() == TPrimitiveType.DECIMAL) {
+        Preconditions.checkState(scalarType.isSetPrecision()
+            && scalarType.isSetPrecision());
+        type = ScalarType.createDecimalType(scalarType.getPrecision(),
+            scalarType.getScale());
+      } else {
+        type = ScalarType.createType(
+            PrimitiveType.fromThrift(scalarType.getType()));
+      }
+      return new Pair<Type, Integer>(type, nodeIdx + 1);
+    }
+
+    TTypeNode node = col.getTypes().get(nodeIdx);
     switch (node.getType()) {
       case SCALAR: {
         Preconditions.checkState(node.isSetScalar_type());
@@ -367,9 +388,8 @@ public abstract class Type {
    * to be scalar.
    */
   public TPrimitiveType getTPrimitiveType(TColumnType ttype) {
-    Preconditions.checkState(ttype.getTypesSize() == 1);
-    Preconditions.checkState(ttype.types.get(0).getType() == TTypeNodeType.SCALAR);
-    return ttype.types.get(0).scalar_type.getType();
+    Preconditions.checkState(ttype.getTypesSize() == 0);
+    return ttype.scalar_type.getType();
   }
 
   /**

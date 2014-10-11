@@ -162,13 +162,12 @@ public class ScalarType extends Type {
 
   @Override
   public void toThrift(TColumnType container) {
+    TScalarType scalarType = new TScalarType();
     TTypeNode node = new TTypeNode();
-    container.types.add(node);
     switch(type_) {
       case VARCHAR:
       case CHAR: {
         node.setType(TTypeNodeType.SCALAR);
-        TScalarType scalarType = new TScalarType();
         scalarType.setType(type_.toThrift());
         scalarType.setLen(len_);
         node.setScalar_type(scalarType);
@@ -176,7 +175,6 @@ public class ScalarType extends Type {
       }
       case DECIMAL: {
         node.setType(TTypeNodeType.SCALAR);
-        TScalarType scalarType = new TScalarType();
         scalarType.setType(type_.toThrift());
         scalarType.setScale(scale_);
         scalarType.setPrecision(precision_);
@@ -185,11 +183,17 @@ public class ScalarType extends Type {
       }
       default: {
         node.setType(TTypeNodeType.SCALAR);
-        TScalarType scalarType = new TScalarType();
         scalarType.setType(type_.toThrift());
         node.setScalar_type(scalarType);
         break;
       }
+    }
+    // Only add to the types tree if we are a child of some other structured type
+    if (container.isSetTypes() && container.types.size() > 0) {
+
+      container.types.add(node);
+    } else {
+      container.setScalar_type(scalarType);
     }
   }
 

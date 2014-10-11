@@ -110,7 +110,6 @@ class ImpalaServer::AsciiQueryResultSet : public ImpalaServer::QueryResultSet {
     for (int i = 0; i < num_col; ++i) {
       // ODBC-187 - ODBC can only take "\t" as the delimiter
       out_stream << (i > 0 ? "\t" : "");
-      DCHECK_EQ(1, metadata_.columns[i].columnType.types.size());
       RawValue::PrintValue(col_values[i],
           ColumnType(metadata_.columns[i].columnType),
           scales[i], &out_stream);
@@ -321,10 +320,8 @@ void ImpalaServer::get_results_metadata(ResultsMetadata& results_metadata,
     results_metadata.schema.fieldSchemas.resize(result_set_md->columns.size());
     for (int i = 0; i < results_metadata.schema.fieldSchemas.size(); ++i) {
       const TColumnType& type = result_set_md->columns[i].columnType;
-      DCHECK_EQ(1, type.types.size());
-      DCHECK_EQ(TTypeNodeType::SCALAR, type.types[0].type);
-      DCHECK(type.types[0].__isset.scalar_type);
-      TPrimitiveType::type col_type = type.types[0].scalar_type.type;
+      DCHECK(type.__isset.scalar_type);
+      TPrimitiveType::type col_type = type.scalar_type.type;
       results_metadata.schema.fieldSchemas[i].__set_type(
           TypeToOdbcString(ThriftToType(col_type)));
 
@@ -591,10 +588,8 @@ Status ImpalaServer::FetchInternal(const TUniqueId& query_id,
     // boolean and timestamp type are correctly recognized when ODBC-189 is closed.
     // TODO: Handle complex types.
     const TColumnType& type = result_metadata->columns[i].columnType;
-    DCHECK_EQ(1, type.types.size());
-    DCHECK_EQ(TTypeNodeType::SCALAR, type.types[0].type);
-    DCHECK(type.types[0].__isset.scalar_type);
-    TPrimitiveType::type col_type = type.types[0].scalar_type.type;
+    DCHECK(type.__isset.scalar_type);
+    TPrimitiveType::type col_type = type.scalar_type.type;
     query_results->columns[i] = TypeToOdbcString(ThriftToType(col_type));
   }
   query_results->__isset.columns = true;

@@ -226,6 +226,7 @@ public class ColumnStats {
 
   public void update(Type colType, TColumnStats stats) {
     initColStats(colType);
+    if (stats == null) return;
     avgSize_ = Double.valueOf(stats.getAvg_size()).floatValue();
     if (colType.getPrimitiveType() == PrimitiveType.STRING ||
         colType.getPrimitiveType() == PrimitiveType.BINARY) {
@@ -237,6 +238,11 @@ public class ColumnStats {
   }
 
   public TColumnStats toThrift() {
+    // If no stats have been computed, we use 'null' as the Thrift representation, which
+    // saves many bytes per column.
+    if (avgSize_ == -1 && maxSize_ == -1 && numDistinctValues_ == -1 && numNulls_ == -1) {
+      return null;
+    }
     TColumnStats colStats = new TColumnStats();
     colStats.setAvg_size(avgSize_);
     colStats.setMax_size(maxSize_);

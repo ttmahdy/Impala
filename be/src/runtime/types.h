@@ -114,10 +114,8 @@ struct ColumnType {
 
   ColumnType(const TColumnType& t) {
     len = precision = scale = -1;
-    DCHECK_EQ(1, t.types.size());
-    const TTypeNode& node = t.types[0];
-    DCHECK(node.__isset.scalar_type);
-    const TScalarType scalar_type = node.scalar_type;
+    DCHECK(t.__isset.scalar_type);
+    const TScalarType scalar_type = t.scalar_type;
     type = ThriftToType(scalar_type.type);
     if (type == TYPE_CHAR || type == TYPE_VARCHAR) {
       DCHECK(scalar_type.__isset.len);
@@ -147,11 +145,8 @@ struct ColumnType {
   TColumnType ToThrift() const {
     // TODO: Decimal and complex types.
     TColumnType thrift_type;
-    thrift_type.types.push_back(TTypeNode());
-    TTypeNode& node = thrift_type.types.back();
-    node.type = TTypeNodeType::SCALAR;
-    node.__set_scalar_type(TScalarType());
-    TScalarType& scalar_type = node.scalar_type;
+    thrift_type.__set_scalar_type(TScalarType());
+    TScalarType& scalar_type = thrift_type.scalar_type;
     scalar_type.__set_type(impala::ToThrift(type));
     if (type == TYPE_CHAR || type == TYPE_VARCHAR) {
       DCHECK_NE(len, -1);

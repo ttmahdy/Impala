@@ -81,11 +81,16 @@ struct TTypeNode {
 // A flattened representation of a tree of column types obtained by depth-first
 // traversal. Complex types such as map, array and struct have child types corresponding
 // to the map key/value, array item type, and struct fields, respectively.
-// For scalar types the list contains only a single node.
+// For scalar types the optional field scalar_type is set, which is a more efficient
+// Thrift representation.
 // Note: We cannot rename this to TType because it conflicts with Thrift's internal TType
 // and the generated Python thrift files will not work.
 struct TColumnType {
-  1: list<TTypeNode> types
+  // Only set for structured types
+  1: optional list<TTypeNode> types
+
+  // Only set for scalar types
+  2: optional TScalarType scalar_type;
 }
 
 enum TStmtType {
@@ -199,4 +204,3 @@ struct TFunction {
   9: optional TScalarFunction scalar_fn
   10: optional TAggregateFunction aggregate_fn
 }
-

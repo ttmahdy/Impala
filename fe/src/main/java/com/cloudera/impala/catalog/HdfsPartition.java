@@ -644,8 +644,10 @@ public class HdfsPartition implements Comparable<HdfsPartition> {
 
     TAccessLevel accessLevel = thriftPartition.isSetAccess_level() ?
         thriftPartition.getAccess_level() : TAccessLevel.READ_WRITE;
+    String location =
+        (thriftPartition.location_is_relative ? table.getLocation() : "") + thriftPartition.getLocation();
     HdfsPartition partition = new HdfsPartition(table, null, literalExpr, storageDesc,
-        fileDescriptors, id, thriftPartition.getLocation(), accessLevel);
+        fileDescriptors, id, location, accessLevel);
     if (thriftPartition.isSetStats()) {
       partition.setNumRows(thriftPartition.getStats().getNum_rows());
     }
@@ -688,7 +690,15 @@ public class HdfsPartition implements Comparable<HdfsPartition> {
         fileFormatDescriptor_.getEscapeChar(),
         fileFormatDescriptor_.getFileFormat().toThrift(), thriftExprs,
         fileFormatDescriptor_.getBlockSize());
-    thriftHdfsPart.setLocation(location_);
+
+    if (location_ != null && location_.startsWith(table_.getLocation())) {
+      thriftHdfsPart.setLocation_is_relative(true);
+      String loc = location_.substring(table_.getLocation().length(), location_.length());
+      thriftHdfsPart.setLocation(loc);
+    } else {
+      thriftHdfsPart.setLocation_is_relative(false);
+      thriftHdfsPart.setLocation(location_);
+    }
     thriftHdfsPart.setStats(new TTableStats(numRows_));
     thriftHdfsPart.setAccess_level(accessLevel_);
     thriftHdfsPart.setIs_marked_cached(isMarkedCached_);
