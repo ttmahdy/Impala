@@ -193,6 +193,8 @@ class ImpalaServer::QueryExecState {
   RuntimeProfile::EventSequence* query_events() const { return query_events_; }
   RuntimeProfile* summary_profile() { return &summary_profile_; }
 
+  boost::shared_ptr<MetricGroup> metrics() { return metrics_; }
+
  private:
   const TQueryCtx query_ctx_;
 
@@ -266,7 +268,10 @@ class ImpalaServer::QueryExecState {
   RuntimeProfile summary_profile_;
   RuntimeProfile::Counter* row_materialization_timer_;
 
-  /// Tracks how long we are idle waiting for a client to fetch rows.
+  boost::shared_ptr<MetricGroup> metrics_;
+  IntCounter* client_wait_metric_;
+
+  // Tracks how long we are idle waiting for a client to fetch rows.
   RuntimeProfile::Counter* client_wait_timer_;
   /// Timer to track idle time for the above counter.
   MonotonicStopWatch client_wait_sw_;

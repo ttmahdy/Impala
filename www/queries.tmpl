@@ -34,6 +34,7 @@ archived in memory. The size of that archive is controlled with the
     <th>Last Event</th>
     <th># rows fetched</th>
     <th>Details</th>
+    <th>Metrics</th>
     <th>Action</th>
   </tr>
 {{#in_flight_queries}}
@@ -49,6 +50,7 @@ archived in memory. The size of that archive is controlled with the
     <td><samp>{{last_event}}</samp></td>
     <td>{{rows_fetched}}</td>
     <td><a href='/query_plan?query_id={{query_id}}'>Details</a></td>
+    <td><a href='/query_metrics?query_id={{query_id}}'>Metrics</a></td>
     <td><a href='/cancel_query?query_id={{query_id}}'>Cancel</a></td>
   </tr>
 {{/in_flight_queries}}
@@ -69,6 +71,7 @@ archived in memory. The size of that archive is controlled with the
     <th>State</th>
     <th># rows fetched</th>
     <th>Details</th>
+    <th>Metrics</th>
   </tr>
 {{#completed_queries}}
   <tr>
@@ -83,6 +86,7 @@ archived in memory. The size of that archive is controlled with the
     <td><samp>{{state}}</samp></td>
     <td>{{rows_fetched}}</td>
     <td><a href='/query_plan?query_id={{query_id}}'>Details</a></td>
+    <td><a href='/query_metrics?query_id={{query_id}}'>Metrics</a></td>
   </tr>
 {{/completed_queries}}
 </table>

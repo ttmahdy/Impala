@@ -78,13 +78,18 @@ ImpalaServer::QueryExecState::QueryExecState(
     frontend_(frontend),
     parent_server_(server),
     start_time_(TimestampValue::LocalTime()) {
+  metrics_.reset(new MetricGroup("Query (id=" + PrintId(query_id()) + ")"));
+
   row_materialization_timer_ = ADD_TIMER(&server_profile_, "RowMaterializationTimer");
   client_wait_timer_ = ADD_TIMER(&server_profile_, "ClientFetchWaitTimer");
+  client_wait_metric_ = metrics_->AddCounter("ClientFetchWaitTimer", 0L, TUnit::TIME_NS);
   query_events_ = summary_profile_.AddEventSequence("Query Timeline");
   query_events_->Start();
   profile_.AddChild(&summary_profile_);
 
   profile_.set_name("Query (id=" + PrintId(query_id()) + ")");
+  MetricGroup* summary_metrics = metrics_->GetChildGroup("Summary");
+
   summary_profile_.AddInfoString("Session ID", PrintId(session_id()));
   summary_profile_.AddInfoString("Session Type", PrintTSessionType(session_type()));
   if (session_type() == TSessionType::HIVESERVER2) {
@@ -106,6 +111,23 @@ ImpalaServer::QueryExecState::QueryExecState(
   summary_profile_.AddInfoString("Sql Statement", query_ctx_.request.stmt);
   summary_profile_.AddInfoString("Coordinator",
       TNetworkAddressToString(exec_env->backend_address()));
+
+  summary_metrics->AddProperty("Start Time", start_time().DebugString());
+  summary_metrics->AddProperty<string>("End Time", "");
+  summary_metrics->AddProperty<string>("Query Type", "N/A");
+  summary_metrics->AddProperty("Query State", PrintQueryState(query_state_));
+  summary_metrics->AddProperty<string>("Query Status", "OK");
+  summary_metrics->AddProperty<string>("Impala Version", GetVersionString(/* compact */ true));
+  summary_metrics->AddProperty("User", effective_user());
+  summary_metrics->AddProperty("Connected User", connected_user());
+  summary_metrics->AddProperty("Delegated User", do_as_user());
+  summary_metrics->AddProperty("Network Address",
+      lexical_cast<string>(session_->network_address));
+  summary_metrics->AddProperty("Default Db", default_db());
+  summary_metrics->AddProperty("Sql Statement", query_ctx_.request.stmt);
+  summary_metrics->AddProperty("Coordinator",
+      TNetworkAddressToString(exec_env->backend_address()));
+
 }
 
 ImpalaServer::QueryExecState::~QueryExecState() {
@@ -961,6 +983,7 @@ void ImpalaServer::QueryExecState::MarkActive() {
   client_wait_sw_.Stop();
   int64_t elapsed_time = client_wait_sw_.ElapsedTime();
   client_wait_timer_->Set(elapsed_time);
+  client_wait_metric_->set_value(elapsed_time);
   lock_guard<mutex> l(expiration_data_lock_);
   last_active_time_ = UnixMillis();
   ++ref_count_;

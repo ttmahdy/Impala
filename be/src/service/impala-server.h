@@ -443,7 +443,10 @@ class ImpalaServer : public ImpalaServiceIf, public ImpalaHiveServer2ServiceIf,
   void QuerySummaryCallback(bool include_plan_json, bool include_summary,
       const Webserver::ArgumentMap& args, rapidjson::Document* document);
 
-  /// Webserver callback. Cancels an in-flight query and writes the result to 'contents'.
+  void QueryMetricsUrlCallback(const Webserver::ArgumentMap& args,
+      rapidjson::Document* document);
+
+  // Webserver callback. Cancels an in-flight query and writes the result to 'contents'.
   void CancelQueryUrlCallback(const Webserver::ArgumentMap& args,
       rapidjson::Document* document);
 
@@ -616,6 +619,8 @@ class ImpalaServer : public ImpalaServiceIf, public ImpalaHiveServer2ServiceIf,
 
     /// Comparator that sorts by start time.
     bool operator() (const QueryStateRecord& lhs, const QueryStateRecord& rhs) const;
+
+    boost::shared_ptr<MetricGroup> metrics;
   };
 
   /// Helper method to render a single QueryStateRecord as a Json object

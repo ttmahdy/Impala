@@ -72,6 +72,11 @@ void ImpalaServer::RegisterWebserverCallbacks(Webserver* webserver) {
   webserver->RegisterUrlCallback("/query_profile", "query_profile.tmpl",
       profile_callback, false);
 
+  Webserver::UrlCallback query_metrics_callback =
+      bind<void>(mem_fn(&ImpalaServer::QueryMetricsUrlCallback), this, _1, _2);
+  webserver->RegisterUrlCallback("/query_metrics", "metrics.tmpl", query_metrics_callback,
+      false);
+
   Webserver::UrlCallback cancel_callback =
       bind<void>(mem_fn(&ImpalaServer::CancelQueryUrlCallback), this, _1, _2);
   webserver->RegisterUrlCallback("/cancel_query", "common-pre.tmpl", cancel_callback,
@@ -154,6 +159,46 @@ void ImpalaServer::CancelQueryUrlCallback(const Webserver::ArgumentMap& args,
   }
   Value message("Query cancellation successful", document->GetAllocator());
   document->AddMember("contents", message, document->GetAllocator());
+}
+
+void ImpalaServer::QueryMetricsUrlCallback(const Webserver::ArgumentMap& args,
+    Document* document) {
+  TUniqueId unique_id;
+  Status parse_status = ParseQueryId(args, &unique_id);
+  if (!parse_status.ok()) {
+    Value error(parse_status.GetErrorMsg().c_str(), document->GetAllocator());
+    document->AddMember("error", error, document->GetAllocator());
+    return;
+  }
+
+  {
+    lock_guard<mutex> l(query_exec_state_map_lock_);
+    QueryExecStateMap::const_iterator exec_state = query_exec_state_map_.find(unique_id);
+    if (exec_state != query_exec_state_map_.end()) {
+      Value container;
+      exec_state->second->metrics()->ToJson(true, document, &container);
+      document->AddMember("metric_group", container, document->GetAllocator());
+      //      exec_state->second->metrics()->TemplateCallback(args, document);
+      return;
+    }
+  }
+
+  // The query was not found the active query map, search the query log.
+  {
+    lock_guard<mutex> l(query_log_lock_);
+    QueryLogIndex::const_iterator query_record = query_log_index_.find(unique_id);
+    if (query_record == query_log_index_.end()) {
+      return;
+    }
+    Value container;
+    query_record->second->metrics->ToJson(true, document, &container);
+    document->AddMember("metric_group", container, document->GetAllocator());
+    return;
+  }
+
+  Value error("Could not find query", document->GetAllocator());
+  document->AddMember("error", error, document->GetAllocator());
+  return;
 }
 
 void ImpalaServer::QueryProfileUrlCallback(const Webserver::ArgumentMap& args,
