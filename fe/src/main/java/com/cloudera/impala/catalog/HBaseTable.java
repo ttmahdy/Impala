@@ -54,6 +54,7 @@ import com.cloudera.impala.thrift.TResultSet;
 import com.cloudera.impala.thrift.TResultSetMetadata;
 import com.cloudera.impala.thrift.TTable;
 import com.cloudera.impala.thrift.TTableDescriptor;
+import com.cloudera.impala.thrift.THBaseTableDescriptor;
 import com.cloudera.impala.thrift.TTableType;
 import com.cloudera.impala.util.StatsHelper;
 import com.cloudera.impala.util.TResultRowBuilder;
@@ -578,7 +579,15 @@ public class HBaseTable extends Table {
     TTableDescriptor tableDescriptor =
         new TTableDescriptor(id_.asInt(), TTableType.HBASE_TABLE, getColumns().size(),
             numClusteringCols_, hbaseTableName_, db_.getName());
-    tableDescriptor.setHbaseTable(getTHBaseTable());
+
+    THBaseTable hbaseTable = getTHBaseTable();
+    THBaseTableDescriptor hbaseDesc = new THBaseTableDescriptor();
+    hbaseDesc.setTableName(hbaseDesc.tableName);
+    hbaseDesc.setFamilies(hbaseDesc.families);
+    hbaseDesc.setQualifiers(hbaseDesc.qualifiers);
+    hbaseDesc.setBinary_encoded(hbaseDesc.binary_encoded);
+
+    tableDescriptor.setHbaseTable(hbaseDesc);
     tableDescriptor.setColNames(getColumnNames());
     return tableDescriptor;
   }
@@ -628,6 +637,7 @@ public class HBaseTable extends Table {
     }
     return tHbaseTable;
   }
+
 
   /**
    * This is copied from org.apache.hadoop.hbase.client.HTable. The only difference is

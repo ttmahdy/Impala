@@ -19,6 +19,98 @@ include "CatalogObjects.thrift"
 include "Types.thrift"
 include "Exprs.thrift"
 
+// Descriptors are the data structures used to send query metadata (for example, slot,
+// tuple and table information) to backends from the coordinator.
+
+struct THdfsPartitionDescriptor {
+  1: required byte lineDelim
+  2: required byte fieldDelim
+  3: required byte collectionDelim
+  4: required byte mapKeyDelim
+  5: required byte escapeChar
+  6: required CatalogObjects.THdfsFileFormat fileFormat
+  7: list<Exprs.TExpr> partitionKeyExprs
+  8: required i32 blockSize
+  9: optional string location
+
+  // If true, the location field is relative to the base HDFS table directory. If false,
+  // the location is an absolute path (for external partitions).
+  10: optional bool location_is_relative
+
+  // Unique (in this table) id of this partition. If -1, the partition does not currently
+  // exist.
+  11: optional i64 id
+}
+
+struct THdfsTableDescriptor {
+  1: required string hdfsBaseDir
+
+  // The string used to represent NULL partition keys.
+  2: required string nullPartitionKeyValue
+
+  // String to indicate a NULL column value in text files
+  3: required string nullColumnValue
+
+  // Set to the table's Avro schema if this is an Avro table
+  4: optional string avroSchema
+
+  // map from partition id to partition metadata
+  5: required map<i64, THdfsPartitionDescriptor> partitions
+
+  // Indicates that this table's partitions reside on more than one filesystem.
+  // TODO: remove once INSERT across filesystems is supported.
+  6: optional bool multiple_filesystems
+}
+
+struct THBaseTableDescriptor {
+  1: required string tableName
+  2: required list<string> families
+  3: required list<string> qualifiers
+
+  // Column i is binary encoded if binary_encoded[i] is true. Otherwise, column i is
+  // text encoded.
+  4: optional list<bool> binary_encoded
+}
+
+struct TDataSourceTableDescriptor {
+  // The data source that will scan this table.
+  1: required CatalogObjects.TDataSource data_source
+
+  // Init string for the table passed to the data source. May be an empty string.
+  2: required string init_string
+}
+
+// "Union" of all table types.
+struct TTableDescriptor {
+  1: required Types.TTableId id
+  2: required CatalogObjects.TTableType tableType
+  3: required i32 numCols
+  4: required i32 numClusteringCols
+  // Names of the columns. Clustering columns come first.
+  10: optional list<string> colNames;
+  5: optional THdfsTableDescriptor hdfsTable
+  6: optional THBaseTableDescriptor hbaseTable
+  9: optional TDataSourceTableDescriptor dataSourceTable
+
+  // Unqualified name of table
+  7: required string tableName;
+
+  // Name of the database that the table belongs to
+  8: required string dbName;
+}
+
+struct TTupleDescriptor {
+  1: required Types.TTupleId id
+  2: required i32 byteSize
+  3: required i32 numNullBytes
+  4: optional Types.TTableId tableId
+
+  // Absolute path into the table schema pointing to the collection whose fields
+  // are materialized into this tuple. Non-empty if this tuple belongs to a
+  // nested collection, empty otherwise.
+  5: optional list<i32> tuplePath
+}
+
 struct TSlotDescriptor {
   1: required Types.TSlotId id
   2: required Types.TTupleId parent
@@ -38,37 +130,6 @@ struct TSlotDescriptor {
   7: required i32 nullIndicatorBit
   8: required i32 slotIdx
   9: required bool isMaterialized
-}
-
-// "Union" of all table types.
-struct TTableDescriptor {
-  1: required Types.TTableId id
-  2: required CatalogObjects.TTableType tableType
-  3: required i32 numCols
-  4: required i32 numClusteringCols
-  // Names of the columns. Clustering columns come first.
-  10: optional list<string> colNames;
-  5: optional CatalogObjects.THdfsTable hdfsTable
-  6: optional CatalogObjects.THBaseTable hbaseTable
-  9: optional CatalogObjects.TDataSourceTable dataSourceTable
-
-  // Unqualified name of table
-  7: required string tableName;
-
-  // Name of the database that the table belongs to
-  8: required string dbName;
-}
-
-struct TTupleDescriptor {
-  1: required Types.TTupleId id
-  2: required i32 byteSize
-  3: required i32 numNullBytes
-  4: optional Types.TTableId tableId
-
-  // Absolute path into the table schema pointing to the collection whose fields
-  // are materialized into this tuple. Non-empty if this tuple belongs to a
-  // nested collection, empty otherwise.
-  5: optional list<i32> tuplePath
 }
 
 struct TDescriptorTable {

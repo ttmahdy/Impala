@@ -181,7 +181,7 @@ class TableDescriptor {
 /// Metadata for a single partition inside an Hdfs table.
 class HdfsPartitionDescriptor {
  public:
-  HdfsPartitionDescriptor(const THdfsPartition& thrift_partition,
+  HdfsPartitionDescriptor(const THdfsPartitionDescriptor& thrift_partition,
       const std::string& base_dir, ObjectPool* pool);
   char line_delim() const { return line_delim_; }
   char field_delim() const { return field_delim_; }

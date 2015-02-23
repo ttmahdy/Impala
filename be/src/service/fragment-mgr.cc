@@ -44,6 +44,7 @@ Status FragmentMgr::ExecPlanFragment(const TExecPlanFragmentParams& exec_params)
 
   shared_ptr<FragmentExecState> exec_state(
       new FragmentExecState(exec_params.fragment_instance_ctx, ExecEnv::GetInstance()));
+
   // Call Prepare() now, before registering the exec state, to avoid calling
   // exec_state->Cancel().
   // We might get an async cancellation, and the executor requires that Cancel() not

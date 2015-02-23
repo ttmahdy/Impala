@@ -31,6 +31,7 @@ import com.cloudera.impala.thrift.TResultSet;
 import com.cloudera.impala.thrift.TResultSetMetadata;
 import com.cloudera.impala.thrift.TTable;
 import com.cloudera.impala.thrift.TTableDescriptor;
+import com.cloudera.impala.thrift.TDataSourceTableDescriptor;
 import com.cloudera.impala.thrift.TTableType;
 import com.cloudera.impala.util.TResultRowBuilder;
 import com.google.common.base.Preconditions;
@@ -220,7 +221,8 @@ public class DataSourceTable extends Table {
     TTableDescriptor tableDesc = new TTableDescriptor(id_.asInt(),
         TTableType.DATA_SOURCE_TABLE, getColumns().size(), numClusteringCols_, name_,
         db_.getName());
-    tableDesc.setDataSourceTable(getDataSourceTable());
+    tableDesc.setDataSourceTable(
+        new TDataSourceTableDescriptor(dataSource_, initString_));
     tableDesc.setColNames(getColumnNames());
     return tableDesc;
   }

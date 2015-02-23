@@ -38,6 +38,7 @@ import com.cloudera.impala.thrift.THdfsCompression;
 import com.cloudera.impala.thrift.THdfsFileBlock;
 import com.cloudera.impala.thrift.THdfsFileDesc;
 import com.cloudera.impala.thrift.THdfsPartition;
+import com.cloudera.impala.thrift.THdfsPartitionDescriptor;
 import com.cloudera.impala.thrift.TNetworkAddress;
 import com.cloudera.impala.thrift.TPartitionStats;
 import com.cloudera.impala.thrift.TTableStats;
@@ -679,7 +680,31 @@ public class HdfsPartition implements Comparable<HdfsPartition> {
     }
   }
 
-  public THdfsPartition toThrift(boolean includeFileDesc) {
+  public THdfsPartitionDescriptor toThriftDescriptor() {
+    List<TExpr> thriftExprs = Expr.treesToThrift(getPartitionValues());
+
+    THdfsPartitionDescriptor thriftHdfsPart = new THdfsPartitionDescriptor(
+        fileFormatDescriptor_.getLineDelim(),
+        fileFormatDescriptor_.getFieldDelim(),
+        fileFormatDescriptor_.getCollectionDelim(),
+        fileFormatDescriptor_.getMapKeyDelim(),
+        fileFormatDescriptor_.getEscapeChar(),
+        fileFormatDescriptor_.getFileFormat().toThrift(), thriftExprs,
+        fileFormatDescriptor_.getBlockSize());
+
+    if (location_ != null && location_.startsWith(table_.getLocation())) {
+      thriftHdfsPart.setLocation_is_relative(true);
+      String loc = location_.substring(table_.getLocation().length(), location_.length());
+      thriftHdfsPart.setLocation(loc);
+    } else {
+      thriftHdfsPart.setLocation_is_relative(false);
+      thriftHdfsPart.setLocation(location_);
+    }
+    thriftHdfsPart.setId(getId());
+    return thriftHdfsPart;
+  }
+
+  public THdfsPartition toThrift() {
     List<TExpr> thriftExprs = Expr.treesToThrift(getPartitionValues());
 
     THdfsPartition thriftHdfsPart = new THdfsPartition(
@@ -704,11 +729,9 @@ public class HdfsPartition implements Comparable<HdfsPartition> {
     thriftHdfsPart.setIs_marked_cached(isMarkedCached_);
     thriftHdfsPart.setId(getId());
     thriftHdfsPart.setHms_parameters(hmsParameters_);
-    if (includeFileDesc) {
-      // Add block location information
-      for (FileDescriptor fd: fileDescriptors_) {
-        thriftHdfsPart.addToFile_desc(fd.toThrift());
-      }
+    // Add block location information
+    for (FileDescriptor fd: fileDescriptors_) {
+      thriftHdfsPart.addToFile_desc(fd.toThrift());
     }
 
     return thriftHdfsPart;

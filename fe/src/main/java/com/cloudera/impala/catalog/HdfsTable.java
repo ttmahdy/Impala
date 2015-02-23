@@ -66,7 +66,9 @@ import com.cloudera.impala.thrift.TCatalogObjectType;
 import com.cloudera.impala.thrift.TColumn;
 import com.cloudera.impala.thrift.THdfsFileBlock;
 import com.cloudera.impala.thrift.THdfsPartition;
+import com.cloudera.impala.thrift.THdfsPartitionDescriptor;
 import com.cloudera.impala.thrift.THdfsTable;
+import com.cloudera.impala.thrift.THdfsTableDescriptor;
 import com.cloudera.impala.thrift.TNetworkAddress;
 import com.cloudera.impala.thrift.TPartitionKeyValue;
 import com.cloudera.impala.thrift.TResultRow;
@@ -1261,13 +1263,31 @@ public class HdfsTable extends Table {
     populatePartitionMd();
   }
 
+  /**
+   * Returns a TTableDescriptor with all the information required for backend nodes to
+   * process a query against this table. If referencedPartitions is not null, include only
+   * those partitions with IDs in referencedPartitions, otherwise include all partitions.
+   */
   @Override
   public TTableDescriptor toThriftDescriptor(Set<Long> referencedPartitions) {
-    // Create thrift descriptors to send to the BE.  The BE does not
-    // need any information below the THdfsPartition level.
+    // Create thrift descriptors to send to the BE.  The BE does not need any information
+    // below the THdfsPartition level.
     TTableDescriptor tableDesc = new TTableDescriptor(id_.asInt(), TTableType.HDFS_TABLE,
         getColumns().size(), numClusteringCols_, name_, db_.getName());
-    tableDesc.setHdfsTable(getTHdfsTable(false, referencedPartitions));
+
+    Map<Long, THdfsPartitionDescriptor> idToPartition = Maps.newHashMap();
+    for (HdfsPartition partition: partitions_) {
+      long id = partition.getId();
+      if (referencedPartitions == null || referencedPartitions.contains(id)) {
+        idToPartition.put(id, partition.toThriftDescriptor());
+      }
+    }
+    THdfsTableDescriptor hdfsTable = new THdfsTableDescriptor(hdfsBaseDir_,
+        nullPartitionKeyValue_, nullColumnValue_, idToPartition);
+    hdfsTable.setAvroSchema(avroSchema_);
+    hdfsTable.setMultiple_filesystems(multipleFileSystems_);
+
+    tableDesc.setHdfsTable(hdfsTable);
     tableDesc.setColNames(getColumnNames());
     return tableDesc;
   }
@@ -1277,37 +1297,20 @@ public class HdfsTable extends Table {
     // Send all metadata between the catalog service and the FE.
     TTable table = super.toThrift();
     table.setTable_type(TTableType.HDFS_TABLE);
-    table.setHdfs_table(getTHdfsTable(true, null));
-    return table;
-  }
 
-  /**
-   * Create a THdfsTable corresponding to this HdfsTable. If includeFileDesc is true,
-   * then then all partitions and THdfsFileDescs of each partition should be included.
-   * Otherwise, don't include any THdfsFileDescs, and include only those partitions in
-   * the refPartitions set (the backend doesn't need metadata for unreferenced
-   * partitions).
-   */
-  private THdfsTable getTHdfsTable(boolean includeFileDesc, Set<Long> refPartitions) {
-    // includeFileDesc implies all partitions should be included (refPartitions == null).
-    Preconditions.checkState(!includeFileDesc || refPartitions == null);
     Map<Long, THdfsPartition> idToPartition = Maps.newHashMap();
     for (HdfsPartition partition: partitions_) {
       long id = partition.getId();
-      if (refPartitions == null || refPartitions.contains(id)) {
-        idToPartition.put(id, partition.toThrift(includeFileDesc));
-      }
+      idToPartition.put(id, partition.toThrift());
     }
     THdfsTable hdfsTable = new THdfsTable(hdfsBaseDir_, getColumnNames(),
         nullPartitionKeyValue_, nullColumnValue_, idToPartition);
     hdfsTable.setAvroSchema(avroSchema_);
     hdfsTable.setMultiple_filesystems(multipleFileSystems_);
-    if (includeFileDesc) {
-      // Network addresses are used only by THdfsFileBlocks which are inside
-      // THdfsFileDesc, so include network addreses only when including THdfsFileDesc.
-      hdfsTable.setNetwork_addresses(hostIndex_.getList());
-    }
-    return hdfsTable;
+    hdfsTable.setNetwork_addresses(hostIndex_.getList());
+
+    table.setHdfs_table(hdfsTable);
+    return table;
   }
 
   public long getNumHdfsFiles() { return numHdfsFiles_; }
