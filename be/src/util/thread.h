@@ -108,9 +108,9 @@ class Thread {
   static const int64_t INVALID_THREAD_ID = -1;
 
  private:
-  /// To distinguish between a thread ID that can't be determined, and one that hasn't been
-  /// assigned. Since tid_ is set in the constructor, this value will never be seen by
-  /// clients of this class.
+  /// To distinguish between a thread ID that can't be determined, and one that hasn't
+  /// been assigned. Since tid_ is set in the constructor, this value will never be seen
+  /// by clients of this class.
   static const int64_t UNINITIALISED_THREAD_ID = -2;
 
   /// Function object that wraps the user-supplied function to run in a separate thread.
@@ -200,7 +200,7 @@ class ThreadGroup {
 /// Initialises the threading subsystem. Must be called before a Thread is created.
 void InitThreading();
 
-/// Registers /threadsz with the debug webserver, and creates thread-tracking metrics under
+/// Registers /threadz with the debug webserver, and creates thread-tracking metrics under
 /// the "thread-manager." prefix
 Status StartThreadInstrumentation(MetricGroup* metrics, Webserver* webserver);
 }

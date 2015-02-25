@@ -45,7 +45,9 @@ class FragmentMgr::FragmentExecState {
   /// the fragment and returns OK.
   Status Cancel();
 
-  /// Call Prepare() and create and initialize data sink.
+  /// Call Prepare() and create and initialize data sink. Prepare() must be called in all
+  /// executions where Cancel() may be called (see explanator comments in
+  /// PlanFragmentExecutor for details).
   Status Prepare(const TExecPlanFragmentParams& exec_params);
 
   /// Main loop of plan fragment execution. Blocks until execution finishes.
@@ -82,13 +84,17 @@ class FragmentMgr::FragmentExecState {
   /// if set to anything other than OK, execution has terminated w/ an error
   Status exec_status_;
 
+  /// Update 'exec_status_' w/ 'status', if the former is not already an error.
+  /// Returns the value of 'exec_status_' after this method completes.
+  Status UpdateStatus(const Status& status);
+
   /// Callback for executor; updates exec_status_ if 'status' indicates an error
   /// or if there was a thrift error.
+  ///
+  /// If not NULL, `profile` is encoded as a Thrift structure and transmitted as part of
+  /// the reporting RPC. `profile` may be NULL if a runtime profile has not been created
+  /// for this fragment (e.g. when the fragment has failed during preparation).
   void ReportStatusCb(const Status& status, RuntimeProfile* profile, bool done);
-
-  /// Update exec_status_ w/ status, if the former isn't already an error.
-  /// Returns current exec_status_.
-  Status UpdateStatus(const Status& status);
 };
 
 }
