@@ -86,10 +86,17 @@ class PlanFragmentExecutor {
 
   /// Prepare for execution. Call this prior to Open().
   /// This call won't block.
-  /// runtime_state() and row_desc() will not be valid until Prepare() is called.
+  /// runtime_state() and row_desc() will not be valid until Prepare() is
+  /// called. runtime_state() will always be valid after Prepare() returns.
   /// If request.query_options.mem_limit > 0, it is used as an approximate limit on the
   /// number of bytes this query can consume at runtime.
   /// The query will be aborted (MEM_LIMIT_EXCEEDED) if it goes over that limit.
+  ///
+  /// Prepare() must *always* be called in order to ensure that any Cancel() call will
+  /// successfully complete. Callers of this class must ensure that Prepare() is always
+  /// called, even if an error occurs, if there is any possibility that Cancel() will also
+  /// be called. It does not matter which order Cancel() and Prepare() are called in; see
+  /// Cancel() for more details on the interaction between the two.
   Status Prepare(const TExecPlanFragmentParams& request);
 
   /// Start execution. Call this prior to GetNext().
@@ -114,7 +121,28 @@ class PlanFragmentExecutor {
   /// in Open()/GetNext().
   void Close();
 
-  /// Initiate cancellation. Must not be called until after Prepare() returned.
+  /// Initiate cancellation. In order for this method to complete, Prepare() must have
+  /// returned as it establishes some state on which Cancel() depends.
+  ///
+  /// There are three cases to consider:
+  ///
+  ///   1. Prepare() completes before Cancel() has started. In this case, cancellation
+  ///   will continue without blocking.
+  ///   2. Cancel() is called before Prepare() has started. In this case, Cancel() will
+  ///   block until Prepare() has finished.
+  ///   3. Cancel() is called concurrently with Prepare(). As with case 2., Cancel() will
+  ///   block until Prepare() has finished.
+  ///
+  /// The ultimate effect is that calls to Cancel() and Prepare() always behave as though
+  /// they were serialised as Prepare() -> Cancel(). Therefore, as noted above, Prepare()
+  /// must *always* be called in any execution where Cancel() may be called; otherwise
+  /// Cancel() will never appear to have been called.
+  ///
+  /// Cancel() may be called more than once. Calls after the first will have no
+  /// effect. Duplicate calls to Cancel() are not serialised, and may safely execute
+  /// concurrently.
+  ///
+  /// It is legal to call Cancel() if Prepare() returned an error.
   void Cancel();
 
   /// Returns true if this query has a limit and it has been reached.
@@ -181,6 +209,10 @@ class PlanFragmentExecutor {
   boost::scoped_ptr<RuntimeState> runtime_state_;
   boost::scoped_ptr<RowBatch> row_batch_;
   boost::scoped_ptr<TRowBatch> thrift_batch_;
+
+  // Enforces the ordering between Prepare() and Cancel() (see Cancel() for more
+  // details). Prepare() sets this promise, and Cancel() reads it.
+  Promise<RuntimeState*> runtime_state_promise_;
 
   /// A counter for the per query, per host peak mem usage. Note that this is not the
   /// max of the peak memory of all fragments running on a host since it needs to take
