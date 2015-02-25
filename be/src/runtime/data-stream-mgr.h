@@ -105,10 +105,11 @@ class DataStreamMgr {
       boost::shared_ptr<DataStreamRecvr> > StreamMap;
   StreamMap receiver_map_;
 
-  /// less-than ordering for pair<TUniqueId, PlanNodeId>
+  typedef std::pair<impala::TUniqueId, PlanNodeId> StreamId;
+
+  // less-than ordering for pair<TUniqueId, PlanNodeId>
   struct ComparisonOp {
-    bool operator()(const std::pair<impala::TUniqueId, PlanNodeId>& a,
-                    const std::pair<impala::TUniqueId, PlanNodeId>& b) {
+    bool operator()(const StreamId& a, const StreamId& b) {
       if (a.first.hi < b.first.hi) {
         return true;
       } else if (a.first.hi > b.first.hi) {
@@ -122,8 +123,8 @@ class DataStreamMgr {
     }
   };
 
-  /// ordered set of registered streams' fragment instance id/node id
-  typedef std::set<std::pair<TUniqueId, PlanNodeId>, ComparisonOp > FragmentStreamSet;
+  // ordered set of registered streams' fragment instance id/node id
+  typedef std::set<StreamId, ComparisonOp> FragmentStreamSet;
   FragmentStreamSet fragment_stream_set_;
 
   /// Return the receiver for given fragment_instance_id/node_id,
@@ -133,10 +134,41 @@ class DataStreamMgr {
       const TUniqueId& fragment_instance_id, PlanNodeId node_id,
       bool acquire_lock = true);
 
-  /// Remove receiver block for fragment_instance_id/node_id from the map.
+  // Calls FindRecvr(), but if NULL is returned, wait for up to 10s for the receiver to
+  // be registered. See below for how this is achieved.
+  boost::shared_ptr<DataStreamRecvr> FindRecvrOrWait(
+      const TUniqueId& fragment_instance_id, PlanNodeId node_id);
+
+  // Remove receiver block for fragment_instance_id/node_id from the map.
   Status DeregisterRecvr(const TUniqueId& fragment_instance_id, PlanNodeId node_id);
 
   inline uint32_t GetHashValue(const TUniqueId& fragment_instance_id, PlanNodeId node_id);
+
+  // Senders may initialise and start sending row batches before a receiver is ready. To
+  // accommodate this, we allow senders to establish a rendezvous between them and the
+  // receiver. When the receiver arrives, it triggers the rendezvous, and all waiting
+  // senders can proceed. A sender that waits for too long (10s by default) will
+  // eventually time out and abort.
+
+  // The coordination primitive used to signal the arrival of a waited-for receiver
+  typedef Promise<boost::shared_ptr<DataStreamRecvr> > RendezvousPromise;
+
+  // Map from stream (which identifies a receiver) to a (count, promise) pair that gives
+  // the number of senders waiting as well as a shared promise that is set when the
+  // receiver arrives. The count is used to detect when no receivers are waiting, to
+  // initiate clean-up after the fact.
+  typedef boost::unordered_map<StreamId, std::pair<int, RendezvousPromise*> >
+  RendezvousMap;
+  RendezvousMap pending_rendezvous_;
+
+  // If a rendezvous for the specified receiver already exists, returns the associated
+  // promise, otherwise establishes a new rendezvous with waiting count of 1.
+  RendezvousPromise* SetRecvrRendezvous(const TUniqueId& fragment_instance_id,
+      PlanNodeId node_id);
+
+  // Removes a waiter from the specified rendezvous. If this is the last waiter to leave,
+  // cleans up the entry in the rendezvous map and deletes the promise.
+  void RemoveRendezvous(const TUniqueId& fragment_instance_id, PlanNodeId node_id);
 };
 
 }

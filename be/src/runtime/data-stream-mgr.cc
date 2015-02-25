@@ -25,6 +25,7 @@
 #include "runtime/runtime-state.h"
 #include "util/debug-util.h"
 #include "util/periodic-counter-updater.h"
+#include "util/uid-util.h"
 
 #include "gen-cpp/ImpalaInternalService.h"
 #include "gen-cpp/ImpalaInternalService_types.h"
@@ -58,7 +59,54 @@ shared_ptr<DataStreamRecvr> DataStreamMgr::CreateRecvr(RuntimeState* state,
   lock_guard<mutex> l(lock_);
   fragment_stream_set_.insert(make_pair(fragment_instance_id, dest_node_id));
   receiver_map_.insert(make_pair(hash_value, recvr));
+
+  RendezvousMap::iterator it =
+      pending_rendezvous_.find(make_pair(fragment_instance_id, dest_node_id));
+  if (it != pending_rendezvous_.end()) it->second.second->Set(recvr);
+
   return recvr;
+}
+
+shared_ptr<DataStreamRecvr> DataStreamMgr::FindRecvrOrWait(
+    const TUniqueId& fragment_instance_id, PlanNodeId node_id) {
+  shared_ptr<DataStreamRecvr> ret = FindRecvr(fragment_instance_id, node_id);
+  if (ret.get() != NULL) return ret;
+
+  // Set up the rendesvouz
+  RendezvousPromise* promise = SetRecvrRendezvous(fragment_instance_id, node_id);
+  bool timed_out = false;
+  ret = promise->Get(10000, &timed_out);
+
+  RemoveRendezvous(fragment_instance_id, node_id);
+  return ret;
+}
+
+Promise<shared_ptr<DataStreamRecvr> >* DataStreamMgr::SetRecvrRendezvous(
+    const TUniqueId& fragment_instance_id, PlanNodeId node_id) {
+  lock_guard<mutex> l(lock_);
+  RendezvousMap::iterator it =
+      pending_rendezvous_.find(make_pair(fragment_instance_id, node_id));
+  if (it != pending_rendezvous_.end()) {
+    ++it->second.first;
+    return it->second.second;
+  }
+  pending_rendezvous_[make_pair(fragment_instance_id, node_id)] =
+      make_pair(1, new RendezvousPromise());
+  return promise;
+}
+
+void DataStreamMgr::RemoveRendezvous(const TUniqueId& fragment_instance_id,
+    PlanNodeId node_id) {
+  lock_guard<mutex> l(lock_);
+  RendezvousMap::iterator it =
+      pending_rendezvous_.find(make_pair(fragment_instance_id, node_id));
+  DCHECK(it != pending_rendezvous_.end());
+  // If we are the last to leave, remove the rendezvous from the pending map. Any
+  // incoming senders will add a new entry to the map themselves.
+  if (--it->second.first == 0) {
+    delete it->second.second;
+    pending_rendezvous_.erase(it);
+  }
 }
 
 shared_ptr<DataStreamRecvr> DataStreamMgr::FindRecvr(
@@ -89,7 +137,7 @@ Status DataStreamMgr::AddData(
            << " node=" << dest_node_id
            << " size=" << RowBatch::GetBatchSize(thrift_batch);
   shared_ptr<DataStreamRecvr> recvr =
-      FindRecvr(fragment_instance_id, dest_node_id);
+      FindRecvrOrWait(fragment_instance_id, dest_node_id);
   if (recvr == NULL) {
     // The receiver may remove itself from the receiver map via DeregisterRecvr()
     // at any time without considering the remaining number of senders.
