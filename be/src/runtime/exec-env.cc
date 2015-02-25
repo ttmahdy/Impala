@@ -139,10 +139,11 @@ ExecEnv::ExecEnv()
     catalogd_client_cache_(
         new CatalogServiceClientCache(
             "", !FLAGS_ssl_client_ca_certificate.empty())),
+    metrics_(new MetricGroup("impala-metrics")),
+    stream_mgr_(new DataStreamMgr(metrics_.get())),
     htable_factory_(new HBaseTableFactory()),
     disk_io_mgr_(new DiskIoMgr()),
     webserver_(new Webserver()),
-    metrics_(new MetricGroup("impala-metrics")),
     mem_tracker_(NULL),
     thread_mgr_(new ThreadResourceMgr),
     cgroups_mgr_(NULL),
@@ -183,17 +184,17 @@ ExecEnv::ExecEnv()
 
 ExecEnv::ExecEnv(const string& hostname, int backend_port, int subscriber_port,
                  int webserver_port, const string& statestore_host, int statestore_port)
-  : stream_mgr_(new DataStreamMgr()),
-    impalad_client_cache_(
+  : impalad_client_cache_(
         new ImpalaInternalServiceClientCache(
             "", !FLAGS_ssl_client_ca_certificate.empty())),
     catalogd_client_cache_(
         new CatalogServiceClientCache(
             "", !FLAGS_ssl_client_ca_certificate.empty())),
+    metrics_(new MetricGroup("impala-metrics")),
+    stream_mgr_(new DataStreamMgr(metrics_.get())),
     htable_factory_(new HBaseTableFactory()),
     disk_io_mgr_(new DiskIoMgr()),
     webserver_(new Webserver(webserver_port)),
-    metrics_(new MetricGroup("impala-metrics")),
     mem_tracker_(NULL),
     thread_mgr_(new ThreadResourceMgr),
     hdfs_op_thread_pool_(

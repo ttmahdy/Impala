@@ -104,7 +104,7 @@ class DataStreamTest : public testing::Test {
 
     next_instance_id_.lo = 0;
     next_instance_id_.hi = 0;
-    stream_mgr_ = new DataStreamMgr();
+    stream_mgr_ = new DataStreamMgr(new MetricGroup(""));
 
     broadcast_sink_.dest_node_id = DEST_NODE_ID;
     broadcast_sink_.output_partition.type = TPartitionType::UNPARTITIONED;

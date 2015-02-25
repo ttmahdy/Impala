@@ -45,43 +45,40 @@ Status FragmentMgr::ExecPlanFragment(const TExecPlanFragmentParams& exec_params)
   shared_ptr<FragmentExecState> exec_state(
       new FragmentExecState(exec_params.fragment_instance_ctx, ExecEnv::GetInstance()));
 
+  // execute plan fragment in new thread
+  // TODO: manage threads via global thread pool
+  exec_state->set_exec_thread(new Thread("impala-server", "exec-plan-fragment",
+      &FragmentMgr::FragmentThread, this, exec_params, exec_state));
+
+  return Status::OK;
+}
+
+void FragmentMgr::FragmentThread(const TExecPlanFragmentParams& params,
+    shared_ptr<FragmentExecState> exec_state) {
   // Call Prepare() now, before registering the exec state, to avoid calling
   // exec_state->Cancel().
   // We might get an async cancellation, and the executor requires that Cancel() not
   // be called before Prepare() returns.
-  RETURN_IF_ERROR(exec_state->Prepare(exec_params));
+  Status status = exec_state->Prepare(params);
 
   {
     lock_guard<mutex> l(fragment_exec_state_map_lock_);
     // register exec_state before starting exec thread
     fragment_exec_state_map_.insert(
-        make_pair(exec_params.fragment_instance_ctx.fragment_instance_id, exec_state));
+        make_pair(params.fragment_instance_ctx.fragment_instance_id, exec_state));
   }
 
-  // execute plan fragment in new thread
-  // TODO: manage threads via global thread pool
-  exec_state->set_exec_thread(new Thread("impala-server", "exec-plan-fragment",
-      &FragmentMgr::FragmentExecThread, this, exec_state.get()));
+  if (!status.ok()) return;
 
-  return Status::OK();
-}
-
-void FragmentMgr::FragmentExecThread(FragmentExecState* exec_state) {
   ImpaladMetrics::IMPALA_SERVER_NUM_FRAGMENTS->Increment(1L);
   exec_state->Exec();
   // we're done with this plan fragment
 
-  // The last reference to the FragmentExecState is in the map. We don't
-  // want the destructor to be called while the fragment_exec_state_map_lock_
-  // is taken so we'll first grab a reference here before removing the entry
-  // from the map.
-  shared_ptr<FragmentExecState> exec_state_reference;
   {
     lock_guard<mutex> l(fragment_exec_state_map_lock_);
     FragmentExecStateMap::iterator i =
         fragment_exec_state_map_.find(exec_state->fragment_instance_id());
     if (i != fragment_exec_state_map_.end()) {
-      exec_state_reference = i->second;
       fragment_exec_state_map_.erase(i);
     } else {
       LOG(ERROR) << "missing entry in fragment exec state map: instance_id="

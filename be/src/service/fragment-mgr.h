@@ -49,6 +49,12 @@ class FragmentMgr {
 
   class FragmentExecState;
 
+  /// Call exec_state->Prepare(), registers the fragment in the map, and then calls
+  /// exec_state->Exec(). Finally the exec_state is unregistered. Run in the fragment's
+  /// execution thread.
+  void FragmentThread(const TExecPlanFragmentParams& params,
+      boost::shared_ptr<FragmentExecState> exec_state);
+
   /// Returns a shared pointer to the FragmentExecState if one can be found for the
   /// given id. If the id is not found, the shared pointer will contain NULL.
   boost::shared_ptr<FragmentExecState> GetFragmentExecState(

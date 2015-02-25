@@ -41,8 +41,10 @@ Status FragmentMgr::FragmentExecState::Cancel() {
 Status FragmentMgr::FragmentExecState::Prepare(
     const TExecPlanFragmentParams& exec_params) {
   exec_params_ = exec_params;
-  RETURN_IF_ERROR(executor_.Prepare(exec_params));
-  return Status::OK();
+  Status status = executor_.Prepare(exec_params);
+  if (!status.ok()) ReportStatusCb(status, NULL, true);
+
+  return status;
 }
 
 void FragmentMgr::FragmentExecState::Exec() {
@@ -76,8 +78,11 @@ void FragmentMgr::FragmentExecState::ReportStatusCb(
   params.__set_fragment_instance_id(fragment_instance_ctx_.fragment_instance_id);
   exec_status.SetTStatus(&params);
   params.__set_done(done);
-  profile->ToThrift(&params.profile);
-  params.__isset.profile = true;
+
+  if (profile != NULL) {
+    profile->ToThrift(&params.profile);
+    params.__isset.profile = true;
+  }
 
   RuntimeState* runtime_state = executor_.runtime_state();
   DCHECK(runtime_state != NULL);
@@ -106,7 +111,6 @@ void FragmentMgr::FragmentExecState::ReportStatusCb(
   if (rpc_status.ok()) rpc_status = Status(res.status);
   if (!rpc_status.ok()) {
     UpdateStatus(rpc_status);
-    // we need to cancel the execution of this fragment
-    executor_.Cancel();
+    if (profile != NULL) executor_.Cancel();
   }
 }

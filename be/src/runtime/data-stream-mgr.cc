@@ -36,6 +36,16 @@ using namespace apache::thrift;
 
 namespace impala {
 
+DataStreamMgr::DataStreamMgr(MetricGroup* metrics) {
+  metrics_ = metrics->GetChildGroup("datastream-manager");
+  num_senders_waiting_ =
+      metrics_->AddGauge<int64_t>("senders-blocked-on-recvr-creation", 0L);
+  total_senders_waiting_ =
+      metrics_->AddCounter<int64_t>("total-senders-blocked-on-recvr-creation", 0L);
+  num_senders_timedout_ =
+      metrics_->AddCounter<int64_t>("senders-timedout-waiting-for-recvr-creation", 0L);
+}
+
 inline uint32_t DataStreamMgr::GetHashValue(
     const TUniqueId& fragment_instance_id, PlanNodeId node_id) {
   uint32_t value = RawValue::GetHashValue(&fragment_instance_id.lo, TYPE_BIGINT, 0);
@@ -75,13 +85,22 @@ shared_ptr<DataStreamRecvr> DataStreamMgr::FindRecvrOrWait(
   // Set up the rendesvouz
   RendezvousPromise* promise = SetRecvrRendezvous(fragment_instance_id, node_id);
   bool timed_out = false;
+  MonotonicStopWatch sw;
+  sw.Start();
+  num_senders_waiting_->Increment(1L);
+  total_senders_waiting_->Increment(1L);
   ret = promise->Get(10000, &timed_out);
+  num_senders_waiting_->Increment(-1L);
+  VLOG_QUERY << "Datastream sender waited for "
+             << PrettyPrinter::Print(sw.ElapsedTime(), TUnit::TIME_NS) << ", timedout: "
+             << boolalpha << timed_out;
+  if (timed_out) num_senders_timedout_->Increment(1L);
 
   RemoveRendezvous(fragment_instance_id, node_id);
   return ret;
 }
 
-Promise<shared_ptr<DataStreamRecvr> >* DataStreamMgr::SetRecvrRendezvous(
+DataStreamMgr::RendezvousPromise* DataStreamMgr::SetRecvrRendezvous(
     const TUniqueId& fragment_instance_id, PlanNodeId node_id) {
   lock_guard<mutex> l(lock_);
   RendezvousMap::iterator it =
@@ -90,8 +109,9 @@ Promise<shared_ptr<DataStreamRecvr> >* DataStreamMgr::SetRecvrRendezvous(
     ++it->second.first;
     return it->second.second;
   }
+  RendezvousPromise* promise = new RendezvousPromise();
   pending_rendezvous_[make_pair(fragment_instance_id, node_id)] =
-      make_pair(1, new RendezvousPromise());
+      make_pair(1, promise);
   return promise;
 }
 

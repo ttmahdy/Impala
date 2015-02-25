@@ -115,7 +115,8 @@ class ExecEnv {
   bool is_pseudo_distributed_llama() { return is_pseudo_distributed_llama_; }
 
  protected:
-  /// Leave protected so that subclasses can override
+  // Leave protected so that subclasses can override
+  boost::scoped_ptr<MetricGroup> metrics_;
   boost::scoped_ptr<DataStreamMgr> stream_mgr_;
   boost::scoped_ptr<ResourceBroker> resource_broker_;
   boost::scoped_ptr<Scheduler> scheduler_;
@@ -125,7 +126,6 @@ class ExecEnv {
   boost::scoped_ptr<HBaseTableFactory> htable_factory_;
   boost::scoped_ptr<DiskIoMgr> disk_io_mgr_;
   boost::scoped_ptr<Webserver> webserver_;
-  boost::scoped_ptr<MetricGroup> metrics_;
   boost::scoped_ptr<MemTracker> mem_tracker_;
   boost::scoped_ptr<ThreadResourceMgr> thread_mgr_;
   boost::scoped_ptr<CgroupsMgr> cgroups_mgr_;

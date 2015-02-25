@@ -55,7 +55,7 @@ class TRowBatch;
 /// per-query memory limits.
 class DataStreamMgr {
  public:
-  DataStreamMgr() {}
+  DataStreamMgr(MetricGroup* metrics);
 
   /// Create a receiver for a specific fragment_instance_id/node_id destination;
   /// If is_merging is true, the receiver maintains a separate queue of incoming row
@@ -93,7 +93,19 @@ class DataStreamMgr {
  private:
   friend class DataStreamRecvr;
 
-  /// protects all fields below
+  // Owned by the metric group passed into the constructor
+  MetricGroup* metrics_;
+
+  // Current number of senders waiting for a receiver to register
+  IntGauge* num_senders_waiting_;
+
+  // Total number of senders that have ever waited for a receiver to register
+  IntCounter* total_senders_waiting_;
+
+  // Total number of senders that timed-out waiting for a receiver to register
+  IntCounter* num_senders_timedout_;
+
+  // protects all fields below
   boost::mutex lock_;
 
   /// map from hash value of fragment instance id/node id pair to stream receivers;

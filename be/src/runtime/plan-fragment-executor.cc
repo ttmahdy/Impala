@@ -96,6 +96,8 @@ Status PlanFragmentExecutor::Prepare(const TExecPlanFragmentParams& request) {
     cgroup = exec_env_->cgroups_mgr()->UniqueIdToCgroup(PrintId(query_id_, "_"));
   }
 
+  // Prepare() may not return before runtime_state_ is set. Do not return put any code
+  // that might return on error above this line.
   runtime_state_.reset(
       new RuntimeState(request.fragment_instance_ctx, cgroup, exec_env_));
 
