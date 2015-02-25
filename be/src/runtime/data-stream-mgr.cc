@@ -25,6 +25,7 @@
 #include "runtime/runtime-state.h"
 #include "util/debug-util.h"
 #include "util/periodic-counter-updater.h"
+#include "util/uid-util.h"
 
 #include "gen-cpp/ImpalaInternalService.h"
 #include "gen-cpp/ImpalaInternalService_types.h"
@@ -32,8 +33,22 @@
 #include "common/names.h"
 
 using namespace apache::thrift;
+using std::boolalpha;
+
+DEFINE_int32(datastream_timeout_ms, 60000, "(Advanced) The time, in ms, that can elapse"
+    " before a plan fragment will time-out trying to send the initial row batch.");
 
 namespace impala {
+
+DataStreamMgr::DataStreamMgr(MetricGroup* metrics) {
+  metrics_ = metrics->GetChildGroup("datastream-manager");
+  num_senders_waiting_ =
+      metrics_->AddGauge<int64_t>("senders-blocked-on-recvr-creation", 0L);
+  total_senders_waiting_ =
+      metrics_->AddCounter<int64_t>("total-senders-blocked-on-recvr-creation", 0L);
+  num_senders_timedout_ = metrics_->AddCounter<int64_t>(
+      "total-senders-timedout-waiting-for-recvr-creation", 0L);
+}
 
 inline uint32_t DataStreamMgr::GetHashValue(
     const TUniqueId& fragment_instance_id, PlanNodeId node_id) {
@@ -58,7 +73,53 @@ shared_ptr<DataStreamRecvr> DataStreamMgr::CreateRecvr(RuntimeState* state,
   lock_guard<mutex> l(lock_);
   fragment_stream_set_.insert(make_pair(fragment_instance_id, dest_node_id));
   receiver_map_.insert(make_pair(hash_value, recvr));
+
+  RendezvousMap::iterator it =
+      pending_rendezvous_.find(make_pair(fragment_instance_id, dest_node_id));
+  if (it != pending_rendezvous_.end()) it->second.promise->Set(recvr);
+
   return recvr;
+}
+
+shared_ptr<DataStreamRecvr> DataStreamMgr::FindRecvrOrWait(
+    const TUniqueId& fragment_instance_id, PlanNodeId node_id) {
+  RefCountedPromise* promise = NULL;
+  shared_ptr<DataStreamRecvr> ret;
+  const StreamId& promise_key = make_pair(fragment_instance_id, node_id);
+  {
+    lock_guard<mutex> l(lock_);
+    ret = FindRecvr(fragment_instance_id, node_id, false);
+    if (ret.get() != NULL) return ret;
+    // Find the rendezvous, creating a new one if one does not already exist.
+    promise = &pending_rendezvous_[promise_key];
+    promise->IncRefCount();
+  }
+  bool timed_out = false;
+  MonotonicStopWatch sw;
+  sw.Start();
+  num_senders_waiting_->Increment(1L);
+  total_senders_waiting_->Increment(1L);
+  ret = promise->promise->Get(FLAGS_datastream_timeout_ms, &timed_out);
+  num_senders_waiting_->Increment(-1L);
+  const string& time_taken = PrettyPrinter::Print(sw.ElapsedTime(), TUnit::TIME_NS);
+  if (timed_out) {
+    LOG(INFO) << "Datastream sender timed-out waiting for recvr for fragment instance: "
+              << fragment_instance_id << " (time-out was: " << time_taken << "). "
+              << "If query was cancelled, this is not an error.";
+  } else {
+    VLOG_QUERY << "Datastream sender waited for " << time_taken
+               << ", and did not time-out.";
+  }
+  if (timed_out) num_senders_timedout_->Increment(1L);
+
+  DCHECK(promise != NULL);
+  {
+    lock_guard<mutex> l(lock_);
+    // If we are the last to leave, remove the rendezvous from the pending map. Any new
+    // incoming senders will add a new entry to the map themselves.
+    if (promise->DecRefCount() == 0) pending_rendezvous_.erase(promise_key);
+  }
+  return ret;
 }
 
 shared_ptr<DataStreamRecvr> DataStreamMgr::FindRecvr(
@@ -89,8 +150,8 @@ Status DataStreamMgr::AddData(
            << " node=" << dest_node_id
            << " size=" << RowBatch::GetBatchSize(thrift_batch);
   shared_ptr<DataStreamRecvr> recvr =
-      FindRecvr(fragment_instance_id, dest_node_id);
-  if (recvr == NULL) {
+      FindRecvrOrWait(fragment_instance_id, dest_node_id);
+  if (recvr.get() == NULL) {
     // The receiver may remove itself from the receiver map via DeregisterRecvr()
     // at any time without considering the remaining number of senders.
     // As a consequence, FindRecvr() may return an innocuous NULL if a thread
@@ -108,8 +169,8 @@ Status DataStreamMgr::CloseSender(const TUniqueId& fragment_instance_id,
     PlanNodeId dest_node_id, int sender_id) {
   VLOG_FILE << "CloseSender(): fragment_instance_id=" << fragment_instance_id
             << ", node=" << dest_node_id;
-  shared_ptr<DataStreamRecvr> recvr = FindRecvr(fragment_instance_id, dest_node_id);
-  if (recvr == NULL) {
+  shared_ptr<DataStreamRecvr> recvr = FindRecvrOrWait(fragment_instance_id, dest_node_id);
+  if (recvr.get() == NULL) {
     // The receiver may remove itself from the receiver map via DeregisterRecvr()
     // at any time without considering the remaining number of senders.
     // As a consequence, FindRecvr() may return an innocuous NULL if a thread
@@ -159,7 +220,7 @@ void DataStreamMgr::Cancel(const TUniqueId& fragment_instance_id) {
       fragment_stream_set_.lower_bound(make_pair(fragment_instance_id, 0));
   while (i != fragment_stream_set_.end() && i->first == fragment_instance_id) {
     shared_ptr<DataStreamRecvr> recvr = FindRecvr(i->first, i->second, false);
-    if (recvr == NULL) {
+    if (recvr.get() == NULL) {
       // keep going but at least log it
       stringstream err;
       err << "Cancel(): missing in stream_map: fragment=" << i->first
