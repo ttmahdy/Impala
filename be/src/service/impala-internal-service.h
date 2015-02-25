@@ -34,7 +34,9 @@ class ImpalaInternalService : public ImpalaInternalServiceIf {
 
   virtual void ExecPlanFragment(TExecPlanFragmentResult& return_val,
       const TExecPlanFragmentParams& params) {
-    fragment_mgr_->ExecPlanFragment(params).SetTStatus(&return_val);
+    TStatus status;
+    fragment_mgr_->ExecPlanFragment(params).ToThrift(&status);
+    return_val.__set_status(status);
   }
 
   virtual void CancelPlanFragment(TCancelPlanFragmentResult& return_val,

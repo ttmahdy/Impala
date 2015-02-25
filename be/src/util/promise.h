@@ -105,6 +105,25 @@ class Promise {
   T val_;
 };
 
+/// Utility that sets a promise when it is destroyed. Useful for notfiying waiters when a
+/// method has returned.
+template <typename T>
+class ScopeExitPromise {
+ public:
+  /// Sets 'p' with value 'v' when destructor is called.
+  ScopeExitPromise(Promise<T>* p, const T& v) : promise_(p), val_(v) { }
+
+  ~ScopeExitPromise() {
+    promise_->Set(val_);
+  }
+
+ private:
+  Promise<T>* promise_;
+  T val_;
+
+  DISALLOW_COPY_AND_ASSIGN(ScopeExitPromise);
+};
+
 }
 
 #endif

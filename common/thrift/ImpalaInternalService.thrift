@@ -286,10 +286,9 @@ struct TExecPlanFragmentParams {
 
   // Address of local node manager (used for expanding resource allocations)
   7: optional Types.TNetworkAddress local_resource_address
-}
 
+}
 struct TExecPlanFragmentResult {
-  // required in V1
   1: optional Status.TStatus status
 }
 

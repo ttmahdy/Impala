@@ -96,8 +96,19 @@ Status PlanFragmentExecutor::Prepare(const TExecPlanFragmentParams& request) {
     cgroup = exec_env_->cgroups_mgr()->UniqueIdToCgroup(PrintId(query_id_, "_"));
   }
 
-  runtime_state_.reset(
-      new RuntimeState(request, cgroup, exec_env_));
+  // Prepare() must not return before runtime_state_ is set. Do not call RETURN_IF_ERROR
+  // or explicitly return before this line.
+  runtime_state_.reset(new RuntimeState(request, cgroup, exec_env_));
+
+  // Coordinate with a Cancel() call that might happen concurrently. The aim is to ensure
+  // that Cancel() does not proceed until Prepare() has finished. Cancel() requires
+  // runtime_state_ to be constructed, and also may not be thread safe with respect to the
+  // rest of this method. Therefore the ScopeExitPromise is used to set
+  // runtime_state_promise_ when this method is completed, whether or not an error
+  // occurs. Cancel() waits on this promise, and is then guaranteed only to exit when the
+  // promise is set, i.e. when the method has completed.
+  ScopeExitPromise<RuntimeState*> scoped_promise(
+      &runtime_state_promise_, runtime_state_.get());
 
   // total_time_counter() is in the runtime_state_ so start it up now.
   SCOPED_TIMER(profile()->total_time_counter());
@@ -333,36 +344,33 @@ Status PlanFragmentExecutor::OpenInternal() {
     SCOPED_TIMER(profile()->total_time_counter());
     RETURN_IF_ERROR(plan_->Open(runtime_state_.get()));
   }
-
   if (sink_.get() == NULL) return Status::OK();
 
   RETURN_IF_ERROR(sink_->Open(runtime_state_.get()));
-
   // If there is a sink, do all the work of driving it here, so that
   // when this returns the query has actually finished
   while (!done_) {
     RowBatch* batch;
     RETURN_IF_ERROR(GetNextInternal(&batch));
     if (batch == NULL) break;
+
     if (VLOG_ROW_IS_ON) {
       VLOG_ROW << "OpenInternal: #rows=" << batch->num_rows();
       for (int i = 0; i < batch->num_rows(); ++i) {
         VLOG_ROW << PrintRow(batch->GetRow(i), row_desc());
       }
     }
-
     SCOPED_TIMER(profile()->total_time_counter());
     RETURN_IF_ERROR(sink_->Send(runtime_state(), batch, done_));
   }
 
-  // Close the sink *before* stopping the report thread. Close may
-  // need to add some important information to the last report that
-  // gets sent. (e.g. table sinks record the files they have written
-  // to in this method)
-  // The coordinator report channel waits until all backends are
-  // either in error or have returned a status report with done =
-  // true, so tearing down any data stream state (a separate
-  // channel) in Close is safe.
+  // Close the sink *before* stopping the report thread. Close may need to add some
+  // important information to the last report that gets sent. (e.g. table sinks record the
+  // files they have written to in this method)
+  //
+  // The coordinator report channel waits until all backends are either in error or have
+  // returned a status report with done = true, so tearing down any data stream state (a
+  // separate channel) in Close is safe.
   SCOPED_TIMER(profile()->total_time_counter());
   sink_->Close(runtime_state());
   done_ = true;
@@ -501,8 +509,7 @@ void PlanFragmentExecutor::FragmentComplete() {
       - runtime_state_->total_network_send_timer()->value()
       - runtime_state_->total_network_receive_timer()->value();
   // Timing is not perfect.
-  if (cpu_time < 0)
-    cpu_time = 0;
+  if (cpu_time < 0) cpu_time = 0;
   runtime_state_->total_cpu_timer()->Add(cpu_time);
 
   ReleaseThreadToken();
@@ -528,11 +535,13 @@ void PlanFragmentExecutor::UpdateStatus(const Status& status) {
 }
 
 void PlanFragmentExecutor::Cancel() {
-  VLOG_QUERY << "Cancel(): instance_id="
-      << runtime_state_->fragment_instance_id();
-  DCHECK(prepared_);
-  runtime_state_->set_is_cancelled(true);
-  runtime_state_->stream_mgr()->Cancel(runtime_state_->fragment_instance_id());
+  // Cancel() may happen concurrently with Prepare(), which sets the RuntimeState. Access
+  // the state through a Promise which is fired by Prepare() so that state is correctly
+  // constructed before cancellation occurs.
+  RuntimeState* state = runtime_state_promise_.Get();
+  VLOG_QUERY << "Cancel(): instance_id=" << state->fragment_instance_id();
+  state->set_is_cancelled(true);
+  state->stream_mgr()->Cancel(state->fragment_instance_id());
 }
 
 const RowDescriptor& PlanFragmentExecutor::row_desc() {
