@@ -55,7 +55,7 @@ class TRowBatch;
 /// per-query memory limits.
 class DataStreamMgr {
  public:
-  DataStreamMgr() {}
+  DataStreamMgr(MetricGroup* metrics);
 
   /// Create a receiver for a specific fragment_instance_id/node_id destination;
   /// If is_merging is true, the receiver maintains a separate queue of incoming row
@@ -93,6 +93,18 @@ class DataStreamMgr {
  private:
   friend class DataStreamRecvr;
 
+  /// Owned by the metric group passed into the constructor
+  MetricGroup* metrics_;
+
+  /// Current number of senders waiting for a receiver to register
+  IntGauge* num_senders_waiting_;
+
+  /// Total number of senders that have ever waited for a receiver to register
+  IntCounter* total_senders_waiting_;
+
+  /// Total number of senders that timed-out waiting for a receiver to register
+  IntCounter* num_senders_timedout_;
+
   /// protects all fields below
   boost::mutex lock_;
 
@@ -105,10 +117,11 @@ class DataStreamMgr {
       boost::shared_ptr<DataStreamRecvr> > StreamMap;
   StreamMap receiver_map_;
 
+  typedef std::pair<impala::TUniqueId, PlanNodeId> StreamId;
+
   /// less-than ordering for pair<TUniqueId, PlanNodeId>
   struct ComparisonOp {
-    bool operator()(const std::pair<impala::TUniqueId, PlanNodeId>& a,
-                    const std::pair<impala::TUniqueId, PlanNodeId>& b) {
+    bool operator()(const StreamId& a, const StreamId& b) {
       if (a.first.hi < b.first.hi) {
         return true;
       } else if (a.first.hi > b.first.hi) {
@@ -123,7 +136,7 @@ class DataStreamMgr {
   };
 
   /// ordered set of registered streams' fragment instance id/node id
-  typedef std::set<std::pair<TUniqueId, PlanNodeId>, ComparisonOp > FragmentStreamSet;
+  typedef std::set<StreamId, ComparisonOp> FragmentStreamSet;
   FragmentStreamSet fragment_stream_set_;
 
   /// Return the receiver for given fragment_instance_id/node_id,
@@ -133,10 +146,52 @@ class DataStreamMgr {
       const TUniqueId& fragment_instance_id, PlanNodeId node_id,
       bool acquire_lock = true);
 
+  /// Calls FindRecvr(), but if NULL is returned, wait for up to 60s for the receiver to
+  /// be registered.  Senders may initialise and start sending row batches before a
+  /// receiver is ready. To accommodate this, we allow senders to establish a rendezvous
+  /// between them and the receiver. When the receiver arrives, it triggers the
+  /// rendezvous, and all waiting senders can proceed. A sender that waits for too long
+  /// (60s by default) will eventually time out and abort.
+  boost::shared_ptr<DataStreamRecvr> FindRecvrOrWait(
+      const TUniqueId& fragment_instance_id, PlanNodeId node_id);
+
   /// Remove receiver block for fragment_instance_id/node_id from the map.
   Status DeregisterRecvr(const TUniqueId& fragment_instance_id, PlanNodeId node_id);
 
   inline uint32_t GetHashValue(const TUniqueId& fragment_instance_id, PlanNodeId node_id);
+
+  /// The coordination primitive used to signal the arrival of a waited-for receiver
+  typedef Promise<boost::shared_ptr<DataStreamRecvr> > RendezvousPromise;
+
+  /// A reference-counted promise-wrapper used to coordinate between senders and
+  /// receivers. The ref_count field tracks the number of senders waiting for the arrival
+  /// of a particular receiver. When ref_count returns to 0, the last sender has ceased
+  /// waiting (either because of a timeout, or because the receiver arrived), and the
+  /// rendezvous can be torn down.
+  struct RefCountedPromise {
+    uint32_t ref_count;
+
+    // Without a conveniently copyable smart ptr, we keep a raw pointer to the promise and
+    // are careful to delete it when ref_count becomes 0.
+    RendezvousPromise* promise;
+
+    void IncRefCount() { ++ref_count; }
+
+    uint32_t DecRefCount() {
+      if (--ref_count == 0) delete promise;
+      return ref_count;
+    }
+
+    RefCountedPromise() : ref_count(0), promise(new RendezvousPromise()) { }
+  };
+
+  /// Map from stream (which identifies a receiver) to a (count, promise) pair that gives
+  /// the number of senders waiting as well as a shared promise that is set when the
+  /// receiver arrives. The count is used to detect when no receivers are waiting, to
+  /// initiate clean-up after the fact.
+  typedef boost::unordered_map<StreamId, RefCountedPromise> RendezvousMap;
+  RendezvousMap pending_rendezvous_;
+
 };
 
 }
