@@ -139,13 +139,20 @@ class Coordinator::BackendExecState {
 
   FragmentInstanceCounters aggregate_counters;
 
-  BackendExecState(QuerySchedule& schedule, Coordinator* coord,
-      const TNetworkAddress& coord_address,
-      int backend_num, const TPlanFragment& fragment, int fragment_idx,
-      const FragmentExecParams& params, int instance_idx,
-      DebugOptions* debug_options, ObjectPool* obj_pool)
-    : fragment_instance_id(params.instance_ids[instance_idx]),
-      backend_address(params.hosts[instance_idx]),
+  int backend_num;
+
+  // These parameters are valid only until the end of Init(); they are initialised at
+  // construction.
+  const FragmentExecParams* fragment_exec_params;
+  const TPlanFragment* plan_fragment;
+  DebugOptions* debug_options;
+  QuerySchedule* schedule;
+
+  BackendExecState(QuerySchedule* schedule, int backend_num,
+      const TPlanFragment* fragment, int fragment_idx, const FragmentExecParams* params,
+      int instance_idx, DebugOptions* debug_options, ObjectPool* obj_pool)
+    : fragment_instance_id(params->instance_ids[instance_idx]),
+      backend_address(params->hosts[instance_idx]),
       total_split_size(0),
       fragment_idx(fragment_idx),
       instance_idx(instance_idx),
@@ -153,36 +160,47 @@ class Coordinator::BackendExecState {
       done(false),
       profile_created(false),
       total_ranges_complete(0) {
+
+    fragment_exec_params = params;
+    plan_fragment = fragment;
+    this->debug_options = debug_options;
+    this->schedule = schedule;
+    this->backend_num = backend_num;
+
     stringstream ss;
     ss << "Instance " << PrintId(fragment_instance_id)
        << " (host=" << backend_address << ")";
     profile = obj_pool->Add(new RuntimeProfile(obj_pool, ss.str()));
-    coord->SetExecPlanFragmentParams(schedule, backend_num, fragment, fragment_idx,
-        params, instance_idx, coord_address, &rpc_params);
+  }
+
+  void Init(Coordinator* coord) {
+    coord->SetExecPlanFragmentParams(*schedule, backend_num, *plan_fragment, fragment_idx,
+        *fragment_exec_params, instance_idx,
+        MakeNetworkAddress(FLAGS_hostname, FLAGS_be_port), &rpc_params);
     if (debug_options != NULL) {
       rpc_params.params.__set_debug_node_id(debug_options->node_id);
       rpc_params.params.__set_debug_action(debug_options->action);
       rpc_params.params.__set_debug_phase(debug_options->phase);
     }
+
     ComputeTotalSplitSize();
   }
 
-  // Computes sum of split sizes of leftmost scan. Call only after setting
-  // exec_params.
+  // Computes sum of split sizes of leftmost scan. Call only after setting exec_params.
   void ComputeTotalSplitSize();
 
-  // Return value of throughput counter for given plan_node_id, or 0 if that node
-  // doesn't exist.
+  // Return value of throughput counter for given plan_node_id, or 0 if that node doesn't
+  // exist.
   // Thread-safe.
   int64_t GetNodeThroughput(int plan_node_id);
 
-  // Return number of completed scan ranges for plan_node_id, or 0 if that node
-  // doesn't exist.
+  // Return number of completed scan ranges for plan_node_id, or 0 if that node doesn't
+  // exist.
   // Thread-safe.
   int64_t GetNumScanRangesCompleted(int plan_node_id);
 
-  // Updates the total number of scan ranges complete for this fragment.  Returns
-  // the delta since the last time this was called.
+  // Updates the total number of scan ranges complete for this fragment. Returns the delta
+  // since the last time this was called.
   // lock must be taken before calling this.
   int64_t UpdateNumScanRangesCompleted();
 };
@@ -384,23 +402,31 @@ Status Coordinator::Exec(QuerySchedule& schedule,
   DebugOptions debug_options;
   ProcessQueryOptions(schedule.query_options(), &debug_options);
 
-  // start fragment instances from left to right, so that receivers have
-  // Prepare()'d before senders start sending
+  // start fragment instances from left to right, so that receivers have Prepare()'d
+  // before senders start sending
   backend_exec_states_.resize(schedule.num_backends());
   num_remaining_backends_ = schedule.num_backends();
   VLOG_QUERY << "starting " << schedule.num_backends()
              << " backends for query " << query_id_;
 
   query_events_->MarkEvent("Ready to start remote fragments");
+
+  // Threads that send ExecRemoteFragment() RPCs.
+  ThreadPool<BackendExecState*> thread_pool(
+      Substitute("coordinator-fragment-rpc-$0", lexical_cast<string>(query_id())),
+      "worker", 32, numeric_limits<int32_t>::max(),
+      bind<void>(mem_fn(&Coordinator::ExecRemoteFragment), this, _2, _1));
+
   int backend_num = 0;
 
   // TODO: Add a runtime-profile stats mechanism so this doesn't need to create a
   // non-registered TMetricDef.
-  TMetricDef md;
-  md.__set_key("fragment-latencies");
-  md.__set_units(TUnit::TIME_NS);
-  md.__set_kind(TMetricKind::STATS);
-  StatsMetric<double> latencies(md);
+  // TMetricDef md;
+  // md.__set_key("fragment-latencies");
+  // md.__set_units(TUnit::TIME_NS);
+  // md.__set_kind(TMetricKind::STATS);
+  // StatsMetric<double> latencies(md);
+
   for (int fragment_idx = (has_coordinator_fragment ? 1 : 0);
        fragment_idx < request.fragments.size(); ++fragment_idx) {
     const FragmentExecParams& params = (*fragment_exec_params)[fragment_idx];
@@ -408,6 +434,7 @@ Status Coordinator::Exec(QuerySchedule& schedule,
     // set up exec states
     int num_hosts = params.hosts.size();
     DCHECK_GT(num_hosts, 0);
+    query_events_->MarkEvent(Substitute("Fragment $0 entering hosts loop", fragment_idx));
     for (int instance_idx = 0; instance_idx < num_hosts; ++instance_idx) {
       DebugOptions* backend_debug_options =
           (debug_options.phase != TExecNodePhase::INVALID
@@ -416,10 +443,10 @@ Status Coordinator::Exec(QuerySchedule& schedule,
             ? &debug_options
             : NULL);
       // TODO: pool of pre-formatted BackendExecStates?
-      BackendExecState* exec_state =
-          obj_pool()->Add(new BackendExecState(schedule, this, coord, backend_num,
-              request.fragments[fragment_idx], fragment_idx,
-              params, instance_idx, backend_debug_options, obj_pool()));
+      BackendExecState* exec_state = obj_pool()->Add(
+          new BackendExecState(&schedule, backend_num, &request.fragments[fragment_idx],
+              fragment_idx, &params, instance_idx, backend_debug_options, obj_pool()));
+
       backend_exec_states_[backend_num] = exec_state;
       ++backend_num;
       VLOG(2) << "Exec(): starting instance: fragment_idx=" << fragment_idx
@@ -428,29 +455,19 @@ Status Coordinator::Exec(QuerySchedule& schedule,
     fragment_profiles_[fragment_idx].num_instances = num_hosts;
 
     // Issue all rpcs in parallel
-    Status fragments_exec_status = ParallelExecutor::Exec(
-        bind<Status>(mem_fn(&Coordinator::ExecRemoteFragment), this, _1),
-        reinterpret_cast<void**>(&backend_exec_states_[backend_num - num_hosts]),
-        num_hosts, &latencies);
-
-    if (!fragments_exec_status.ok()) {
-      DCHECK(query_status_.ok());  // nobody should have been able to cancel
-      query_status_ = fragments_exec_status;
-      // tear down running fragments and return
-      CancelInternal();
-      return fragments_exec_status;
+    for (int i = 0; i < num_hosts; ++i) {
+      thread_pool.Offer(backend_exec_states_[backend_num - num_hosts + i]);
     }
   }
 
+  thread_pool.DrainAndShutdown();
   query_events_->MarkEvent("Remote fragments started");
-  query_profile_->AddInfoString("Fragment start latencies",
-      latencies.ToHumanReadable());
 
-  // If we have a coordinator fragment and remote fragments (the common case),
-  // release the thread token on the coordinator fragment.  This fragment
-  // spends most of the time waiting and doing very little work.  Holding on to
-  // the token causes underutilization of the machine.  If there are 12 queries
-  // on this node, that's 12 tokens reserved for no reason.
+  // If we have a coordinator fragment and remote fragments (the common case), release the
+  // thread token on the coordinator fragment. This fragment spends most of the time
+  // waiting and doing very little work. Holding on to the token causes underutilization
+  // of the machine. If there are 12 queries on this node, that's 12 tokens reserved for
+  // no reason.
   if (has_coordinator_fragment && request.fragments.size() > 1) {
     executor_->ReleaseThreadToken();
   }
@@ -1082,8 +1099,9 @@ int64_t Coordinator::ComputeTotalScanRangesComplete(int node_id) {
   return value;
 }
 
-Status Coordinator::ExecRemoteFragment(void* exec_state_arg) {
-  BackendExecState* exec_state = reinterpret_cast<BackendExecState*>(exec_state_arg);
+Status Coordinator::ExecRemoteFragment(BackendExecState* exec_state, int thread_id) {
+  exec_state->Init(this);
+  // BackendExecState* exec_state = reinterpret_cast<BackendExecState*>(exec_state_arg);
   VLOG_FILE << "making rpc: ExecPlanFragment query_id=" << query_id_
             << " instance_id=" << exec_state->fragment_instance_id
             << " host=" << exec_state->backend_address;

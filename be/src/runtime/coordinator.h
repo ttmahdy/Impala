@@ -360,7 +360,7 @@ class Coordinator {
   /// exec_state contains all information needed to issue the rpc.
   /// 'coordinator' will always be an instance to this class and 'exec_state' will
   /// always be an instance of BackendExecState.
-  Status ExecRemoteFragment(void* exec_state);
+  Status ExecRemoteFragment(BackendExecState* exec_state, int thread_id);
 
   /// Determine fragment number, given fragment id.
   int GetFragmentNum(const TUniqueId& fragment_id);
