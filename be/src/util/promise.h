@@ -20,6 +20,7 @@
 #include "common/logging.h"
 #include "runtime/timestamp-value.h"
 #include "util/time.h"
+#include "common/atomic.h"
 
 namespace impala {
 
@@ -122,6 +123,33 @@ class ScopeExitPromise {
   T val_;
 
   DISALLOW_COPY_AND_ASSIGN(ScopeExitPromise);
+};
+
+/// Allows clients to wait for the arrival of a fixed number of notifications before they
+/// are allowed to continue.
+class CountingBarrier {
+ public:
+  /// Initialises the CountingBarrier with `count` pending notifications.
+  CountingBarrier(int32_t count) : count_(count) {
+    DCHECK_GT(count, 0);
+  }
+
+  /// Sends one notification, decrementing the number of pending notifications by one.
+  void Notify() {
+    if (count_.UpdateAndFetch(-1) == 0) promise_.Set(true);
+  }
+
+  /// Blocks until all notifications are received.
+  void Wait() { promise_.Get(); }
+
+ private:
+  /// Used to signal waiters when all notifications are received.
+  Promise<bool> promise_;
+
+  /// The number of pending notifications remaining.
+  AtomicInt<int32_t> count_;
+
+  DISALLOW_COPY_AND_ASSIGN(CountingBarrier);
 };
 
 }

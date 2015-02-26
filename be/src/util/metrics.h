@@ -344,6 +344,8 @@ typedef class SimpleMetric<int64_t, TMetricKind::COUNTER> IntCounter;
 typedef class SimpleMetric<bool, TMetricKind::PROPERTY> BooleanProperty;
 typedef class SimpleMetric<std::string, TMetricKind::PROPERTY> StringProperty;
 
+TMetricDef MakeTMetricDef(const std::string& key, TMetricKind::type kind,
+    TUnit::type unit);
 }
 
 #endif // IMPALA_UTIL_METRICS_H
