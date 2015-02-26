@@ -23,6 +23,7 @@
 #include "common/logging.h"
 #include "resourcebroker/resource-broker.h"
 #include "runtime/client-cache.h"
+#include "runtime/coordinator.h"
 #include "runtime/data-stream-mgr.h"
 #include "runtime/disk-io-mgr.h"
 #include "runtime/hbase-table-factory.h"
@@ -48,6 +49,7 @@
 #include "util/cgroups-mgr.h"
 #include "util/memory-metrics.h"
 #include "util/pretty-printer.h"
+#include "util/thread-pool.h"
 #include "gen-cpp/ImpalaInternalService.h"
 #include "gen-cpp/CatalogService.h"
 
@@ -152,6 +154,9 @@ ExecEnv::ExecEnv()
     tmp_file_mgr_(new TmpFileMgr),
     request_pool_service_(new RequestPoolService(metrics_.get())),
     frontend_(new Frontend()),
+    fragment_exec_thread_pool_(
+        new CallableThreadPool("coordinator-fragment-rpc", "worker", 32,
+            numeric_limits<int32_t>::max())),
     enable_webserver_(FLAGS_enable_webserver),
     tz_database_(TimezoneDatabase()),
     is_fe_tests_(false),

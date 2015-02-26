@@ -35,6 +35,7 @@
 #include "common/status.h"
 #include "common/global-types.h"
 #include "util/progress-updater.h"
+#include "util/histogram-metric.h"
 #include "util/runtime-profile.h"
 #include "runtime/runtime-state.h"
 #include "scheduling/simple-scheduler.h"
@@ -45,6 +46,7 @@ namespace impala {
 
 class DataStreamMgr;
 class DataSink;
+class DebugOptions;
 class RowBatch;
 class RowDescriptor;
 class PlanFragmentExecutor;
@@ -62,6 +64,7 @@ class TPlanExecRequest;
 class TRuntimeProfileTree;
 class RuntimeProfile;
 class TablePrinter;
+class Coordinator;
 
 /// Query coordinator: handles execution of plan fragments on remote nodes, given
 /// a TQueryExecRequest. As part of that, it handles all interactions with the
@@ -351,20 +354,21 @@ class Coordinator {
   /// Total time spent in finalization (typically 0 except for INSERT into hdfs tables)
   RuntimeProfile::Counter* finalization_timer_;
 
+  /// Used to wait for all ExecRemoteFragment() RPCs to complete in parallel.
+  boost::scoped_ptr<CountingBarrier> fragment_start_barrier_;
+
   /// Fill in rpc_params based on parameters.
   void SetExecPlanFragmentParams(QuerySchedule& schedule,
       int backend_num, const TPlanFragment& fragment,
       int fragment_idx, const FragmentExecParams& params, int instance_idx,
       const TNetworkAddress& coord, TExecPlanFragmentParams* rpc_params);
 
-  /// Wrapper for ExecPlanFragment() rpc.  This function will be called in parallel
-  /// from multiple threads.
-  /// Obtains exec_state->lock prior to making rpc, so that it serializes
-  /// correctly with UpdateFragmentExecStatus().
-  /// exec_state contains all information needed to issue the rpc.
-  /// 'coordinator' will always be an instance to this class and 'exec_state' will
-  /// always be an instance of BackendExecState.
-  Status ExecRemoteFragment(void* exec_state);
+  /// Wrapper for ExecPlanFragment() RPC. This function will be called in parallel from
+  /// multiple threads. Creates a new BackendExecState and registers it in
+  /// backend_exec_states_, then calls RPC to issue fragment on remote backend.
+  void ExecRemoteFragment(const FragmentExecParams* fragment_exec_params,
+      const TPlanFragment* plan_fragment, DebugOptions* debug_options,
+      QuerySchedule* schedule, int backend_num, int fragment_idx, int instance_idx);
 
   /// Determine fragment number, given fragment id.
   int GetFragmentNum(const TUniqueId& fragment_id);
@@ -462,6 +466,11 @@ class Coordinator {
   /// We will then need a different mechanism to assert the correct behavior of the
   /// SubplanNode with respect to setting collection-slots to NULL.
   void ValidateCollectionSlots(RowBatch* batch);
+
+  /// Starts all remote fragments contained in the schedule by issuing RPCs in parallel,
+  /// and then waiting for all of the RPCs to complete.. Returns an error if there was any
+  /// error starting the fragments.
+  Status StartRemoteFragments(QuerySchedule* schedule);
 };
 
 }
