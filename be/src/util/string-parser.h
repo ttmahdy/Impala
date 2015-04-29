@@ -138,8 +138,11 @@ class StringParser {
     int digits_after = 0;
     bool dot_found = false;
     bool underflow = false;
+    int exponent = 0;
+    bool exponent_found = false;
 
-    for (int i = 0; i < len; ++i) {
+    int i = 0;
+    for (i = 0; i < len; ++i) {
       if (LIKELY(s[i] >= '0' && s[i] <= '9')) {
         T digit = s[i] - '0';
         if (dot_found) {
@@ -155,6 +158,9 @@ class StringParser {
         }
       } else if (s[i] == '.') {
         dot_found = true;
+      } else if (s[i] == 'e' || s[i] == 'E') {
+        exponent_found = true;
+        break;
       } else {
         if (!StringParser::isAllWhitespace(s + i, len - i)) {
           *result = StringParser::PARSE_FAILURE;
@@ -162,6 +168,37 @@ class StringParser {
         }
         break;
       }
+    }
+    if (exponent_found) {
+      if (++i > len) {
+        *result = StringParser::PARSE_FAILURE;
+        return DecimalValue<T>();
+      }
+      exponent = 0;
+      int exp_sign = 1;
+      if (s[i] == '-') {
+        exp_sign = -1;
+        ++i;
+      }
+      for (; i < len; ++i) {
+        if (LIKELY(s[i] >= '0' && s[i] <= '9')) {
+          exponent = exponent * 10 + (s[i] - '0');
+        } else {
+          if (!StringParser::isAllWhitespace(s + i, len - i)) {
+            *result = StringParser::PARSE_FAILURE;
+            return DecimalValue<T>();
+          }
+          break;
+        }
+      }
+      exponent *= exp_sign;
+    }
+    if (exponent != 0) {
+      digits_before += exponent;
+      digits_before *= (digits_before > 0);
+      digits_after -= exponent;
+      digits_after *= (digits_after > 0);
+      decimal *= pow(10, exponent);
     }
 
     // TODO: consider making the Int parsing keep track of digits as well.
