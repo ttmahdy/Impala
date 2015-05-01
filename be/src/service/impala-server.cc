@@ -716,15 +716,6 @@ Status ImpalaServer::ExecuteInternal(
   {
     // Keep a lock on exec_state so that registration and setting
     // result_metadata are atomic.
-    //
-    // Note: this acquires the exec_state lock *before* the
-    // query_exec_state_map_ lock. This is the opposite of
-    // GetQueryExecState(..., true), and therefore looks like a
-    // candidate for deadlock. The reason this works here is that
-    // GetQueryExecState cannot find exec_state (under the exec state
-    // map lock) and take it's lock until RegisterQuery has
-    // finished. By that point, the exec state map lock will have been
-    // given up, so the classic deadlock interleaving is not possible.
     lock_guard<mutex> l(*(*exec_state)->lock());
 
     // register exec state as early as possible so that queries that
@@ -1724,14 +1715,20 @@ bool ImpalaServer::GetSessionIdForQuery(const TUniqueId& query_id,
 
 shared_ptr<ImpalaServer::QueryExecState> ImpalaServer::GetQueryExecState(
     const TUniqueId& query_id, bool lock) {
-  lock_guard<mutex> l(query_exec_state_map_lock_);
-  QueryExecStateMap::iterator i = query_exec_state_map_.find(query_id);
-  if (i == query_exec_state_map_.end()) {
-    return shared_ptr<QueryExecState>();
-  } else {
-    if (lock) i->second->lock()->lock();
-    return i->second;
+  shared_ptr<QueryExecState> ret;
+  {
+    // If there is contention for the exec state's lock, we don't want to be holding on to
+    // query_exec_state_map_lock_ while we wait for it, so lock sequentially rather than
+    // hierarchically. Using the shared_ptr ensures that the exec state will always be
+    // live.
+    lock_guard<mutex> l(query_exec_state_map_lock_);
+    QueryExecStateMap::iterator i = query_exec_state_map_.find(query_id);
+    if (i == query_exec_state_map_.end()) return ret;
+    ret = i->second;
   }
+  // TODO: do we still need this, or can we ask callers to take the lock if required?
+  if (lock) ret->lock()->lock();
+  return ret;
 }
 
 void ImpalaServer::SetOffline(bool is_offline) {

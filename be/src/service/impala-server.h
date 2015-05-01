@@ -306,8 +306,7 @@ class ImpalaServer : public ImpalaServiceIf, public ImpalaHiveServer2ServiceIf,
       apache::hive::service::cli::thrift::TRowSet* rowset = NULL);
 
   // Return exec state for given query_id, or NULL if not found.
-  // If 'lock' is true, the returned exec state's lock() will be acquired before
-  // the query_exec_state_map_lock_ is released.
+  // If 'lock' is true, the returned exec state's lock() will be acquired.
   boost::shared_ptr<QueryExecState> GetQueryExecState(
       const TUniqueId& query_id, bool lock);
 
