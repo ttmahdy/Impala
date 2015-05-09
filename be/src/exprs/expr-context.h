@@ -15,7 +15,7 @@
 #ifndef IMPALA_EXPRS_EXPR_CONTEXT_H
 #define IMPALA_EXPRS_EXPR_CONTEXT_H
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
 #include "common/status.h"
 #include "exprs/expr-value.h"
@@ -141,7 +141,7 @@ class ExprContext {
   FunctionContext** fn_contexts_ptr_;
 
   /// Pool backing fn_contexts_. Counts against the runtime state's UDF mem tracker.
-  boost::scoped_ptr<MemPool> pool_;
+  std::unique_ptr<MemPool> pool_;
 
   /// The expr tree this context is for.
   Expr* root_;

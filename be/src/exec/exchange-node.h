@@ -16,7 +16,7 @@
 #ifndef IMPALA_EXEC_EXCHANGE_NODE_H
 #define IMPALA_EXEC_EXCHANGE_NODE_H
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include "exec/exec-node.h"
 #include "exec/sort-exec-exprs.h"
 

@@ -16,11 +16,11 @@
 #ifndef IMPALA_EXEC_SELECT_NODE_H
 #define IMPALA_EXEC_SELECT_NODE_H
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
 #include "exec/exec-node.h"
 #include "runtime/mem-pool.h"
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
 namespace impala {
 
@@ -41,7 +41,7 @@ class SelectNode : public ExecNode {
 
  private:
   /// current row batch of child
-  boost::scoped_ptr<RowBatch> child_row_batch_;
+  std::unique_ptr<RowBatch> child_row_batch_;
 
   /// index of current row in child_row_batch_
   int child_row_idx_;

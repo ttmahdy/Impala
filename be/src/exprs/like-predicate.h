@@ -16,7 +16,7 @@
 #ifndef IMPALA_EXPRS_LIKE_PREDICATE_H_
 #define IMPALA_EXPRS_LIKE_PREDICATE_H_
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <re2/re2.h>
 #include <string>
 
@@ -71,7 +71,7 @@ class LikePredicate: public Predicate {
     StringSearch substring_pattern_;
 
     /// Used for RLIKE and REGEXP predicates if the pattern is a constant aruement.
-    boost::scoped_ptr<re2::RE2> regex_;
+    std::unique_ptr<re2::RE2> regex_;
 
     LikePredicateState() : escape_char_('\\') {
     }

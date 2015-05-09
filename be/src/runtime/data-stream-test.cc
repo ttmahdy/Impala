@@ -181,7 +181,7 @@ class DataStreamTest : public testing::Test {
   string stmt_;
 
   // RowBatch generation
-  scoped_ptr<RowBatch> batch_;
+  unique_ptr<RowBatch> batch_;
   int next_val_;
   int64_t* tuple_mem_;
 
@@ -476,7 +476,7 @@ class DataStreamTest : public testing::Test {
         &obj_pool_, sender_num, *row_desc_, sink, dest_, channel_buffer_size);
     EXPECT_TRUE(sender.Prepare(&state).ok());
     EXPECT_TRUE(sender.Open(&state).ok());
-    scoped_ptr<RowBatch> batch(CreateRowBatch());
+    unique_ptr<RowBatch> batch(CreateRowBatch());
     SenderInfo& info = sender_info_[sender_num];
     int next_val = 0;
     for (int i = 0; i < NUM_BATCHES; ++i) {

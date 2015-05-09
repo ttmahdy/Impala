@@ -35,7 +35,7 @@
 #include <sstream>
 #include <gutil/strings/substitute.h>
 #include <hdfs.h>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <stdlib.h>
 

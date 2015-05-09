@@ -186,7 +186,7 @@ class QueryResourceMgr {
   float max_vcore_oversubscription_ratio_;
 
   /// Runs AcquireVcoreResources() after InitVcoreAcquisition() is called.
-  boost::scoped_ptr<Thread> acquire_vcore_thread_;
+  std::unique_ptr<Thread> acquire_vcore_thread_;
 
   /// Signals to the vcore acquisition thread that it should exit after it exits from any
   /// pending Expand() call. Is a shared_ptr so that it will remain valid even after the

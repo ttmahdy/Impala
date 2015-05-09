@@ -16,10 +16,10 @@
 #ifndef IMPALA_RUNTIME_RUNTIME_STATE_H
 #define IMPALA_RUNTIME_RUNTIME_STATE_H
 
-/// needed for scoped_ptr to work on ObjectPool
+/// needed for unique_ptr to work on ObjectPool
 #include "common/object-pool.h"
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/shared_ptr.hpp>
 #include <vector>
 #include <string>
@@ -74,7 +74,7 @@ class RuntimeState {
   /// RuntimeState for executing expr in fe-support.
   RuntimeState(const TQueryCtx& query_ctx);
 
-  /// Empty d'tor to avoid issues with scoped_ptr.
+  /// Empty d'tor to avoid issues with unique_ptr.
   ~RuntimeState();
 
   /// Set up five-level hierarchy of mem trackers: process, pool, query, fragment
@@ -280,7 +280,7 @@ class RuntimeState {
   static const int DEFAULT_BATCH_SIZE = 1024;
 
   DescriptorTbl* desc_tbl_;
-  boost::scoped_ptr<ObjectPool> obj_pool_;
+  std::unique_ptr<ObjectPool> obj_pool_;
 
   /// Lock protecting error_log_ and unreported_error_idx_
   SpinLock error_log_lock_;
@@ -300,13 +300,13 @@ class RuntimeState {
 
   /// Query-global timestamp, e.g., for implementing now(). Set from query_globals_.
   /// Use pointer to avoid inclusion of timestampvalue.h and avoid clang issues.
-  boost::scoped_ptr<TimestampValue> now_;
+  std::unique_ptr<TimestampValue> now_;
 
   /// The Impala-internal cgroup into which execution threads are assigned.
   /// If empty, no RM is enabled.
   std::string cgroup_;
   ExecEnv* exec_env_;
-  boost::scoped_ptr<LlvmCodeGen> codegen_;
+  std::unique_ptr<LlvmCodeGen> codegen_;
 
   /// Thread resource management object for this fragment's execution.  The runtime
   /// state is responsible for returning this pool to the thread mgr.
@@ -338,7 +338,7 @@ class RuntimeState {
   boost::shared_ptr<MemTracker> query_mem_tracker_;
 
   /// Memory usage of this fragment instance
-  boost::scoped_ptr<MemTracker> instance_mem_tracker_;
+  std::unique_ptr<MemTracker> instance_mem_tracker_;
 
   /// if true, execution should stop with a CANCELLED status
   bool is_cancelled_;

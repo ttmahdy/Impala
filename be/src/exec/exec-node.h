@@ -225,15 +225,15 @@ class ExecNode {
   int64_t limit_;  // -1: no limit
   int64_t num_rows_returned_;
 
-  boost::scoped_ptr<RuntimeProfile> runtime_profile_;
+  std::unique_ptr<RuntimeProfile> runtime_profile_;
   RuntimeProfile::Counter* rows_returned_counter_;
   RuntimeProfile::Counter* rows_returned_rate_;
 
   /// Account for peak memory used by this node
-  boost::scoped_ptr<MemTracker> mem_tracker_;
+  std::unique_ptr<MemTracker> mem_tracker_;
 
   /// MemTracker that should be used for ExprContexts.
-  boost::scoped_ptr<MemTracker> expr_mem_tracker_;
+  std::unique_ptr<MemTracker> expr_mem_tracker_;
 
   /// Execution options that are determined at runtime.  This is added to the
   /// runtime profile at Close().  Examples for options logged here would be

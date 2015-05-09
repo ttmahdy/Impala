@@ -92,7 +92,7 @@ class DataStreamRecvr::SenderQueue {
   // The batch that was most recently returned via GetBatch(), i.e. the current batch
   // from this queue being processed by a consumer. Is destroyed when the next batch
   // is retrieved.
-  scoped_ptr<RowBatch> current_batch_;
+  unique_ptr<RowBatch> current_batch_;
 
   // Set to true when the first batch has been received
   bool received_first_batch_;

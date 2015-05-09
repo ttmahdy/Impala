@@ -17,7 +17,7 @@
 
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/thread.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 
@@ -117,7 +117,7 @@ class Thread {
   typedef boost::function<void ()> ThreadFunctor;
 
   /// The actual thread object that runs the user's method via SuperviseThread().
-  boost::scoped_ptr<boost::thread> thread_;
+  std::unique_ptr<boost::thread> thread_;
 
   /// Name and category for this thread
   const std::string category_;

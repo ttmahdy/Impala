@@ -175,7 +175,7 @@ class AdmissionController {
   MetricGroup* metrics_;
 
   /// Thread dequeuing and admitting queries.
-  boost::scoped_ptr<Thread> dequeue_thread_;
+  std::unique_ptr<Thread> dequeue_thread_;
 
   /// Unique id for this impalad, used to construct topic keys.
   const std::string backend_id_;

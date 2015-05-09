@@ -21,7 +21,7 @@
 #include <stack>
 #include <boost/foreach.hpp>
 #include <boost/function.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/thread/locks.hpp>
 
 #include "common/logging.h"
@@ -304,7 +304,7 @@ class MetricGroup {
 
  private:
   /// Pool containing all metric objects
-  boost::scoped_ptr<ObjectPool> obj_pool_;
+  std::unique_ptr<ObjectPool> obj_pool_;
 
   /// Name of this metric group.
   std::string name_;

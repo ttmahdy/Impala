@@ -54,7 +54,7 @@ class HBaseTableSink : public DataSink {
   /// The object that this sink uses to write to hbase.
   /// hbase_table_writer is owned by this sink and should be closed
   /// when this is Close'd.
-  boost::scoped_ptr<HBaseTableWriter> hbase_table_writer_;
+  std::unique_ptr<HBaseTableWriter> hbase_table_writer_;
 
   /// Owned by the RuntimeState.
   const RowDescriptor& row_desc_;

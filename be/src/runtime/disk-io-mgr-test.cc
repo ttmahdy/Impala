@@ -158,7 +158,7 @@ class DiskIoMgrTest : public testing::Test {
     return range;
   }
 
-  scoped_ptr<ObjectPool> pool_;
+  unique_ptr<ObjectPool> pool_;
 
   mutex written_mutex_;
   condition_variable writes_done_;
@@ -183,7 +183,7 @@ TEST_F(DiskIoMgrTest, SingleWriter) {
     EXPECT_TRUE(false);
   }
 
-  scoped_ptr<DiskIoMgr> read_io_mgr(new DiskIoMgr(1, 1, 1, 10));
+  unique_ptr<DiskIoMgr> read_io_mgr(new DiskIoMgr(1, 1, 1, 10));
   MemTracker reader_mem_tracker(LARGE_MEM_LIMIT);
   Status status = read_io_mgr->Init(&reader_mem_tracker);
   ASSERT_TRUE(status.ok());
@@ -296,7 +296,7 @@ TEST_F(DiskIoMgrTest, SingleWriterCancel) {
     EXPECT_TRUE(false);
   }
 
-  scoped_ptr<DiskIoMgr> read_io_mgr(new DiskIoMgr(1, 1, 1, 10));
+  unique_ptr<DiskIoMgr> read_io_mgr(new DiskIoMgr(1, 1, 1, 10));
   MemTracker reader_mem_tracker(LARGE_MEM_LIMIT);
   Status status = read_io_mgr->Init(&reader_mem_tracker);
   ASSERT_TRUE(status.ok());

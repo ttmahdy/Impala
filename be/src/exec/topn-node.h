@@ -17,7 +17,7 @@
 #define IMPALA_EXEC_TOPN_NODE_H
 
 #include <queue>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
 #include "exec/exec-node.h"
 #include "exec/sort-exec-exprs.h"
@@ -72,13 +72,13 @@ class TopNNode : public ExecNode {
   /// Cached descriptor for the materialized tuple. Assigned in Prepare().
   TupleDescriptor* materialized_tuple_desc_;
 
-  boost::scoped_ptr<TupleRowComparator> tuple_row_less_than_;
+  std::unique_ptr<TupleRowComparator> tuple_row_less_than_;
 
   /// The priority queue will never have more elements in it than the LIMIT + OFFSET.
   /// The stl priority queue doesn't support a max size, so to get that functionality,
   /// the order of the queue is the opposite of what the ORDER BY clause specifies, such
   /// that the top of the queue is the last sorted element.
-  boost::scoped_ptr<
+  std::unique_ptr<
       std::priority_queue<Tuple*, std::vector<Tuple*>, TupleRowComparator> >
           priority_queue_;
 
@@ -87,7 +87,7 @@ class TopNNode : public ExecNode {
   std::vector<Tuple*>::iterator get_next_iter_;
 
   /// Stores everything referenced in priority_queue_
-  boost::scoped_ptr<MemPool> tuple_pool_;
+  std::unique_ptr<MemPool> tuple_pool_;
   /// Tuple allocated once from tuple_pool_ and reused in InsertTupleRow to
   /// materialize input tuples if necessary. After materialization, tmp_tuple_ may be
   /// copied into the the tuple pool and inserted into the priority queue.

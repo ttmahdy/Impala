@@ -76,14 +76,14 @@ class CatalogServer {
   boost::shared_ptr<CatalogServiceIf> thrift_iface_;
   ThriftSerializer thrift_serializer_;
   MetricGroup* metrics_;
-  boost::scoped_ptr<Catalog> catalog_;
-  boost::scoped_ptr<StatestoreSubscriber> statestore_subscriber_;
+  std::unique_ptr<Catalog> catalog_;
+  std::unique_ptr<StatestoreSubscriber> statestore_subscriber_;
 
   /// Metric that tracks the amount of time taken preparing a catalog update.
   StatsMetric<double>* topic_processing_time_metric_;
 
   /// Thread that polls the catalog for any updates.
-  boost::scoped_ptr<Thread> catalog_update_gathering_thread_;
+  std::unique_ptr<Thread> catalog_update_gathering_thread_;
 
   /// Tracks the set of catalog objects that exist via their topic entry key.
   /// During each IMPALA_CATALOG_TOPIC heartbeat, stores the set of known catalog objects

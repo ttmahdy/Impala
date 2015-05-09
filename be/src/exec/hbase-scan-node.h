@@ -16,7 +16,7 @@
 #ifndef IMPALA_EXEC_HBASE_SCAN_NODE_H_
 #define IMPALA_EXEC_HBASE_SCAN_NODE_H_
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include "runtime/descriptors.h"
 #include "exec/hbase-table-scanner.h"
 #include "exec/scan-node.h"
@@ -85,10 +85,10 @@ class HBaseScanNode : public ScanNode {
   int num_errors_;
 
   /// Pool for allocating tuple data, including all varying-length slots.
-  boost::scoped_ptr<MemPool> tuple_pool_;
+  std::unique_ptr<MemPool> tuple_pool_;
 
   /// Jni helper for scanning an HBase table.
-  boost::scoped_ptr<HBaseTableScanner> hbase_scanner_;
+  std::unique_ptr<HBaseTableScanner> hbase_scanner_;
 
   /// List of non-row-key slots sorted by col_pos(). Populated in Prepare().
   std::vector<SlotDescriptor*> sorted_non_key_slots_;
@@ -113,7 +113,7 @@ class HBaseScanNode : public ScanNode {
   Tuple* tuple_;
 
   /// Helper class for converting text to other types;
-  boost::scoped_ptr<TextConverter> text_converter_;
+  std::unique_ptr<TextConverter> text_converter_;
 
   /// Max value for "setCaching" suggested by FE. If no value was suggested by the FE, this
   /// will be 0.

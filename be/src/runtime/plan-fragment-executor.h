@@ -17,7 +17,7 @@
 #define IMPALA_SERVICE_PLAN_EXECUTOR_H
 
 #include <vector>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 
@@ -140,7 +140,7 @@ class PlanFragmentExecutor {
 
   /// profile reporting-related
   ReportStatusCallback report_status_cb_;
-  boost::scoped_ptr<Thread> report_thread_;
+  std::unique_ptr<Thread> report_thread_;
   boost::mutex report_thread_lock_;
 
   /// Indicates that profile reporting thread should stop.
@@ -177,10 +177,10 @@ class PlanFragmentExecutor {
   /// Output sink for rows sent to this fragment. May not be set, in which case rows are
   /// returned via GetNext's row batch
   /// Created in Prepare (if required), owned by this object.
-  boost::scoped_ptr<DataSink> sink_;
-  boost::scoped_ptr<RuntimeState> runtime_state_;
-  boost::scoped_ptr<RowBatch> row_batch_;
-  boost::scoped_ptr<TRowBatch> thrift_batch_;
+  std::unique_ptr<DataSink> sink_;
+  std::unique_ptr<RuntimeState> runtime_state_;
+  std::unique_ptr<RowBatch> row_batch_;
+  std::unique_ptr<TRowBatch> thrift_batch_;
 
   /// A counter for the per query, per host peak mem usage. Note that this is not the
   /// max of the peak memory of all fragments running on a host since it needs to take

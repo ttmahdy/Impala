@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/bind.hpp>
 #include <boost/filesystem.hpp>
 
@@ -387,9 +387,9 @@ class SimpleTupleStreamTest : public testing::Test {
     }
   }
 
-  scoped_ptr<ExecEnv> exec_env_;
-  scoped_ptr<RuntimeState> runtime_state_;
-  scoped_ptr<MemTracker> block_mgr_parent_tracker_;
+  unique_ptr<ExecEnv> exec_env_;
+  unique_ptr<RuntimeState> runtime_state_;
+  unique_ptr<MemTracker> block_mgr_parent_tracker_;
 
   shared_ptr<BufferedBlockMgr> block_mgr_;
   BufferedBlockMgr::Client* client_;
@@ -398,7 +398,7 @@ class SimpleTupleStreamTest : public testing::Test {
   ObjectPool pool_;
   RowDescriptor* int_desc_;
   RowDescriptor* string_desc_;
-  scoped_ptr<MemPool> mem_pool_;
+  unique_ptr<MemPool> mem_pool_;
 }; // SimpleTupleStreamTest
 
 

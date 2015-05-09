@@ -18,7 +18,7 @@
 #include <signal.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/thread/thread.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int.hpp>
 #include <boost/filesystem.hpp>

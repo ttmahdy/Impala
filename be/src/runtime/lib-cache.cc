@@ -35,7 +35,7 @@ using namespace impala;
 DEFINE_string(local_library_dir, "/tmp",
               "Local directory to copy UDF libraries from HDFS into");
 
-scoped_ptr<LibCache> LibCache::instance_;
+unique_ptr<LibCache> LibCache::instance_;
 
 struct LibCache::LibCacheEntry {
   // Lock protecting all fields in this entry
@@ -398,7 +398,7 @@ Status LibCache::GetCacheEntryInternal(const string& hdfs_lib_file, LibType type
   } else if (type == TYPE_IR) {
     // Load the module and populate all symbols.
     ObjectPool pool;
-    scoped_ptr<LlvmCodeGen> codegen;
+    unique_ptr<LlvmCodeGen> codegen;
     string module_id = filesystem::path((*entry)->local_path).stem().string();
     RETURN_IF_ERROR(LlvmCodeGen::LoadFromFile(
         &pool, (*entry)->local_path, module_id, &codegen));

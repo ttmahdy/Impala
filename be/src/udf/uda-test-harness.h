@@ -20,7 +20,7 @@
 #include <sstream>
 #include <vector>
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/shared_ptr.hpp>
 
 #include "udf/udf.h"

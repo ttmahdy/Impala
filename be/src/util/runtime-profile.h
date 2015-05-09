@@ -17,7 +17,7 @@
 #define IMPALA_UTIL_RUNTIME_PROFILE_H
 
 #include <boost/function.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/thread/mutex.hpp>
 #include <boost/unordered_map.hpp>
 #include <iostream>

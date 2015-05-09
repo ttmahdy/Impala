@@ -17,7 +17,7 @@
 #define IMPALA_EXEC_HDFS_TABLE_WRITER_H
 
 #include <hdfs.h>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/unordered_map.hpp>
 
 #include "runtime/descriptors.h"

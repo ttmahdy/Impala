@@ -16,7 +16,7 @@
 #ifndef IMPALA_EXEC_PARTITIONED_HASH_JOIN_NODE_H
 #define IMPALA_EXEC_PARTITIONED_HASH_JOIN_NODE_H
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/unordered_set.hpp>
 #include <boost/thread.hpp>
 #include <string>
@@ -315,7 +315,7 @@ class PartitionedHashJoinNode : public BlockingJoinNode {
   /// Used for hash-related functionality, such as evaluating rows and calculating hashes.
   /// TODO: If we want to multi-thread then this context should be thread-local and not
   /// associated with the node.
-  boost::scoped_ptr<HashTableCtx> ht_ctx_;
+  std::unique_ptr<HashTableCtx> ht_ctx_;
 
   /// The iterator that corresponds to the look up of current_probe_row_.
   HashTable::Iterator hash_tbl_iterator_;
@@ -410,7 +410,7 @@ class PartitionedHashJoinNode : public BlockingJoinNode {
     int level_;
 
     /// The hash table for this partition.
-    boost::scoped_ptr<HashTable> hash_tbl_;
+    std::unique_ptr<HashTable> hash_tbl_;
 
     /// Stream of build/probe tuples in this partition. Allocated from the runtime state's
     /// object pool. Initially owned by this object (meaning it has to call Close() on it)
@@ -485,7 +485,7 @@ class PartitionedHashJoinNode : public BlockingJoinNode {
 
   /// Used while processing null_aware_partition_. It contains all the build tuple rows
   /// with a NULL when evaluating the hash table expr.
-  boost::scoped_ptr<RowBatch> nulls_build_batch_;
+  std::unique_ptr<RowBatch> nulls_build_batch_;
 
   /// If true, the build side has at least one row.
   bool non_empty_build_;

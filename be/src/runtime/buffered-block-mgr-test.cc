@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/bind.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/filesystem.hpp>
@@ -288,10 +288,10 @@ class BufferedBlockMgrTest : public ::testing::Test {
     EXPECT_EQ(block_mgr_parent_tracker_->consumption(), 0);
   }
 
-  scoped_ptr<ExecEnv> exec_env_;
-  scoped_ptr<RuntimeState> runtime_state_;
-  scoped_ptr<MemTracker> block_mgr_parent_tracker_;
-  scoped_ptr<MemTracker> io_mgr_tracker_;
+  unique_ptr<ExecEnv> exec_env_;
+  unique_ptr<RuntimeState> runtime_state_;
+  unique_ptr<MemTracker> block_mgr_parent_tracker_;
+  unique_ptr<MemTracker> io_mgr_tracker_;
 };
 
 TEST_F(BufferedBlockMgrTest, GetNewBlock) {

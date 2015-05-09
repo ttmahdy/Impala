@@ -196,7 +196,7 @@ class HdfsParquetTableWriter::BaseColumnWriter {
   THdfsCompression::type codec_;
 
   // Compression codec for this column.  If NULL, this column is will not be compressed.
-  scoped_ptr<Codec> compressor_;
+  unique_ptr<Codec> compressor_;
 
   vector<DataPage> pages_;
 
@@ -302,7 +302,7 @@ class HdfsParquetTableWriter::ColumnWriter :
   static const int DICTIONARY_DATA_PAGE_SIZE_CHECK_PERIOD = 100;
 
   // Encoder for dictionary encoding for different columns. Only one is set.
-  scoped_ptr<DictEncoder<T> > dict_encoder_;
+  unique_ptr<DictEncoder<T> > dict_encoder_;
 
   // The number of values added since we last checked the dictionary.
   int num_values_since_dict_size_check_;

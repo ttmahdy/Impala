@@ -17,7 +17,7 @@
 #include "util/memory-metrics.h"
 
 #include <gtest/gtest.h>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <limits>
 #include <map>
 
@@ -205,7 +205,7 @@ TEST_F(MetricsTest, MemMetric) {
   // Allocate 10MB to increase the number of bytes used. TCMalloc may also give up some
   // bytes during this allocation, so this allocation is deliberately large to ensure that
   // the bytes used metric goes up net.
-  scoped_ptr<vector<uint64_t> > chunk(new vector<uint64_t>(10 * 1024 * 1024));
+  unique_ptr<vector<uint64_t> > chunk(new vector<uint64_t>(10 * 1024 * 1024));
   EXPECT_GT(bytes_in_use->value(), cur_in_use);
 
   UIntGauge* total_bytes_reserved =

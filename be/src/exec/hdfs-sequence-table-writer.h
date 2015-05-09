@@ -101,7 +101,7 @@ class HdfsSequenceTableWriter : public HdfsTableWriter {
   /// name of codec, only set if compress_flag_
   std::string codec_name_;
   /// the codec for compressing, only set if compress_flag_
-  boost::scoped_ptr<Codec> compressor_;
+  std::unique_ptr<Codec> compressor_;
 
   /// true if compression is applied on each record individually
   bool record_compression_;

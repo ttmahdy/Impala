@@ -121,7 +121,7 @@ LlvmCodeGen::LlvmCodeGen(ObjectPool* pool, const string& id) :
 }
 
 Status LlvmCodeGen::LoadFromFile(ObjectPool* pool,
-    const string& file, const string& id, scoped_ptr<LlvmCodeGen>* codegen) {
+    const string& file, const string& id, unique_ptr<LlvmCodeGen>* codegen) {
   codegen->reset(new LlvmCodeGen(pool, id));
   SCOPED_TIMER((*codegen)->profile_.total_time_counter());
 
@@ -179,7 +179,7 @@ Status LlvmCodeGen::LinkModule(const string& file) {
 }
 
 Status LlvmCodeGen::LoadImpalaIR(
-    ObjectPool* pool, const string& id, scoped_ptr<LlvmCodeGen>* codegen_ret) {
+    ObjectPool* pool, const string& id, unique_ptr<LlvmCodeGen>* codegen_ret) {
   // Load the statically cross compiled file.  We cannot load an ll file with sse
   // instructions on a machine without sse support (the load fails, doesn't matter
   // if those instructions end up getting run or not).
@@ -695,14 +695,14 @@ void LlvmCodeGen::OptimizeModule() {
   for (int i = 0; i < fns_to_jit_compile_.size(); ++i) {
     exported_fn_names.push_back(fns_to_jit_compile_[i].first->getName().data());
   }
-  scoped_ptr<PassManager> module_pass_manager(new PassManager());
+  unique_ptr<PassManager> module_pass_manager(new PassManager());
   module_pass_manager->add(new DataLayout(data_layout_str));
   module_pass_manager->add(createInternalizePass(exported_fn_names));
   module_pass_manager->add(createGlobalDCEPass());
   module_pass_manager->run(*module_);
 
   // Create and run function pass manager
-  scoped_ptr<FunctionPassManager> fn_pass_manager(new FunctionPassManager(module_));
+  unique_ptr<FunctionPassManager> fn_pass_manager(new FunctionPassManager(module_));
   fn_pass_manager->add(new DataLayout(data_layout_str));
   pass_builder.populateFunctionPassManager(*fn_pass_manager);
   fn_pass_manager->doInitialization();

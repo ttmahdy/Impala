@@ -508,7 +508,7 @@ class BufferedBlockMgr {
   ObjectPool obj_pool_;
 
   /// Track buffers allocated by the block manager.
-  boost::scoped_ptr<MemTracker> mem_tracker_;
+  std::unique_ptr<MemTracker> mem_tracker_;
 
   /// This lock protects the block and buffer lists below, except for unused_blocks_.
   /// It also protects the various counters and changes to block state. Additionally, it is
@@ -573,7 +573,7 @@ class BufferedBlockMgr {
   bool is_cancelled_;
 
   /// Counters and timers to track behavior.
-  boost::scoped_ptr<RuntimeProfile> profile_;
+  std::unique_ptr<RuntimeProfile> profile_;
 
   /// These have a fixed value for the lifetime of the manager and show memory usage.
   RuntimeProfile::Counter* mem_limit_counter_;

@@ -17,7 +17,7 @@
 
 #include <jni.h>
 #include <boost/thread.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <vector>
 #include <string>
 #include <utility>
@@ -83,7 +83,7 @@ class HBaseTableWriter {
   /// The wrapper around a Java HTable.
   /// This instance is owned by this object and must be cleaned
   /// up using close before the table can be discarded.
-  boost::scoped_ptr<HBaseTable> table_;
+  std::unique_ptr<HBaseTable> table_;
 
   /// The expressions that are run to create tuples to be written to hbase.
   const std::vector<ExprContext*> output_expr_ctxs_;

@@ -428,7 +428,7 @@ int BufferedTupleStream::ComputeNumNullIndicatorBytes(int block_size) const {
   }
 }
 
-Status BufferedTupleStream::GetRows(scoped_ptr<RowBatch>* batch, bool* got_rows) {
+Status BufferedTupleStream::GetRows(unique_ptr<RowBatch>* batch, bool* got_rows) {
   RETURN_IF_ERROR(PinStream(false, got_rows));
   if (!*got_rows) return Status::OK();
   RETURN_IF_ERROR(PrepareForRead());

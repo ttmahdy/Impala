@@ -16,7 +16,7 @@
 #ifndef IMPALA_RUNTIME_EXEC_ENV_H
 #define IMPALA_RUNTIME_EXEC_ENV_H
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/thread.hpp>
 
@@ -63,7 +63,7 @@ class ExecEnv {
   static ExecEnv* GetInstance() { return exec_env_; }
 
   /// Empty destructor because the compiler-generated one requires full
-  /// declarations for classes in scoped_ptrs.
+  /// declarations for classes in unique_ptrs.
   virtual ~ExecEnv();
 
   void SetImpalaServer(ImpalaServer* server) { impala_server_ = server; }
@@ -116,22 +116,22 @@ class ExecEnv {
 
  protected:
   /// Leave protected so that subclasses can override
-  boost::scoped_ptr<DataStreamMgr> stream_mgr_;
-  boost::scoped_ptr<ResourceBroker> resource_broker_;
-  boost::scoped_ptr<Scheduler> scheduler_;
-  boost::scoped_ptr<StatestoreSubscriber> statestore_subscriber_;
-  boost::scoped_ptr<ImpalaInternalServiceClientCache> impalad_client_cache_;
-  boost::scoped_ptr<CatalogServiceClientCache> catalogd_client_cache_;
-  boost::scoped_ptr<HBaseTableFactory> htable_factory_;
-  boost::scoped_ptr<DiskIoMgr> disk_io_mgr_;
-  boost::scoped_ptr<Webserver> webserver_;
-  boost::scoped_ptr<MetricGroup> metrics_;
-  boost::scoped_ptr<MemTracker> mem_tracker_;
-  boost::scoped_ptr<ThreadResourceMgr> thread_mgr_;
-  boost::scoped_ptr<CgroupsMgr> cgroups_mgr_;
-  boost::scoped_ptr<HdfsOpThreadPool> hdfs_op_thread_pool_;
-  boost::scoped_ptr<RequestPoolService> request_pool_service_;
-  boost::scoped_ptr<Frontend> frontend_;
+  std::unique_ptr<DataStreamMgr> stream_mgr_;
+  std::unique_ptr<ResourceBroker> resource_broker_;
+  std::unique_ptr<Scheduler> scheduler_;
+  std::unique_ptr<StatestoreSubscriber> statestore_subscriber_;
+  std::unique_ptr<ImpalaInternalServiceClientCache> impalad_client_cache_;
+  std::unique_ptr<CatalogServiceClientCache> catalogd_client_cache_;
+  std::unique_ptr<HBaseTableFactory> htable_factory_;
+  std::unique_ptr<DiskIoMgr> disk_io_mgr_;
+  std::unique_ptr<Webserver> webserver_;
+  std::unique_ptr<MetricGroup> metrics_;
+  std::unique_ptr<MemTracker> mem_tracker_;
+  std::unique_ptr<ThreadResourceMgr> thread_mgr_;
+  std::unique_ptr<CgroupsMgr> cgroups_mgr_;
+  std::unique_ptr<HdfsOpThreadPool> hdfs_op_thread_pool_;
+  std::unique_ptr<RequestPoolService> request_pool_service_;
+  std::unique_ptr<Frontend> frontend_;
 
   /// Not owned by this class
   ImpalaServer* impala_server_;

@@ -214,7 +214,7 @@ class ImpalaServer::QueryExecState {
   uint32_t ref_count_;
 
   /// Thread for asynchronously running Wait().
-  boost::scoped_ptr<Thread> wait_thread_;
+  std::unique_ptr<Thread> wait_thread_;
 
   boost::mutex lock_;  // protects all following fields
   ExecEnv* exec_env_;
@@ -223,30 +223,30 @@ class ImpalaServer::QueryExecState {
   boost::shared_ptr<SessionState> session_;
 
   /// Resource assignment determined by scheduler. Owned by obj_pool_.
-  boost::scoped_ptr<QuerySchedule> schedule_;
+  std::unique_ptr<QuerySchedule> schedule_;
 
   /// not set for ddl queries, or queries with "limit 0"
-  boost::scoped_ptr<Coordinator> coord_;
+  std::unique_ptr<Coordinator> coord_;
 
   /// Runs statements that query or modify the catalog via the CatalogService.
-  boost::scoped_ptr<CatalogOpExecutor> catalog_op_executor_;
+  std::unique_ptr<CatalogOpExecutor> catalog_op_executor_;
 
   /// Result set used for requests that return results and are not QUERY
   /// statements. For example, EXPLAIN, LOAD, and SHOW use this.
-  boost::scoped_ptr<std::vector<TResultRow> > request_result_set_;
+  std::unique_ptr<std::vector<TResultRow> > request_result_set_;
 
   /// Cache of the first result_cache_max_size_ query results to allow clients to restart
   /// fetching from the beginning of the result set. This cache is appended to in
   /// FetchInternal(), and set to NULL if its bound is exceeded. If the bound is exceeded,
   /// then clients cannot restart fetching because some results have been lost since the
   /// last fetch. Only set if result_cache_max_size_ > 0.
-  boost::scoped_ptr<QueryResultSet> result_cache_;
+  std::unique_ptr<QueryResultSet> result_cache_;
 
   /// Max size of the result_cache_ in number of rows. A value <= 0 means no caching.
   int64_t result_cache_max_size_;
 
   /// local runtime_state_ in case we don't have a coord_
-  boost::scoped_ptr<RuntimeState> local_runtime_state_;
+  std::unique_ptr<RuntimeState> local_runtime_state_;
   ObjectPool profile_pool_;
 
   /// The QueryExecState builds three separate profiles.
@@ -305,7 +305,7 @@ class ImpalaServer::QueryExecState {
   /// first child query that failed (child queries are executed serially and abort on the
   /// first error).
   Status child_queries_status_;
-  boost::scoped_ptr<Thread> child_queries_thread_;
+  std::unique_ptr<Thread> child_queries_thread_;
 
   /// Executes a local catalog operation (an operation that does not need to execute
   /// against the catalog service). Includes USE, SHOW, DESCRIBE, and EXPLAIN statements.

@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
   InitCommonRuntime(argc, argv, false);
 
   MemTracker mem_tracker;
-  scoped_ptr<Webserver> webserver(new Webserver());
+  unique_ptr<Webserver> webserver(new Webserver());
 
   if (FLAGS_enable_webserver) {
     AddDefaultUrlCallbacks(webserver.get(), &mem_tracker);
@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
     LOG(INFO) << "Not starting webserver";
   }
 
-  scoped_ptr<MetricGroup> metrics(new MetricGroup("statestore"));
+  unique_ptr<MetricGroup> metrics(new MetricGroup("statestore"));
   metrics->Init(FLAGS_enable_webserver ? webserver.get() : NULL);
   EXIT_IF_ERROR(RegisterMemoryMetrics(metrics.get(), false));
   StartThreadInstrumentation(metrics.get(), webserver.get());

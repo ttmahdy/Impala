@@ -17,7 +17,7 @@
 #define IMPALA_EXEC_DATA_SOURCE_SCAN_NODE_H_
 
 #include <string>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
 #include "exec/scan-node.h"
 #include "exec/external-data-source-executor.h"
@@ -62,7 +62,7 @@ class DataSourceScanNode : public ScanNode {
 
  private:
   /// Used to call the external data source.
-  boost::scoped_ptr<ExternalDataSourceExecutor> data_source_executor_;
+  std::unique_ptr<ExternalDataSourceExecutor> data_source_executor_;
 
   /// Thrift structure describing the data source scan node.
   const TDataSourceScanNode data_src_node_;
@@ -86,7 +86,7 @@ class DataSourceScanNode : public ScanNode {
 
   /// The current result from calling GetNext() on the data source. Contains the
   /// thrift representation of the rows.
-  boost::scoped_ptr<extdatasource::TGetNextResult> input_batch_;
+  std::unique_ptr<extdatasource::TGetNextResult> input_batch_;
 
   /// The number of rows in input_batch_->rows. The data source should have set
   /// TRowBatch.num_rows, but we compute it just in case they haven't.

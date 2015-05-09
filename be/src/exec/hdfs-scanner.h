@@ -20,7 +20,7 @@
 #include <memory>
 #include <stdint.h>
 #include <boost/regex.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
 #include "codegen/impala-ir.h"
 #include "exec/hdfs-scan-node.h"
@@ -183,7 +183,7 @@ class HdfsScanner {
   int num_errors_in_file_;
 
   /// Helper class for converting text to other types;
-  boost::scoped_ptr<TextConverter> text_converter_;
+  std::unique_ptr<TextConverter> text_converter_;
 
   /// Number of null bytes in the tuple.
   int32_t num_null_bytes_;
@@ -195,14 +195,14 @@ class HdfsScanner {
   Status parse_status_;
 
   /// Decompressor class to use, if any.
-  boost::scoped_ptr<Codec> decompressor_;
+  std::unique_ptr<Codec> decompressor_;
 
   /// The most recently used decompression type.
   THdfsCompression::type decompression_type_;
 
   /// Pool to allocate per data block memory.  This should be used with the
   /// decompressor and any other per data block allocations.
-  boost::scoped_ptr<MemPool> data_buffer_pool_;
+  std::unique_ptr<MemPool> data_buffer_pool_;
 
   /// Time spent decompressing bytes.
   RuntimeProfile::Counter* decompress_timer_;

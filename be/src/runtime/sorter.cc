@@ -177,7 +177,7 @@ class Sorter::Run {
 
   // buffered_batch_ is used to return TupleRows to the merger when this run is being
   // merged. buffered_batch_ is returned in calls to GetNextBatch().
-  scoped_ptr<RowBatch> buffered_batch_;
+  unique_ptr<RowBatch> buffered_batch_;
 
   // Members used when a run is read in GetNext()
   // The index into the fixed_ and var_len_blocks_ vectors of the current blocks being
@@ -1063,7 +1063,7 @@ Status Sorter::MergeIntermediateRuns() {
   // For an intermediate merge, intermediate_merge_batch contains deep-copied rows from
   // the input runs. If (sorted_runs_.size() > max_runs_per_final_merge),
   // one or more intermediate merges are required.
-  scoped_ptr<RowBatch> intermediate_merge_batch;
+  unique_ptr<RowBatch> intermediate_merge_batch;
   while (sorted_runs_.size() > max_runs_per_final_merge) {
     // An intermediate merge adds one merge to unmerged_sorted_runs_.
     // Merging 'runs - (max_runs_final_ - 1)' number of runs is sifficient to guarantee

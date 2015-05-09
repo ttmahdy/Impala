@@ -146,7 +146,7 @@ class Sorter {
 
   /// In memory sorter and less-than comparator.
   TupleRowComparator compare_less_than_;
-  boost::scoped_ptr<TupleSorter> in_mem_tuple_sorter_;
+  std::unique_ptr<TupleSorter> in_mem_tuple_sorter_;
 
   /// Block manager object used to allocate, pin and release runs. Not owned by Sorter.
   BufferedBlockMgr* block_mgr_;
@@ -182,7 +182,7 @@ class Sorter {
   /// Merger object (intermediate or final) currently used to produce sorted runs.
   /// Only one merge is performed at a time. Will never be used if the input fits in
   /// memory.
-  boost::scoped_ptr<SortedRunMerger> merger_;
+  std::unique_ptr<SortedRunMerger> merger_;
 
   /// Runs that are currently processed by the merge_.
   /// These runs can be deleted when we are done with the current merge.

@@ -16,7 +16,7 @@
 #ifndef IMPALA_RUNTIME_SORTED_RUN_MERGER_H_
 #define IMPALA_RUNTIME_SORTED_RUN_MERGER_H_
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/thread/mutex.hpp>
 
 #include "common/object-pool.h"

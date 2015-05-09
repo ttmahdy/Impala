@@ -15,7 +15,7 @@
 #ifndef IMPALA_EXEC_HBASE_TABLE_SCANNER_H
 #define IMPALA_EXEC_HBASE_TABLE_SCANNER_H
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <jni.h>
 #include <string>
 #include <sstream>
@@ -200,7 +200,7 @@ class HBaseTableScanner {
   int current_scan_range_idx_;  // the index of the current scan range
 
   /// C++ wrapper for HTable
-  boost::scoped_ptr<HBaseTable> htable_;
+  std::unique_ptr<HBaseTable> htable_;
 
   /// Instances related to scanning a table. Set in StartScan(). They are global references
   /// because they cannot be automatically garbage collected by the JVM.
@@ -232,7 +232,7 @@ class HBaseTableScanner {
 
   /// Pool for allocating keys/values retrieved from HBase.
   /// Memory allocated from this pool is valid until the following Next().
-  boost::scoped_ptr<MemPool> value_pool_;
+  std::unique_ptr<MemPool> value_pool_;
 
   /// Number of rows for caching that will be passed to scanners.
   /// Set in the HBase call Scan.setCaching();

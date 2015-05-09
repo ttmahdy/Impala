@@ -1173,10 +1173,10 @@ Status PartitionedHashJoinNode::EvaluateNullProbe(BufferedTupleStream* build) {
 
   // Bring both the build and probe side into memory and do a pairwise evaluation.
   bool got_rows;
-  scoped_ptr<RowBatch> build_rows;
+  unique_ptr<RowBatch> build_rows;
   RETURN_IF_ERROR(build->GetRows(&build_rows, &got_rows));
   if (!got_rows) return NullAwareAntiJoinError(true);
-  scoped_ptr<RowBatch> probe_rows;
+  unique_ptr<RowBatch> probe_rows;
   RETURN_IF_ERROR(null_probe_rows_->GetRows(&probe_rows, &got_rows));
   if (!got_rows) return NullAwareAntiJoinError(false);
 

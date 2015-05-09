@@ -20,7 +20,7 @@
 
 #include <hdfs.h>
 #include <map>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
 #include "util/compress.h"
 #include "runtime/descriptors.h"
@@ -131,7 +131,7 @@ class HdfsParquetTableWriter : public HdfsTableWriter {
 
   /// Thrift serializer utility object.  Reusing this object allows for
   /// fewer memory allocations.
-  boost::scoped_ptr<ThriftSerializer> thrift_serializer_;
+  std::unique_ptr<ThriftSerializer> thrift_serializer_;
 
   /// File metdata thrift description.
   parquet::FileMetaData file_metadata_;
@@ -162,11 +162,11 @@ class HdfsParquetTableWriter : public HdfsTableWriter {
 
   /// Memory for column/block buffers that are reused for the duration of the
   /// writer (i.e. reused across files).
-  boost::scoped_ptr<MemPool> reusable_col_mem_pool_;
+  std::unique_ptr<MemPool> reusable_col_mem_pool_;
 
   /// Memory for column/block buffers that is allocated per file.  We need to
   /// reset this pool after flushing a file.
-  boost::scoped_ptr<MemPool> per_file_mem_pool_;
+  std::unique_ptr<MemPool> per_file_mem_pool_;
 
   /// Current position in the batch being written.  This must be persistent across
   /// calls since the writer may stop in the middle of a row batch and ask for a new

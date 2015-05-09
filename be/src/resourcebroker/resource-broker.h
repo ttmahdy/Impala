@@ -16,7 +16,7 @@
 #define RESOURCE_BROKER_H_
 
 #include <boost/unordered_map.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/uuid/uuid.hpp>
 
 #include "runtime/client-cache.h"
@@ -256,10 +256,10 @@ class ResourceBroker {
 
   /// Thrift API implementation which proxies Llama notifications onto this ResourceBroker.
   boost::shared_ptr<llama::LlamaNotificationServiceIf> llama_callback_thrift_iface_;
-  boost::scoped_ptr<ThriftServer> llama_callback_server_;
+  std::unique_ptr<ThriftServer> llama_callback_server_;
 
   /// Cache of Llama client connections.
-  boost::scoped_ptr<ClientCache<llama::LlamaAMServiceClient> > llama_client_cache_;
+  std::unique_ptr<ClientCache<llama::LlamaAMServiceClient> > llama_client_cache_;
 
   /// Lock to ensure that only a single registration with Llama is sent, e.g.,
   /// when multiple concurrent requests realize that Llama has restarted.

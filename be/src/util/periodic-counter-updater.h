@@ -17,7 +17,7 @@
 #define IMPALA_UTIL_PERIODIC_COUNTER_UPDATER_H
 
 #include <boost/function.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/unordered_map.hpp>
@@ -103,7 +103,7 @@ class PeriodicCounterUpdater {
   void UpdateLoop();
 
   /// Thread performing asynchronous updates.
-  boost::scoped_ptr<boost::thread> update_thread_;
+  std::unique_ptr<boost::thread> update_thread_;
 
   /// Spinlock that protects the map of rate counters
   SpinLock rate_lock_;

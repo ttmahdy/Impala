@@ -16,7 +16,7 @@
 #ifndef IMPALA_EXEC_DATA_SINK_H
 #define IMPALA_EXEC_DATA_SINK_H
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <vector>
 
 #include "common/status.h"
@@ -63,7 +63,7 @@ class DataSink {
   static Status CreateDataSink(ObjectPool* pool,
     const TDataSink& thrift_sink, const std::vector<TExpr>& output_exprs,
     const TPlanFragmentExecParams& params,
-    const RowDescriptor& row_desc, boost::scoped_ptr<DataSink>* sink);
+    const RowDescriptor& row_desc, std::unique_ptr<DataSink>* sink);
 
   /// Returns the runtime profile for the sink.
   virtual RuntimeProfile* profile() = 0;
@@ -82,7 +82,7 @@ class DataSink {
   /// Close().
   bool closed_;
 
-  boost::scoped_ptr<MemTracker> expr_mem_tracker_;
+  std::unique_ptr<MemTracker> expr_mem_tracker_;
 
 };
 

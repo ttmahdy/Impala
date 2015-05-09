@@ -18,9 +18,9 @@
 
 #include <hdfs.h>
 #include <boost/unordered_map.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
-/// needed for scoped_ptr to work on ObjectPool
+/// needed for unique_ptr to work on ObjectPool
 #include "common/object-pool.h"
 #include "exec/data-sink.h"
 #include "runtime/descriptors.h"
@@ -80,7 +80,7 @@ struct OutputPartition {
   int32_t num_files;
 
   /// Table format specific writer functions.
-  boost::scoped_ptr<HdfsTableWriter> writer;
+  std::unique_ptr<HdfsTableWriter> writer;
 
   /// The descriptor for this partition.
   const HdfsPartitionDescriptor* partition_descriptor;
@@ -266,7 +266,7 @@ class HdfsTableSink : public DataSink {
       PartitionDescriptorMap;
   PartitionDescriptorMap partition_descriptor_map_;
 
-  boost::scoped_ptr<MemTracker> mem_tracker_;
+  std::unique_ptr<MemTracker> mem_tracker_;
 
   /// Allocated from runtime state's pool.
   RuntimeProfile* runtime_profile_;

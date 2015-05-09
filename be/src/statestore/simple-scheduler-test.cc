@@ -14,7 +14,7 @@
 
 #include <gtest/gtest.h>
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
 #include "common/logging.h"
 #include "simple-scheduler.h"
@@ -66,10 +66,10 @@ class SimpleSchedulerTest : public testing::Test {
   int num_backends_;
 
   // This 2 backends: localhost and 127.0.0.0
-  boost::scoped_ptr<SimpleScheduler> hostname_scheduler_;
+  std::unique_ptr<SimpleScheduler> hostname_scheduler_;
 
   // This scheduler has 4 backends; 2 on each ipaddresses and has 4 different ports.
-  boost::scoped_ptr<SimpleScheduler> local_remote_scheduler_;
+  std::unique_ptr<SimpleScheduler> local_remote_scheduler_;
 };
 
 

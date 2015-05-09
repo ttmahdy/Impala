@@ -119,7 +119,7 @@ class DataStreamSender::Channel {
   int64_t num_data_bytes_sent_;
 
   // we're accumulating rows into this batch
-  scoped_ptr<RowBatch> batch_;
+  unique_ptr<RowBatch> batch_;
   TRowBatch thrift_batch_;
 
   // We want to reuse the rpc thread to prevent creating a thread per rowbatch.
@@ -328,7 +328,7 @@ DataStreamSender::DataStreamSender(ObjectPool* pool, int sender_id,
       || sink.output_partition.type == TPartitionType::RANDOM);
   broadcast_ = sink.output_partition.type == TPartitionType::UNPARTITIONED;
   random_ = sink.output_partition.type == TPartitionType::RANDOM;
-  // TODO: use something like google3's linked_ptr here (scoped_ptr isn't copyable)
+  // TODO: use something like google3's linked_ptr here (unique_ptr isn't copyable)
   for (int i = 0; i < destinations.size(); ++i) {
     channels_.push_back(
         new Channel(this, row_desc, destinations[i].server,

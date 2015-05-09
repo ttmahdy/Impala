@@ -18,7 +18,7 @@
 
 #include <string>
 #include <vector>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/thread.hpp>
 
@@ -87,7 +87,7 @@ class ImpaladQueryExecutor {
 
  private:
   /// fe service-related
-  boost::scoped_ptr<ThriftClient<ImpalaServiceClient> > client_;
+  std::unique_ptr<ThriftClient<ImpalaServiceClient> > client_;
 
   /// Execution options
   std::vector<std::string> exec_options_;

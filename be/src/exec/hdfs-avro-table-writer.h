@@ -95,7 +95,7 @@ class HdfsAvroTableWriter : public HdfsTableWriter {
 
   /// Memory pool used by codec to allocate output buffer.
   /// Owned by this class. Initialized using parent's memtracker.
-  boost::scoped_ptr<MemPool> mem_pool_;
+  std::unique_ptr<MemPool> mem_pool_;
 
   /// Number of rows consumed since last flush
   uint64_t unflushed_rows_;
@@ -107,7 +107,7 @@ class HdfsAvroTableWriter : public HdfsTableWriter {
   THdfsCompression::type codec_type_;
 
   /// The codec for compressing, only set if codec_type_ != NONE
-  boost::scoped_ptr<Codec> compressor_;
+  std::unique_ptr<Codec> compressor_;
 
   /// 16 byte sync marker (a uuid)
   std::string sync_marker_;

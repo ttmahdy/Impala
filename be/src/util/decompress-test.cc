@@ -53,8 +53,8 @@ class DecompressorTest : public ::testing::Test {
   }
 
   void RunTest(THdfsCompression::type format) {
-    scoped_ptr<Codec> compressor;
-    scoped_ptr<Codec> decompressor;
+    unique_ptr<Codec> compressor;
+    unique_ptr<Codec> decompressor;
 
     EXPECT_TRUE(
         Codec::CreateCompressor(&mem_pool_, true, format, &compressor).ok());
@@ -83,8 +83,8 @@ class DecompressorTest : public ::testing::Test {
   }
 
   void RunTestStreaming(THdfsCompression::type format) {
-    scoped_ptr<Codec> compressor;
-    scoped_ptr<Codec> decompressor;
+    unique_ptr<Codec> compressor;
+    unique_ptr<Codec> decompressor;
     EXPECT_TRUE(
         Codec::CreateCompressor(&mem_pool_, true, format, &compressor).ok());
     EXPECT_TRUE(
@@ -235,7 +235,7 @@ TEST_F(DecompressorTest, Impala1506) {
   // Regression test for IMPALA-1506
   MemTracker trax;
   MemPool pool(&trax);
-  scoped_ptr<Codec> compressor;
+  unique_ptr<Codec> compressor;
   Codec::CreateCompressor(&pool, true, impala::THdfsCompression::GZIP, &compressor);
 
   int64_t input_len = 3;

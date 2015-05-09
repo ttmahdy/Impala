@@ -631,7 +631,7 @@ void RuntimeProfile::SerializeToArchiveString(stringstream* out) const {
 
   // Compress the serialized thrift string.  This uses string keys and is very
   // easy to compress.
-  scoped_ptr<Codec> compressor;
+  unique_ptr<Codec> compressor;
   status = Codec::CreateCompressor(NULL, false, THdfsCompression::DEFAULT, &compressor);
   DCHECK(status.ok()) << status.GetDetail();
   if (!status.ok()) return;

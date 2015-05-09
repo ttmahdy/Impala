@@ -17,7 +17,7 @@
 #define IMPALA_EXEC_PARTITIONED_AGGREGATION_NODE_H
 
 #include <functional>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
 #include "exec/exec-node.h"
 #include "exec/hash-table.h"
@@ -141,7 +141,7 @@ class PartitionedAggregationNode : public ExecNode {
   TupleDescriptor* intermediate_tuple_desc_;
 
   /// Row with the intermediate tuple as its only tuple.
-  boost::scoped_ptr<RowDescriptor> intermediate_row_desc_;
+  std::unique_ptr<RowDescriptor> intermediate_row_desc_;
 
   /// Tuple into which Finalize() results are stored. Possibly the same as
   /// the intermediate tuple.
@@ -166,7 +166,7 @@ class PartitionedAggregationNode : public ExecNode {
   /// partitions.
   /// TODO: we really need to plumb through CHAR(N) for intermediate types.
   std::vector<impala_udf::FunctionContext*> agg_fn_ctxs_;
-  boost::scoped_ptr<MemPool> agg_fn_pool_;
+  std::unique_ptr<MemPool> agg_fn_pool_;
 
   /// Exprs used to evaluate input rows
   std::vector<ExprContext*> probe_expr_ctxs_;
@@ -193,12 +193,12 @@ class PartitionedAggregationNode : public ExecNode {
 
   /// MemPool used to allocate memory for when we don't have grouping and don't initialize
   /// the partitioning structures, or during Close() when creating new output tuples.
-  boost::scoped_ptr<MemPool> mem_pool_;
+  std::unique_ptr<MemPool> mem_pool_;
 
   /// Used for hash-related functionality, such as evaluating rows and calculating hashes.
   /// TODO: If we want to multi-thread then this context should be thread-local and not
   /// associated with the node.
-  boost::scoped_ptr<HashTableCtx> ht_ctx_;
+  std::unique_ptr<HashTableCtx> ht_ctx_;
 
   /// The current partition and iterator to the next row in its hash table that we need
   /// to return in GetNext()
@@ -280,20 +280,20 @@ class PartitionedAggregationNode : public ExecNode {
     /// Hash table for this partition.
     /// Can be NULL if this partition is no longer maintaining a hash table (i.e.
     /// is spilled).
-    boost::scoped_ptr<HashTable> hash_tbl;
+    std::unique_ptr<HashTable> hash_tbl;
 
     /// Clone of parent's agg_fn_ctxs_ and backing MemPool.
     std::vector<impala_udf::FunctionContext*> agg_fn_ctxs;
-    boost::scoped_ptr<MemPool> agg_fn_pool;
+    std::unique_ptr<MemPool> agg_fn_pool;
 
     /// Tuple stream used to store aggregated rows. When the partition is not spilled,
     /// (meaning the hash table is maintained), this stream is pinned and contains the
     /// memory referenced by the hash table. When it is spilled, aggregate rows are
     /// just appended to this stream.
-    boost::scoped_ptr<BufferedTupleStream> aggregated_row_stream;
+    std::unique_ptr<BufferedTupleStream> aggregated_row_stream;
 
     /// Unaggregated rows that are spilled.
-    boost::scoped_ptr<BufferedTupleStream> unaggregated_row_stream;
+    std::unique_ptr<BufferedTupleStream> unaggregated_row_stream;
   };
 
   /// Current partitions we are partitioning into.
@@ -310,7 +310,7 @@ class PartitionedAggregationNode : public ExecNode {
   /// Stream used to store serialized spilled rows. Only used if needs_serialize_
   /// is set. This stream is never pinned and only used in Partition::Spill as a
   /// a temporary buffer.
-  boost::scoped_ptr<BufferedTupleStream> serialize_stream_;
+  std::unique_ptr<BufferedTupleStream> serialize_stream_;
 
   /// Allocates a new allocated aggregation intermediate tuple.
   /// Initialized to grouping values computed over 'current_row_' using 'agg_fn_ctxs'.

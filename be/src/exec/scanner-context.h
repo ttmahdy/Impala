@@ -17,7 +17,7 @@
 #define IMPALA_EXEC_SCANNER_CONTEXT_H
 
 #include <boost/cstdint.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
 #include "common/compiler-util.h"
 #include "common/status.h"
@@ -194,8 +194,8 @@ class ScannerContext {
     /// Conceptually, the data in the boundary buffer always comes before that in the
     /// current buffer, and all the bytes in the stream are either already returned to the
     /// scanner, in the current IO buffer, or in the boundary buffer.
-    boost::scoped_ptr<MemPool> boundary_pool_;
-    boost::scoped_ptr<StringBuffer> boundary_buffer_;
+    std::unique_ptr<MemPool> boundary_pool_;
+    std::unique_ptr<StringBuffer> boundary_buffer_;
     uint8_t* boundary_buffer_pos_;
     int64_t boundary_buffer_bytes_left_;
 

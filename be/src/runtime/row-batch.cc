@@ -15,7 +15,7 @@
 #include "runtime/row-batch.h"
 
 #include <stdint.h>  // for intptr_t
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
 #include "runtime/buffered-tuple-stream.h"
 #include "runtime/mem-tracker.h"
@@ -72,7 +72,7 @@ RowBatch::RowBatch(const RowDescriptor& row_desc, const TRowBatch& input_batch,
     uint8_t* compressed_data = (uint8_t*)input_batch.tuple_data.c_str();
     size_t compressed_size = input_batch.tuple_data.size();
 
-    scoped_ptr<Codec> decompressor;
+    unique_ptr<Codec> decompressor;
     Status status = Codec::CreateDecompressor(NULL, false, input_batch.compression_type,
         &decompressor);
     DCHECK(status.ok()) << status.GetDetail();
@@ -183,7 +183,7 @@ int RowBatch::Serialize(TRowBatch* output_batch) {
   if (size > 0) {
     // Try compressing tuple_data to compression_scratch_, swap if compressed data is
     // smaller
-    scoped_ptr<Codec> compressor;
+    unique_ptr<Codec> compressor;
     Status status = Codec::CreateCompressor(NULL, false, THdfsCompression::LZ4,
                                             &compressor);
     DCHECK(status.ok()) << status.GetDetail();

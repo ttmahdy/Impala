@@ -355,7 +355,7 @@ StringVal StringFunctions::RegexpExtract(FunctionContext* context, const StringV
 
   re2::RE2* re = reinterpret_cast<re2::RE2*>(
       context->GetFunctionState(FunctionContext::FRAGMENT_LOCAL));
-  scoped_ptr<re2::RE2> scoped_re; // destroys re if we have to locally compile it
+  unique_ptr<re2::RE2> scoped_re; // destroys re if we have to locally compile it
   if (re == NULL) {
     DCHECK(!context->IsArgConstant(1));
     string error_str;
@@ -387,7 +387,7 @@ StringVal StringFunctions::RegexpReplace(FunctionContext* context, const StringV
 
   re2::RE2* re = reinterpret_cast<re2::RE2*>(
       context->GetFunctionState(FunctionContext::FRAGMENT_LOCAL));
-  scoped_ptr<re2::RE2> scoped_re; // destroys re if state->re is NULL
+  unique_ptr<re2::RE2> scoped_re; // destroys re if state->re is NULL
   if (re == NULL) {
     DCHECK(!context->IsArgConstant(1));
     string error_str;

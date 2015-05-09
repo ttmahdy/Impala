@@ -52,7 +52,7 @@ class LlvmCodeGenTest : public testing:: Test {
 
   // Wrapper to call private test-only methods on LlvmCodeGen object
   static Status LoadFromFile(ObjectPool* pool, const string& filename,
-      scoped_ptr<LlvmCodeGen>* codegen) {
+      unique_ptr<LlvmCodeGen>* codegen) {
     return LlvmCodeGen::LoadFromFile(pool, filename, "test", codegen);
   }
 
@@ -95,7 +95,7 @@ TEST_F(LlvmCodeGenTest, MultithreadedLifetime) {
 TEST_F(LlvmCodeGenTest, BadIRFile) {
   ObjectPool pool;
   string module_file = "NonExistentFile.ir";
-  scoped_ptr<LlvmCodeGen> codegen;
+  unique_ptr<LlvmCodeGen> codegen;
   Status status = LlvmCodeGenTest::LoadFromFile(&pool, module_file.c_str(), &codegen);
   EXPECT_TRUE(!status.ok());
 }
@@ -154,7 +154,7 @@ TEST_F(LlvmCodeGenTest, ReplaceFnCall) {
   PathBuilder::GetFullPath("llvm-ir/test-loop.ir", &module_file);
 
   // Part 1: Load the module and make sure everything is loaded correctly.
-  scoped_ptr<LlvmCodeGen> codegen;
+  unique_ptr<LlvmCodeGen> codegen;
   Status status = LlvmCodeGenTest::LoadFromFile(&pool, module_file.c_str(), &codegen);
   EXPECT_TRUE(codegen.get() != NULL);
   EXPECT_TRUE(status.ok());
@@ -277,7 +277,7 @@ Function* CodegenStringTest(LlvmCodeGen* codegen) {
 TEST_F(LlvmCodeGenTest, StringValue) {
   ObjectPool pool;
 
-  scoped_ptr<LlvmCodeGen> codegen;
+  unique_ptr<LlvmCodeGen> codegen;
   Status status = LlvmCodeGen::LoadImpalaIR(&pool, "test", &codegen);
   EXPECT_TRUE(status.ok());
   EXPECT_TRUE(codegen.get() != NULL);
@@ -319,7 +319,7 @@ TEST_F(LlvmCodeGenTest, StringValue) {
 TEST_F(LlvmCodeGenTest, MemcpyTest) {
   ObjectPool pool;
 
-  scoped_ptr<LlvmCodeGen> codegen;
+  unique_ptr<LlvmCodeGen> codegen;
   Status status = LlvmCodeGen::LoadImpalaIR(&pool, "test", &codegen);
   ASSERT_TRUE(status.ok());
   ASSERT_TRUE(codegen.get() != NULL);
@@ -361,7 +361,7 @@ TEST_F(LlvmCodeGenTest, HashTest) {
   const char* data1 = "test string";
   const char* data2 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-  scoped_ptr<LlvmCodeGen> codegen;
+  unique_ptr<LlvmCodeGen> codegen;
   Status status = LlvmCodeGen::LoadImpalaIR(&pool, "test", &codegen);
   ASSERT_TRUE(status.ok());
   ASSERT_TRUE(codegen.get() != NULL);

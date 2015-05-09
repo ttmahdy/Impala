@@ -18,7 +18,7 @@
 
 #include <string>
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include "common/status.h"
 #include "runtime/descriptors.h"
 #include "runtime/lib-cache.h"

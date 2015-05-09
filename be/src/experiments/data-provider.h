@@ -7,7 +7,7 @@
 #include <iostream>
 #include <limits>
 #include <boost/cstdint.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/random/uniform_int.hpp>
 #include <boost/random/linear_congruential.hpp>
 #include <boost/random/uniform_int.hpp>
@@ -123,7 +123,7 @@ class DataProvider {
   int num_rows_;
   int batch_size_;
   int rows_returned_;
-  boost::scoped_ptr<char> data_;
+  std::unique_ptr<char> data_;
   int row_size_;
   boost::minstd_rand rand_generator_;
   std::vector<ColDesc> cols_;

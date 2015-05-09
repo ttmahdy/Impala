@@ -17,7 +17,7 @@
 #define IMPALA_RUNTIME_DISK_IO_MGR_STRESS_H
 
 #include <vector>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/thread.hpp>
@@ -58,7 +58,7 @@ class DiskIoMgrStress {
   MemTracker dummy_tracker_;
 
   /// io manager
-  boost::scoped_ptr<DiskIoMgr> io_mgr_;
+  std::unique_ptr<DiskIoMgr> io_mgr_;
 
   /// Thread group for reader threads
   boost::thread_group readers_;

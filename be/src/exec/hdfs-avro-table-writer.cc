@@ -16,7 +16,7 @@
 
 #include <vector>
 #include <hdfs.h>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <stdlib.h>
 #include <gutil/strings/substitute.h>
 

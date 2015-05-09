@@ -134,7 +134,7 @@ class HdfsTextScanner : public HdfsScanner {
   virtual void LogRowParseError(int row_idx, std::stringstream*);
 
   /// Mem pool for boundary_row_ and boundary_column_.
-  boost::scoped_ptr<MemPool> boundary_pool_;
+  std::unique_ptr<MemPool> boundary_pool_;
 
   /// Helper string for dealing with input rows that span file blocks.
   /// We keep track of a whole line that spans file blocks to be able to report
@@ -148,7 +148,7 @@ class HdfsTextScanner : public HdfsScanner {
   int slot_idx_;
 
   /// Helper class for picking fields and rows from delimited text.
-  boost::scoped_ptr<DelimitedTextParser> delimited_text_parser_;
+  std::unique_ptr<DelimitedTextParser> delimited_text_parser_;
 
   /// Return field locations from the Delimited Text Parser.
   std::vector<FieldLocation> field_locations_;

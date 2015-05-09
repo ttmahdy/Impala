@@ -17,7 +17,7 @@
 #define IMPALA_RUNTIME_LIB_CACHE_H
 
 #include <string>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/unordered_map.hpp>
 #include <boost/unordered_set.hpp>
 #include <boost/thread/mutex.hpp>
@@ -110,7 +110,7 @@ class LibCache {
 
  private:
   /// Singleton instance. Instantiated in Init().
-  static boost::scoped_ptr<LibCache> instance_;
+  static std::unique_ptr<LibCache> instance_;
 
   /// dlopen() handle for the current process (i.e. impalad).
   void* current_process_handle_;

@@ -219,7 +219,7 @@ class HdfsSequenceScanner : public BaseSequenceScanner {
   virtual void LogRowParseError(int row_idx, std::stringstream*);
   
   /// Helper class for picking fields and rows from delimited text.
-  boost::scoped_ptr<DelimitedTextParser> delimited_text_parser_;
+  std::unique_ptr<DelimitedTextParser> delimited_text_parser_;
   std::vector<FieldLocation> field_locations_;
 
   /// Data that is fixed across headers.  This struct is shared between scan ranges.

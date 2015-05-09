@@ -365,7 +365,7 @@ int main(int argc, char **argv) {
   DataProvider mixed_provider(&mem_pool, &mixed_profile);
 
   Status status;
-  scoped_ptr<LlvmCodeGen> codegen;
+  unique_ptr<LlvmCodeGen> codegen;
   status = LlvmCodeGen::LoadImpalaIR(&obj_pool, "test", &codegen);
   if (!status.ok()) {
     cout << "Could not start codegen.";

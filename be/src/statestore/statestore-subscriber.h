@@ -18,7 +18,7 @@
 
 #include <string>
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
@@ -137,10 +137,10 @@ class StatestoreSubscriber {
   boost::shared_ptr<ThriftServer> heartbeat_server_;
 
   /// Failure detector that tracks heartbeat messages from the statestore.
-  boost::scoped_ptr<impala::TimeoutFailureDetector> failure_detector_;
+  std::unique_ptr<impala::TimeoutFailureDetector> failure_detector_;
 
   /// Thread in which RecoveryModeChecker runs.
-  boost::scoped_ptr<Thread> recovery_mode_thread_;
+  std::unique_ptr<Thread> recovery_mode_thread_;
 
   /// Class-wide lock. Protects all subsequent members. Most private methods must
   /// be called holding this lock; this is noted in the method comments.
@@ -191,7 +191,7 @@ class StatestoreSubscriber {
   TopicVersionMap current_topic_versions_;
 
   /// statestore client cache - only one client is ever used.
-  boost::scoped_ptr<StatestoreClientCache> client_cache_;
+  std::unique_ptr<StatestoreClientCache> client_cache_;
 
   /// MetricGroup instance that all metrics are registered in. Not owned by this class.
   MetricGroup* metrics_;

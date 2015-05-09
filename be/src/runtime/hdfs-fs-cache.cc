@@ -29,7 +29,7 @@ using namespace strings;
 
 namespace impala {
 
-scoped_ptr<HdfsFsCache> HdfsFsCache::instance_;
+unique_ptr<HdfsFsCache> HdfsFsCache::instance_;
 
 void HdfsFsCache::Init() {
   DCHECK(HdfsFsCache::instance_.get() == NULL);

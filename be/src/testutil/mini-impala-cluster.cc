@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
   int beeswax_port = 21000;
   int hs2_port = 21050;
 
-  scoped_ptr<InProcessStatestore> statestore(new InProcessStatestore(23000, 25100));
+  unique_ptr<InProcessStatestore> statestore(new InProcessStatestore(23000, 25100));
   if (FLAGS_use_statestore) EXIT_IF_ERROR(statestore->Start());
   LOG(INFO) << "Started in-process statestore";
 

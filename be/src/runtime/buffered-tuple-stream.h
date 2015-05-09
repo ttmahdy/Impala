@@ -219,7 +219,7 @@ class BufferedTupleStream {
   /// Returns all the rows in the stream in batch. This pins the entire stream
   /// in the process.
   /// *got_rows is false if the stream could not be pinned.
-  Status GetRows(boost::scoped_ptr<RowBatch>* batch, bool* got_rows);
+  Status GetRows(std::unique_ptr<RowBatch>* batch, bool* got_rows);
 
   /// Must be called once at the end to cleanup all resources. Idempotent.
   void Close();

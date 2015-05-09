@@ -15,7 +15,7 @@
 #include "rpc/rpc-trace.h"
 
 #include <boost/bind.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/foreach.hpp>
 #include <gutil/strings/substitute.h>
 
@@ -65,7 +65,7 @@ class RpcEventHandlerManager {
 };
 
 // Only instance of RpcEventHandlerManager
-scoped_ptr<RpcEventHandlerManager> handler_manager;
+unique_ptr<RpcEventHandlerManager> handler_manager;
 
 void impala::InitRpcEventTracing(Webserver* webserver) {
   handler_manager.reset(new RpcEventHandlerManager());

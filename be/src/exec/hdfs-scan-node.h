@@ -22,7 +22,7 @@
 
 #include <boost/unordered_map.hpp>
 #include <boost/unordered_set.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
@@ -270,7 +270,7 @@ class HdfsScanNode : public ScanNode {
 
   /// Cache of the plan node.  This is needed to be able to create a copy of
   /// the conjuncts per scanner since our Exprs are not thread safe.
-  boost::scoped_ptr<TPlanNode> thrift_plan_node_;
+  std::unique_ptr<TPlanNode> thrift_plan_node_;
 
   RuntimeState* runtime_state_;
 
@@ -361,7 +361,7 @@ class HdfsScanNode : public ScanNode {
 
   /// Outgoing row batches queue. Row batches are produced asynchronously by the scanner
   /// threads and consumed by the main thread.
-  boost::scoped_ptr<RowBatchQueue> materialized_row_batches_;
+  std::unique_ptr<RowBatchQueue> materialized_row_batches_;
 
   /// Maximum size of materialized_row_batches_.
   int max_materialized_row_batches_;
@@ -419,7 +419,7 @@ class HdfsScanNode : public ScanNode {
 
   /// Pool for allocating some amounts of memory that is shared between scanners.
   /// e.g. partition key tuple and their string buffers
-  boost::scoped_ptr<MemPool> scan_node_pool_;
+  std::unique_ptr<MemPool> scan_node_pool_;
 
   /// Status of failed operations.  This is set in the ScannerThreads
   /// Returned in GetNext() if an error occurred.  An non-ok status triggers cleanup

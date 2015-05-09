@@ -16,7 +16,7 @@
 #ifndef IMPALA_EXEC_BLOCKING_JOIN_NODE_H
 #define IMPALA_EXEC_BLOCKING_JOIN_NODE_H
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/thread.hpp>
 #include <string>
 
@@ -67,12 +67,12 @@ class BlockingJoinNode : public ExecNode {
   const std::string node_name_;
   TJoinOp::type join_op_;
   bool eos_;  // if true, nothing left to return in GetNext()
-  boost::scoped_ptr<MemPool> build_pool_;  // holds everything referenced from build side
+  std::unique_ptr<MemPool> build_pool_;  // holds everything referenced from build side
 
   /// probe_batch_ must be cleared before calling GetNext().  The child node
   /// does not initialize all tuple ptrs in the row, only the ones that it
   /// is responsible for.
-  boost::scoped_ptr<RowBatch> probe_batch_;
+  std::unique_ptr<RowBatch> probe_batch_;
 
   bool probe_side_eos_;  // if true, left child has no more rows to process
 

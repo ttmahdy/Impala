@@ -53,7 +53,7 @@ void TestCompression(int num, int min_len, int max_len, THdfsCompression::type c
     sorted_offset += strings[i].size();
   }
 
-  scoped_ptr<Codec> compressor;
+  unique_ptr<Codec> compressor;
   Codec::CreateCompressor(NULL, false, codec, &compressor);
 
   int64_t compressed_len = compressor->MaxOutputLen(offset);

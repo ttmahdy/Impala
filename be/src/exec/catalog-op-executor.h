@@ -16,7 +16,7 @@
 #ifndef IMPALA_EXEC_CATALOG_OP_EXECUTOR_H
 #define IMPALA_EXEC_CATALOG_OP_EXECUTOR_H
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include "gen-cpp/TCLIService_types.h"
 #include "gen-cpp/Frontend_types.h"
 
@@ -92,10 +92,10 @@ class CatalogOpExecutor {
       TAlterTableUpdateStatsParams* params);
 
   /// Response from executing the DDL request, see ddl_exec_response().
-  boost::scoped_ptr<TDdlExecResponse> exec_response_;
+  std::unique_ptr<TDdlExecResponse> exec_response_;
 
   /// Result of executing a DDL request using the CatalogService
-  boost::scoped_ptr<TCatalogUpdateResult> catalog_update_result_;
+  std::unique_ptr<TCatalogUpdateResult> catalog_update_result_;
 
   ExecEnv* env_;
   Frontend* fe_;

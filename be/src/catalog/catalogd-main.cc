@@ -15,7 +15,7 @@
 // This file contains the main() function for the catalog daemon process,
 
 #include <jni.h>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
 #include "catalog/catalog-server.h"
 #include "common/init.h"
@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
   InitFeSupport();
 
   MemTracker process_mem_tracker;
-  scoped_ptr<Webserver> webserver(new Webserver());
+  unique_ptr<Webserver> webserver(new Webserver());
   if (FLAGS_enable_webserver) {
     AddDefaultUrlCallbacks(webserver.get(), &process_mem_tracker);
     EXIT_IF_ERROR(webserver->Start());
@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
     LOG(INFO) << "Not starting webserver";
   }
 
-  scoped_ptr<MetricGroup> metrics(new MetricGroup("catalog"));
+  unique_ptr<MetricGroup> metrics(new MetricGroup("catalog"));
   metrics->Init(FLAGS_enable_webserver ? webserver.get() : NULL);
   EXIT_IF_ERROR(RegisterMemoryMetrics(metrics.get(), true));
   StartThreadInstrumentation(metrics.get(), webserver.get());

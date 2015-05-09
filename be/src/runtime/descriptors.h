@@ -19,7 +19,7 @@
 #include <vector>
 #include <tr1/unordered_map>
 #include <vector>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <ostream>
 
 #include "common/status.h"

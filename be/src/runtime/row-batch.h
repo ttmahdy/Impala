@@ -18,7 +18,7 @@
 
 #include <vector>
 #include <cstring>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
 #include "common/logging.h"
 #include "runtime/descriptors.h"
@@ -250,7 +250,7 @@ class RowBatch {
   bool need_to_return_;
 
   /// holding (some of the) data referenced by rows
-  boost::scoped_ptr<MemPool> tuple_data_pool_;
+  std::unique_ptr<MemPool> tuple_data_pool_;
 
   /// IO buffers current owned by this row batch. Ownership of IO buffers transfer
   /// between row batches. Any IO buffer will be owned by at most one row batch

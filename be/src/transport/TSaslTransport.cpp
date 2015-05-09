@@ -24,7 +24,7 @@
 #include <stdint.h>
 #include <sstream>
 #include <boost/shared_ptr.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
 #include <thrift/transport/TBufferTransports.h>
 #include "transport/TSaslTransport.h"

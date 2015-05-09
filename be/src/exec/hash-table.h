@@ -18,7 +18,7 @@
 
 #include <vector>
 #include <boost/cstdint.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include "codegen/impala-ir.h"
 #include "common/logging.h"
 #include "runtime/buffered-block-mgr.h"

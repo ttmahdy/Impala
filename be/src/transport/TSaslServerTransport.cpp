@@ -23,7 +23,7 @@
 #include <stdint.h>
 #include <sstream>
 #include <boost/shared_ptr.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/thread.hpp>
 

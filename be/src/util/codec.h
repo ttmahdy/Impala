@@ -20,7 +20,7 @@
 #include "runtime/mem-pool.h"
 #include "util/runtime-profile.h"
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include "gen-cpp/Descriptors_types.h"
 
 namespace impala {
@@ -61,11 +61,11 @@ class Codec {
   /// If mem_pool is NULL, then the resulting codec will never allocate memory and
   /// the caller must be responsible for it.
   static Status CreateDecompressor(MemPool* mem_pool, bool reuse,
-    THdfsCompression::type format, boost::scoped_ptr<Codec>* decompressor);
+    THdfsCompression::type format, std::unique_ptr<Codec>* decompressor);
 
   /// Alternate factory method: takes a codec string and populates a scoped pointer.
   static Status CreateDecompressor(MemPool* mem_pool, bool reuse,
-      const std::string& codec, boost::scoped_ptr<Codec>* decompressor);
+      const std::string& codec, std::unique_ptr<Codec>* decompressor);
 
   /// Create a compressor.
   /// Input:
@@ -75,11 +75,11 @@ class Codec {
   /// Output:
   ///  compressor: scoped pointer to the compressor class to use.
   static Status CreateCompressor(MemPool* mem_pool, bool reuse,
-      THdfsCompression::type format, boost::scoped_ptr<Codec>* compressor);
+      THdfsCompression::type format, std::unique_ptr<Codec>* compressor);
 
   /// Alternate factory method: takes a codec string and populates a scoped pointer.
   static Status CreateCompressor(MemPool* mem_pool, bool reuse,
-      const std::string& codec, boost::scoped_ptr<Codec>* compressor);
+      const std::string& codec, std::unique_ptr<Codec>* compressor);
 
   /// Return the name of a compression algorithm.
   static std::string GetCodecName(THdfsCompression::type);
@@ -155,7 +155,7 @@ class Codec {
 
   /// Temporary memory pool: in case we get the output size too small we can use this to
   /// free unused buffers.
-  boost::scoped_ptr<MemPool> temp_memory_pool_;
+  std::unique_ptr<MemPool> temp_memory_pool_;
 
   /// Can we reuse the output buffer or do we need to allocate on each call?
   bool reuse_buffer_;

@@ -15,7 +15,7 @@
 #ifndef IMPALA_TESTUTIL_IN_PROCESS_SERVERS_H
 #define IMPALA_TESTUTIL_IN_PROCESS_SERVERS_H
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/shared_ptr.hpp>
 
 #include "common/status.h"
@@ -78,16 +78,16 @@ class InProcessImpalaServer {
   ImpalaServer* impala_server_;
 
   /// ExecEnv holds much of the per-service state
-  boost::scoped_ptr<ExecEnv> exec_env_;
+  std::unique_ptr<ExecEnv> exec_env_;
 
   /// Backend Thrift server
-  boost::scoped_ptr<ThriftServer> be_server_;
+  std::unique_ptr<ThriftServer> be_server_;
 
   /// Frontend HiveServer2 server
-  boost::scoped_ptr<ThriftServer> hs2_server_;
+  std::unique_ptr<ThriftServer> hs2_server_;
 
   /// Frontend Beeswax server.
-  boost::scoped_ptr<ThriftServer> beeswax_server_;
+  std::unique_ptr<ThriftServer> beeswax_server_;
 
 };
 
@@ -104,21 +104,21 @@ class InProcessStatestore {
 
  private:
   /// Websever object to serve debug pages through.
-  boost::scoped_ptr<Webserver> webserver_;
+  std::unique_ptr<Webserver> webserver_;
 
   /// MetricGroup object
-  boost::scoped_ptr<MetricGroup> metrics_;
+  std::unique_ptr<MetricGroup> metrics_;
 
   /// Port to start the statestore on.
   uint32_t statestore_port_;
 
   /// The statestore instance
-  boost::scoped_ptr<Statestore> statestore_;
+  std::unique_ptr<Statestore> statestore_;
 
   /// Statestore Thrift server
-  boost::scoped_ptr<ThriftServer> statestore_server_;
+  std::unique_ptr<ThriftServer> statestore_server_;
 
-  boost::scoped_ptr<Thread> statestore_main_loop_;
+  std::unique_ptr<Thread> statestore_main_loop_;
 };
 
 }

@@ -17,7 +17,7 @@
 #define IMPALA_EXPRS_HIVE_UDF_CALL_H
 
 #include <string>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
 #include "exprs/expr.h"
 

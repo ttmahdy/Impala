@@ -21,7 +21,7 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/thread/mutex.hpp>
 #include <boost/unordered_set.hpp>
 
@@ -120,13 +120,13 @@ class LlvmCodeGen {
   /// 'codegen' will contain the created object on success.
   /// 'id' is used for outputting the IR module for debugging.
   static Status LoadImpalaIR(
-      ObjectPool*, const std::string& id, boost::scoped_ptr<LlvmCodeGen>* codegen);
+      ObjectPool*, const std::string& id, std::unique_ptr<LlvmCodeGen>* codegen);
 
   /// Load a pre-compiled IR module from 'file'.  This creates a top level
   /// codegen object.
   /// codegen will contain the created object on success.
   static Status LoadFromFile(ObjectPool*, const std::string& file, const std::string& id,
-      boost::scoped_ptr<LlvmCodeGen>* codegen);
+      std::unique_ptr<LlvmCodeGen>* codegen);
 
   /// Removes all jit compiled dynamically linked functions from the process.
   ~LlvmCodeGen();
@@ -494,14 +494,14 @@ class LlvmCodeGen {
 
   /// Top level llvm object.  Objects from different contexts do not share anything.
   /// We can have multiple instances of the LlvmCodeGen object in different threads
-  boost::scoped_ptr<llvm::LLVMContext> context_;
+  std::unique_ptr<llvm::LLVMContext> context_;
 
   /// Top level codegen object.  Contains everything to jit one 'unit' of code.
   /// Owned by the execution_engine_.
   llvm::Module* module_;
 
   /// Execution/Jitting engine.
-  boost::scoped_ptr<llvm::ExecutionEngine> execution_engine_;
+  std::unique_ptr<llvm::ExecutionEngine> execution_engine_;
 
   /// Keeps track of all the functions that have been jit compiled and linked into
   /// the process. Special care needs to be taken if we need to modify these functions.

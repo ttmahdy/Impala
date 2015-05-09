@@ -20,7 +20,7 @@
 #include <vector>
 #include <map>
 #include <boost/unordered_map.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 
@@ -396,13 +396,13 @@ class Statestore {
 
   /// Cache of subscriber clients used for UpdateState() RPCs. Only one client per
   /// subscriber should be used, but the cache helps with the client lifecycle on failure.
-  boost::scoped_ptr<ClientCache<StatestoreSubscriberClient> > update_state_client_cache_;
+  std::unique_ptr<ClientCache<StatestoreSubscriberClient> > update_state_client_cache_;
 
   /// Cache of subscriber clients used for Heartbeat() RPCs. Separate from
   /// update_state_client_cache_ because we enable TCP-level timeouts for these calls,
   /// whereas they are not safe for UpdateState() RPCs which can take an unbounded amount
   /// of time.
-  boost::scoped_ptr<ClientCache<StatestoreSubscriberClient> > heartbeat_client_cache_;
+  std::unique_ptr<ClientCache<StatestoreSubscriberClient> > heartbeat_client_cache_;
 
   /// Thrift API implementation which proxies requests onto this Statestore
   boost::shared_ptr<StatestoreServiceIf> thrift_iface_;
@@ -410,7 +410,7 @@ class Statestore {
   /// Failure detector for subscribers. If a subscriber misses a configurable number of
   /// consecutive heartbeat messages, it is considered failed and a) its transient topic
   /// entries are removed and b) its entry in the subscriber map is erased.
-  boost::scoped_ptr<MissedHeartbeatFailureDetector> failure_detector_;
+  std::unique_ptr<MissedHeartbeatFailureDetector> failure_detector_;
 
   /// Metric that track the registered, non-failed subscribers.
   IntGauge* num_subscribers_metric_;

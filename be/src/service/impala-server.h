@@ -17,7 +17,7 @@
 
 #include <boost/thread/mutex.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/unordered_map.hpp>
 #include <boost/unordered_set.hpp>
 #include <boost/uuid/uuid.hpp>
@@ -730,34 +730,34 @@ class ImpalaServer : public ImpalaServiceIf, public ImpalaHiveServer2ServiceIf,
 
   /// Logger for writing encoded query profiles, one per line with the following format:
   /// <ms-since-epoch> <query-id> <thrift query profile URL encoded and gzipped>
-  boost::scoped_ptr<SimpleLogger> profile_logger_;
+  std::unique_ptr<SimpleLogger> profile_logger_;
 
   /// Logger for writing audit events, one per line with the format:
   /// "<current timestamp>" : { JSON object }
-  boost::scoped_ptr<SimpleLogger> audit_event_logger_;
+  std::unique_ptr<SimpleLogger> audit_event_logger_;
 
   /// Logger for writing lineage events, one per line with the format:
   /// { JSON object }
-  boost::scoped_ptr<SimpleLogger> lineage_logger_;
+  std::unique_ptr<SimpleLogger> lineage_logger_;
 
   /// If profile logging is enabled, wakes once every 5s to flush query profiles to disk
-  boost::scoped_ptr<Thread> profile_log_file_flush_thread_;
+  std::unique_ptr<Thread> profile_log_file_flush_thread_;
 
   /// If audit event logging is enabled, wakes once every 5s to flush audit events to disk
-  boost::scoped_ptr<Thread> audit_event_logger_flush_thread_;
+  std::unique_ptr<Thread> audit_event_logger_flush_thread_;
 
   /// If lineage logging is enabled, wakes once every 5s to flush lineage events to disk
-  boost::scoped_ptr<Thread> lineage_logger_flush_thread_;
+  std::unique_ptr<Thread> lineage_logger_flush_thread_;
 
   /// global, per-server state
   ExecEnv* exec_env_;  // not owned
 
   /// Thread pool to process cancellation requests that come from failed Impala demons to
   /// avoid blocking the statestore callback.
-  boost::scoped_ptr<ThreadPool<CancellationWork> > cancellation_thread_pool_;
+  std::unique_ptr<ThreadPool<CancellationWork> > cancellation_thread_pool_;
 
   /// Thread that runs ExpireSessions if FLAGS_idle_session_timeout > 0
-  boost::scoped_ptr<Thread> session_timeout_thread_;
+  std::unique_ptr<Thread> session_timeout_thread_;
 
   /// map from query id to exec state; QueryExecState is owned by us and referenced
   /// as a shared_ptr to allow asynchronous deletion
@@ -1012,10 +1012,10 @@ class ImpalaServer : public ImpalaServiceIf, public ImpalaHiveServer2ServiceIf,
   ExpirationQueue queries_by_timestamp_;
 
   /// Container for a thread that runs ExpireQueries() if FLAGS_idle_query_timeout is set.
-  boost::scoped_ptr<Thread> query_expiration_thread_;
+  std::unique_ptr<Thread> query_expiration_thread_;
 
   /// Container thread for DetectNmFailures().
-  boost::scoped_ptr<Thread> nm_failure_detection_thread_;
+  std::unique_ptr<Thread> nm_failure_detection_thread_;
 
   /// Protects is_offline_
   boost::mutex is_offline_lock_;

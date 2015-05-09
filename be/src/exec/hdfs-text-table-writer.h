@@ -18,7 +18,7 @@
 
 #include <hdfs.h>
 #include <sstream>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
 #include "runtime/descriptors.h"
 #include "exec/hdfs-table-sink.h"
@@ -90,10 +90,10 @@ class HdfsTextTableWriter : public HdfsTableWriter {
   THdfsCompression::type codec_;
 
   /// Compressor if compression is enabled.
-  boost::scoped_ptr<Codec> compressor_;
+  std::unique_ptr<Codec> compressor_;
 
   /// Memory pool to use with compressor_.
-  boost::scoped_ptr<MemPool> mem_pool_;
+  std::unique_ptr<MemPool> mem_pool_;
 };
 
 }

@@ -17,7 +17,7 @@
 #define IMPALA_EXEC_AGGREGATION_NODE_H
 
 #include <functional>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
 #include "exec/exec-node.h"
 #include "exec/old-hash-table.h"
@@ -64,14 +64,14 @@ class AggregationNode : public ExecNode {
   virtual void DebugString(int indentation_level, std::stringstream* out) const;
 
  private:
-  boost::scoped_ptr<OldHashTable> hash_tbl_;
+  std::unique_ptr<OldHashTable> hash_tbl_;
   OldHashTable::Iterator output_iterator_;
 
   std::vector<AggFnEvaluator*> aggregate_evaluators_;
 
   /// FunctionContext for each agg fn and backing pool.
   std::vector<impala_udf::FunctionContext*> agg_fn_ctxs_;
-  boost::scoped_ptr<MemPool> agg_fn_pool_;
+  std::unique_ptr<MemPool> agg_fn_pool_;
 
   /// Exprs used to evaluate input rows
   std::vector<ExprContext*> probe_expr_ctxs_;
@@ -92,7 +92,7 @@ class AggregationNode : public ExecNode {
   /// Note: can be NULL even if there is no grouping if the result tuple is 0 width
   Tuple* singleton_intermediate_tuple_;
 
-  boost::scoped_ptr<MemPool> tuple_pool_;
+  std::unique_ptr<MemPool> tuple_pool_;
 
   /// IR for process row batch.  NULL if codegen is disabled.
   llvm::Function* codegen_process_row_batch_fn_;

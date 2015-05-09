@@ -18,8 +18,7 @@
 
 #include <list>
 #include <vector>
-
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/unordered_set.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition_variable.hpp>
@@ -717,7 +716,7 @@ class DiskIoMgr {
   /// active as well as those in the process of being cancelled. This is a cache
   /// of context objects that get recycled to minimize object allocations and lock
   /// contention.
-  boost::scoped_ptr<RequestContextCache> request_context_cache_;
+  std::unique_ptr<RequestContextCache> request_context_cache_;
 
   /// Protects free_buffers_ and free_buffer_descs_
   boost::mutex free_buffers_lock_;

@@ -266,8 +266,8 @@ class AnalyticEvalNode : public ExecNode {
   /// MAX_TUPLE_POOL_SIZE bytes. Resources from prev_tuple_pool_ are transferred to an
   /// output row batch when all result tuples it contains have been returned and all
   /// window tuples it contains are no longer needed.
-  boost::scoped_ptr<MemPool> curr_tuple_pool_;
-  boost::scoped_ptr<MemPool> prev_tuple_pool_;
+  std::unique_ptr<MemPool> curr_tuple_pool_;
+  std::unique_ptr<MemPool> prev_tuple_pool_;
 
   /// The index of the last row from input_stream_ associated with output row containing
   /// resources in prev_tuple_pool_. -1 when the pool is empty. Resources from
@@ -305,8 +305,8 @@ class AnalyticEvalNode : public ExecNode {
   /// ProcessChildBatch(). The prev batch is Reset() after calling ProcessChildBatch()
   /// and then swapped with the curr batch so the RowBatch owning prev_input_row_ is
   /// stored in prev_child_batch_ for the next call to ProcessChildBatch().
-  boost::scoped_ptr<RowBatch> prev_child_batch_;
-  boost::scoped_ptr<RowBatch> curr_child_batch_;
+  std::unique_ptr<RowBatch> prev_child_batch_;
+  std::unique_ptr<RowBatch> curr_child_batch_;
 
   /// Block manager client used by input_stream_. Not owned.
   BufferedBlockMgr::Client* client_;
@@ -319,10 +319,10 @@ class AnalyticEvalNode : public ExecNode {
   /// buffered data exceeds the available memory in the underlying BufferedBlockMgr,
   /// input_stream_ is unpinned (i.e., possibly spilled to disk if necessary).
   /// TODO: Consider re-pinning unpinned streams when possible.
-  boost::scoped_ptr<BufferedTupleStream> input_stream_;
+  std::unique_ptr<BufferedTupleStream> input_stream_;
 
   /// Pool used for O(1) allocations that live until close.
-  boost::scoped_ptr<MemPool> mem_pool_;
+  std::unique_ptr<MemPool> mem_pool_;
 
   /// True when there are no more input rows to consume from our child.
   bool input_eos_;

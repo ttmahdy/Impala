@@ -15,7 +15,7 @@
 #ifndef IMPALA_RUNTIME_HBASE_TABLE_FACTORY_H
 #define IMPALA_RUNTIME_HBASE_TABLE_FACTORY_H
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <jni.h>
 #include <string>
 
@@ -44,7 +44,7 @@ class HBaseTableFactory {
   /// It is the caller's responsibility to close the HBaseTable using
   /// HBaseTable#Close().
   Status GetTable(const std::string& table_name,
-                  boost::scoped_ptr<HBaseTable>* hbase_table);
+                  std::unique_ptr<HBaseTable>* hbase_table);
 
  private:
   /// ExecutorService class and methods.

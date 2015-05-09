@@ -18,7 +18,7 @@
 #include <map>
 
 #include <boost/foreach.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/unordered_map.hpp>
 
 #include "exec/parquet-common.h"
@@ -180,7 +180,7 @@ class DictDecoderBase {
   virtual int num_entries() const = 0;
 
  protected:
-  boost::scoped_ptr<RleDecoder> data_decoder_;
+  std::unique_ptr<RleDecoder> data_decoder_;
 };
 
 template<typename T>

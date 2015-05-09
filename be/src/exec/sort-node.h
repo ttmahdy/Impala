@@ -60,7 +60,7 @@ class SortNode : public ExecNode {
   int64_t num_rows_skipped_;
 
   /// Object used for external sorting.
-  boost::scoped_ptr<Sorter> sorter_;
+  std::unique_ptr<Sorter> sorter_;
 
   /// Expressions and parameters used for tuple materialization and tuple comparison.
   SortExecExprs sort_exec_exprs_;

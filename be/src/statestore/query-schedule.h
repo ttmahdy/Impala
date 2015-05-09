@@ -19,7 +19,7 @@
 #include <string>
 #include <boost/unordered_set.hpp>
 #include <boost/unordered_map.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
 #include "common/global-types.h"
 #include "common/status.h"
@@ -171,7 +171,7 @@ class QuerySchedule {
 
   /// Resolves unique_hosts_ to node mgr addresses. Valid only after SetUniqueHosts() has
   /// been called.
-  boost::scoped_ptr<ResourceResolver> resource_resolver_;
+  std::unique_ptr<ResourceResolver> resource_resolver_;
 };
 
 }

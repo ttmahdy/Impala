@@ -16,7 +16,7 @@
 
 #include "service/fe-support.h"
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
 #include "codegen/llvm-codegen.h"
 #include "common/init.h"

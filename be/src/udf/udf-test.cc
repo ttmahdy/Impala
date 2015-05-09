@@ -176,7 +176,7 @@ TEST(UdfTest, TestFunctionContext) {
   EXPECT_FALSE(UdfTestHarness::ValidateUdf<IntVal>(ValidateFail, IntVal::null()));
   EXPECT_TRUE(UdfTestHarness::ValidateUdf<IntVal>(ValidateMem, IntVal::null()));
 
-  scoped_ptr<SmallIntVal> arg(new SmallIntVal(100));
+  unique_ptr<SmallIntVal> arg(new SmallIntVal(100));
   vector<AnyVal*> constant_args;
   constant_args.push_back(arg.get());
   EXPECT_TRUE((UdfTestHarness::ValidateUdf<SmallIntVal, SmallIntVal>(

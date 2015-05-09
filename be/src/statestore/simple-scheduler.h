@@ -176,7 +176,7 @@ class SimpleScheduler : public Scheduler {
   RequestPoolService* request_pool_service_;
 
   /// Used to make admission decisions in 'Schedule()'
-  boost::scoped_ptr<AdmissionController> admission_controller_;
+  std::unique_ptr<AdmissionController> admission_controller_;
 
   /// Adds the granted reservation and resources to the active_reservations_ and
   /// active_client_resources_ maps, respectively.

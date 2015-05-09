@@ -68,7 +68,7 @@ Status Codec::GetHadoopCodecClassName(THdfsCompression::type type, string* out_n
 }
 
 Status Codec::CreateCompressor(MemPool* mem_pool, bool reuse, const string& codec,
-    scoped_ptr<Codec>* compressor) {
+    unique_ptr<Codec>* compressor) {
   CodecMap::const_iterator type = CODEC_MAP.find(codec);
   if (type == CODEC_MAP.end()) {
     return Status(Substitute("$0$1", UNKNOWN_CODEC_ERROR, codec));
@@ -80,7 +80,7 @@ Status Codec::CreateCompressor(MemPool* mem_pool, bool reuse, const string& code
 }
 
 Status Codec::CreateCompressor(MemPool* mem_pool, bool reuse,
-    THdfsCompression::type format, scoped_ptr<Codec>* compressor) {
+    THdfsCompression::type format, unique_ptr<Codec>* compressor) {
   switch (format) {
     case THdfsCompression::NONE:
       compressor->reset(NULL);
@@ -116,7 +116,7 @@ Status Codec::CreateCompressor(MemPool* mem_pool, bool reuse,
 }
 
 Status Codec::CreateDecompressor(MemPool* mem_pool, bool reuse, const string& codec,
-    scoped_ptr<Codec>* decompressor) {
+    unique_ptr<Codec>* decompressor) {
   CodecMap::const_iterator type = CODEC_MAP.find(codec);
   if (type == CODEC_MAP.end()) {
     return Status(Substitute("$0$1", UNKNOWN_CODEC_ERROR, codec));
@@ -128,7 +128,7 @@ Status Codec::CreateDecompressor(MemPool* mem_pool, bool reuse, const string& co
 }
 
 Status Codec::CreateDecompressor(MemPool* mem_pool, bool reuse,
-    THdfsCompression::type format, scoped_ptr<Codec>* decompressor) {
+    THdfsCompression::type format, unique_ptr<Codec>* decompressor) {
   switch (format) {
     case THdfsCompression::NONE:
       decompressor->reset(NULL);

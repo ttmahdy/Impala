@@ -141,7 +141,7 @@ using boost::shared_ptr;
 #endif
 
 #ifdef BOOST_SMART_PTR_SCOPED_PTR_HPP_INCLUDED
-using boost::scoped_ptr;
+using std::unique_ptr;
 #endif
 
 #ifdef BOOST_UNORDERED_MAP_HPP_INCLUDED

@@ -260,7 +260,7 @@ class ImpalaServer::HS2ColumnarResultSet : public ImpalaServer::QueryResultSet {
   TRowSet* result_set_;
 
   // Set to result_set_ if result_set_ is owned.
-  scoped_ptr<TRowSet> owned_result_set_;
+  unique_ptr<TRowSet> owned_result_set_;
 
   int64_t num_rows_;
 
@@ -382,7 +382,7 @@ class ImpalaServer::HS2RowOrientedResultSet : public ImpalaServer::QueryResultSe
   TRowSet* result_set_;
 
   // Set to result_set_ if result_set_ is owned.
-  scoped_ptr<TRowSet> owned_result_set_;
+  unique_ptr<TRowSet> owned_result_set_;
 };
 
 ImpalaServer::QueryResultSet* ImpalaServer::CreateHS2ResultSet(
@@ -511,7 +511,7 @@ Status ImpalaServer::FetchInternal(const TUniqueId& query_id, int32_t fetch_size
   bool is_child_query = exec_state->parent_query_id() != TUniqueId();
   TProtocolVersion::type version = is_child_query ?
       TProtocolVersion::HIVE_CLI_SERVICE_PROTOCOL_V1 : session->hs2_version;
-  scoped_ptr<QueryResultSet> result_set(CreateHS2ResultSet(version,
+  unique_ptr<QueryResultSet> result_set(CreateHS2ResultSet(version,
       *(exec_state->result_metadata()), &(fetch_results->results)));
   RETURN_IF_ERROR(exec_state->FetchRows(fetch_size, result_set.get()));
   fetch_results->__isset.results = true;

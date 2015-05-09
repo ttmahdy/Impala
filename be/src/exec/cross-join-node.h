@@ -16,7 +16,7 @@
 #ifndef IMPALA_EXEC_CROSS_JOIN_NODE_H
 #define IMPALA_EXEC_CROSS_JOIN_NODE_H
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/unordered_set.hpp>
 #include <boost/thread.hpp>
 #include <string>
@@ -56,7 +56,7 @@ class CrossJoinNode : public BlockingJoinNode {
 
  private:
   /// Object pool for build RowBatches, stores all BuildBatches in build_rows_
-  boost::scoped_ptr<ObjectPool> build_batch_pool_;
+  std::unique_ptr<ObjectPool> build_batch_pool_;
   /// List of build batches, constructed in Prepare()
   RowBatchList build_batches_;
   RowBatchList::TupleRowIterator current_build_row_;

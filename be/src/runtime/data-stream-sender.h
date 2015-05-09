@@ -118,7 +118,7 @@ class DataStreamSender : public DataSink {
   RuntimeProfile::Counter* thrift_transmit_timer_;
   RuntimeProfile::Counter* bytes_sent_counter_;
   RuntimeProfile::Counter* uncompressed_bytes_counter_;
-  boost::scoped_ptr<MemTracker> mem_tracker_;
+  std::unique_ptr<MemTracker> mem_tracker_;
 
   /// Throughput per time spent in TransmitData
   RuntimeProfile::Counter* network_throughput_;

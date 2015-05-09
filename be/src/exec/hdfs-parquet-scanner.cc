@@ -207,11 +207,11 @@ class HdfsParquetScanner::BaseColumnReader {
   const SchemaNode& node_;
 
   const parquet::ColumnMetaData* metadata_;
-  scoped_ptr<Codec> decompressor_;
+  unique_ptr<Codec> decompressor_;
   ScannerContext::Stream* stream_;
 
   // Pool to allocate decompression buffers from.
-  boost::scoped_ptr<MemPool> decompressed_data_pool_;
+  std::unique_ptr<MemPool> decompressed_data_pool_;
 
   // Header for current data page.
   parquet::PageHeader current_page_header_;
@@ -386,7 +386,7 @@ class HdfsParquetScanner::ColumnReader : public HdfsParquetScanner::BaseColumnRe
     DCHECK(false);
   }
 
-  scoped_ptr<DictDecoder<T> > dict_decoder_;
+  unique_ptr<DictDecoder<T> > dict_decoder_;
 
   // true decoded values must be converted before being written to an output tuple
   bool needs_conversion_;

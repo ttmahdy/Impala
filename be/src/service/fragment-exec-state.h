@@ -73,7 +73,7 @@ class FragmentMgr::FragmentExecState {
   TExecPlanFragmentParams exec_params_;
 
   /// the thread executing this plan fragment
-  boost::scoped_ptr<Thread> exec_thread_;
+  std::unique_ptr<Thread> exec_thread_;
 
   /// protects exec_status_
   boost::mutex status_lock_;

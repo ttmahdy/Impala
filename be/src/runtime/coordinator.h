@@ -18,7 +18,7 @@
 
 #include <vector>
 #include <string>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics/stats.hpp>
 #include <boost/accumulators/statistics/min.hpp>
@@ -243,7 +243,7 @@ class Coordinator {
   bool returned_all_results_;
 
   /// execution state of coordinator fragment
-  boost::scoped_ptr<PlanFragmentExecutor> executor_;
+  std::unique_ptr<PlanFragmentExecutor> executor_;
 
   /// Query mem tracker for this coordinator initialized in Exec(). Only valid if there
   /// is no coordinator fragment (i.e. executor_ == NULL). If executor_ is not NULL,
@@ -293,7 +293,7 @@ class Coordinator {
   FileMoveMap files_to_move_;
 
   /// Object pool owned by the coordinator. Any executor will have its own pool.
-  boost::scoped_ptr<ObjectPool> obj_pool_;
+  std::unique_ptr<ObjectPool> obj_pool_;
 
   /// Execution summary for this query.
   mutable SpinLock exec_summary_lock_;
@@ -303,7 +303,7 @@ class Coordinator {
   boost::unordered_map<TPlanNodeId, int> plan_node_id_to_summary_map_;
 
   /// Aggregate counters for the entire query.
-  boost::scoped_ptr<RuntimeProfile> query_profile_;
+  std::unique_ptr<RuntimeProfile> query_profile_;
 
   /// Event timeline for this query. Unowned.
   RuntimeProfile::EventSequence* query_events_;

@@ -15,7 +15,7 @@
 #ifndef IMPALA_RUNTIME_DATA_STREAM_RECVR_H
 #define IMPALA_RUNTIME_DATA_STREAM_RECVR_H
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/thread/mutex.hpp>
 
 #include "common/object-pool.h"
@@ -139,7 +139,7 @@ class DataStreamRecvr {
   AtomicInt<int> num_buffered_bytes_;
 
   /// Memtracker for batches in the sender queue(s).
-  boost::scoped_ptr<MemTracker> mem_tracker_;
+  std::unique_ptr<MemTracker> mem_tracker_;
 
   /// One or more queues of row batches received from senders. If is_merging_ is true,
   /// there is one SenderQueue for each sender. Otherwise, row batches from all senders
@@ -148,7 +148,7 @@ class DataStreamRecvr {
   std::vector<SenderQueue*> sender_queues_;
 
   /// SortedRunMerger used to merge rows from different senders.
-  boost::scoped_ptr<SortedRunMerger> merger_;
+  std::unique_ptr<SortedRunMerger> merger_;
 
   /// Pool of sender queues.
   ObjectPool sender_queue_pool_;

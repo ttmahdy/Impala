@@ -16,12 +16,12 @@
 #ifndef IMPALA_EXEC_UNION_NODE_H_
 #define IMPALA_EXEC_UNION_NODE_H_
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
 #include "exec/exec-node.h"
 #include "exprs/expr.h"
 #include "runtime/mem-pool.h"
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
 namespace impala {
 
@@ -67,7 +67,7 @@ class UnionNode : public ExecNode {
 
   /// Current row batch of current child. We reset the pointer to a new RowBatch
   /// when switching to a different child.
-  boost::scoped_ptr<RowBatch> child_row_batch_;
+  std::unique_ptr<RowBatch> child_row_batch_;
 
   /// Saved from the last to GetNext() on the current child.
   bool child_eos_;

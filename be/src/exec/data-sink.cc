@@ -34,7 +34,7 @@ namespace impala {
 Status DataSink::CreateDataSink(ObjectPool* pool,
     const TDataSink& thrift_sink, const vector<TExpr>& output_exprs,
     const TPlanFragmentExecParams& params,
-    const RowDescriptor& row_desc, scoped_ptr<DataSink>* sink) {
+    const RowDescriptor& row_desc, unique_ptr<DataSink>* sink) {
   DataSink* tmp_sink = NULL;
   switch (thrift_sink.type) {
     case TDataSinkType::DATA_STREAM_SINK:

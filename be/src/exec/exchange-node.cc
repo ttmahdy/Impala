@@ -14,7 +14,7 @@
 
 #include "exec/exchange-node.h"
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
 #include "runtime/data-stream-mgr.h"
 #include "runtime/data-stream-recvr.h"

@@ -17,7 +17,7 @@
 #define IMPALA_RPC_THRIFT_SERVER_H
 
 #include <boost/thread/mutex.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/shared_ptr.hpp>
 #include <boost/unordered_map.hpp>
 #include <boost/uuid/uuid_generators.hpp>
@@ -162,10 +162,10 @@ class ThriftServer {
   const std::string name_;
 
   /// Thread that runs ThriftServerEventProcessor::Supervise() in a separate loop
-  boost::scoped_ptr<Thread> server_thread_;
+  std::unique_ptr<Thread> server_thread_;
 
   /// Thrift housekeeping
-  boost::scoped_ptr<apache::thrift::server::TServer> server_;
+  std::unique_ptr<apache::thrift::server::TServer> server_;
   boost::shared_ptr<apache::thrift::TProcessor> processor_;
 
   /// If not NULL, called when connection events happen. Not owned by us.

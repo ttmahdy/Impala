@@ -16,7 +16,7 @@
 #ifndef IMPALA_EXEC_HASH_JOIN_NODE_H
 #define IMPALA_EXEC_HASH_JOIN_NODE_H
 
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <boost/thread.hpp>
 #include <string>
 
@@ -64,7 +64,7 @@ class HashJoinNode : public BlockingJoinNode {
   virtual Status ConstructBuildSide(RuntimeState* state);
 
  private:
-  boost::scoped_ptr<OldHashTable> hash_tbl_;
+  std::unique_ptr<OldHashTable> hash_tbl_;
   OldHashTable::Iterator hash_tbl_iterator_;
 
   /// our equi-join predicates "<lhs> = <rhs>" are separated into

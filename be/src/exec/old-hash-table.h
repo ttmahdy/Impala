@@ -447,7 +447,7 @@ class OldHashTable {
   int64_t num_nodes_;
 
   /// MemPool used to allocate data pages.
-  boost::scoped_ptr<MemPool> mem_pool_;
+  std::unique_ptr<MemPool> mem_pool_;
 
   /// Number of data pages for nodes.
   int num_data_pages_;
