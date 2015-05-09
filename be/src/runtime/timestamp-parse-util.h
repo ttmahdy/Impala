@@ -18,7 +18,7 @@
 #include <boost/assign/list_of.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/foreach.hpp>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 #include "common/status.h"
 #include "runtime/string-value.inline.h"
 #include "util/string-parser.h"
@@ -435,7 +435,7 @@ class TimestampParser {
           char raw_buff[tok.len];
           std::transform(tok_val, tok_val + tok.len, raw_buff, ::tolower);
           StringValue buff(raw_buff, tok.len);
-          boost::unordered_map<StringValue, int>::const_iterator iter =
+          std::unordered_map<StringValue, int>::const_iterator iter =
               REV_MONTH_INDEX.find(buff);
           if (UNLIKELY(iter == REV_MONTH_INDEX.end())) return false;
           dt_result->month = iter->second;
@@ -493,7 +493,7 @@ class TimestampParser {
   static bool initialized_;
 
   /// Lazily initialized pseudo-constant hashmap for mapping month names to an index.
-  static boost::unordered_map<StringValue, int> REV_MONTH_INDEX;
+  static std::unordered_map<StringValue, int> REV_MONTH_INDEX;
 
   /// Pseudo-constant default date/time contexts. Backwards compatibility is provided on
   /// variable length fractional components by defining a format context for each expected

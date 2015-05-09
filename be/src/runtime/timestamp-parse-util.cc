@@ -13,15 +13,11 @@
 // limitations under the License.
 
 #include "runtime/timestamp-parse-util.h"
-#include <boost/assign/list_of.hpp>
-
-namespace assign = boost::assign;
-using boost::unordered_map;
 
 namespace impala {
 
 bool TimestampParser::initialized_ = false;
-unordered_map<StringValue, int> TimestampParser::REV_MONTH_INDEX;
+std::unordered_map<StringValue, int> TimestampParser::REV_MONTH_INDEX;
 DateTimeFormatContext TimestampParser::DEFAULT_SHORT_DATE_TIME_CTX;
 DateTimeFormatContext TimestampParser::DEFAULT_SHORT_ISO_DATE_TIME_CTX;
 DateTimeFormatContext TimestampParser::DEFAULT_DATE_CTX;
@@ -35,11 +31,11 @@ void TimestampParser::Init() {
   // This needs to be lazily init'd because a StringValues hash function will be invoked
   // for each entry that's placed in the map. The hash function expects that
   // CpuInfo::Init() has already been called.
-  REV_MONTH_INDEX = assign::map_list_of
-    (StringValue("jan"), 1)(StringValue("feb"), 2)(StringValue("mar"), 3)
-    (StringValue("apr"), 4)(StringValue("may"), 5)(StringValue("jun"), 6)
-    (StringValue("jul"), 7)(StringValue("aug"), 8)(StringValue("sep"), 9)
-    (StringValue("oct"), 10)(StringValue("nov"), 11)(StringValue("dec"), 12);
+  REV_MONTH_INDEX = {
+    {StringValue("jan"), 1}, {StringValue("feb"), 2}, {StringValue("mar"), 3},
+    {StringValue("apr"), 4}, {StringValue("may"), 5}, {StringValue("jun"), 6},
+    {StringValue("jul"), 7}, {StringValue("aug"), 8}, {StringValue("sep"), 9},
+    {StringValue("oct"), 10}, {StringValue("nov"), 11}, {StringValue("dec"), 12} };
 
   // Setup the default date/time context yyyy-MM-dd HH:mm:ss.SSSSSSSSS
   const char* DATE_TIME_CTX_FMT = "yyyy-MM-dd HH:mm:ss.SSSSSSSSS";

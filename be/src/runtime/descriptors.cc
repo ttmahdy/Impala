@@ -35,6 +35,8 @@ using namespace llvm;
 
 namespace impala {
 
+const int RowDescriptor::INVALID_IDX;
+
 string NullIndicatorOffset::DebugString() const {
   stringstream out;
   out << "(offset=" << byte_offset

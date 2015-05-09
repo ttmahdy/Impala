@@ -130,4 +130,14 @@ std::ostream& operator<<(std::ostream& os, const StringValue& string_value);
 
 }
 
+namespace std {
+
+template <> struct hash<impala::StringValue> {
+  size_t operator()(const impala::StringValue& v) const {
+    return impala::HashUtil::Hash(v.ptr, v.len, 0);
+  }
+};
+
+}
+
 #endif
