@@ -282,8 +282,6 @@ ThriftServer::ThriftServer(const string& name, const shared_ptr<TProcessor>& pro
       num_worker_threads_(num_worker_threads),
       server_type_(server_type),
       name_(name),
-      server_thread_(NULL),
-      server_(NULL),
       processor_(processor),
       connection_handler_(NULL),
       auth_provider_(auth_provider) {

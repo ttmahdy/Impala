@@ -242,7 +242,7 @@ class Coordinator {
   /// Once this is set to true, errors from remote fragments are ignored.
   bool returned_all_results_;
 
-  /// execution state of coordinator fragment
+  /// execution state of coordinator fragment. Set in Prepare().
   std::unique_ptr<PlanFragmentExecutor> executor_;
 
   /// Query mem tracker for this coordinator initialized in Exec(). Only valid if there

@@ -86,7 +86,6 @@ HBaseTableScanner::HBaseTableScanner(
   : scan_node_(scan_node),
     state_(state),
     htable_factory_(htable_factory),
-    htable_(NULL),
     scan_(NULL),
     resultscanner_(NULL),
     cells_(NULL),

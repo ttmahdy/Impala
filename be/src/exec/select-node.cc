@@ -26,7 +26,6 @@ namespace impala {
 SelectNode::SelectNode(
     ObjectPool* pool, const TPlanNode& tnode, const DescriptorTbl& descs)
     : ExecNode(pool, tnode, descs),
-      child_row_batch_(NULL),
       child_row_idx_(0),
       child_eos_(false) {
 }

@@ -62,8 +62,6 @@ ImpalaServer::QueryExecState::QueryExecState(
     ref_count_(0L),
     exec_env_(exec_env),
     session_(session),
-    schedule_(NULL),
-    coord_(NULL),
     result_cache_max_size_(-1),
     profile_(&profile_pool_, "Query"),  // assign name w/ id after planning
     server_profile_(&profile_pool_, "ImpalaServer"),

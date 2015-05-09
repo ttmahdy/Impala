@@ -88,14 +88,12 @@ class ImpalaServer::AsciiQueryResultSet : public ImpalaServer::QueryResultSet {
  public:
   // Rows are added into rowset.
   AsciiQueryResultSet(const TResultSetMetadata& metadata, vector<string>* rowset)
-    : metadata_(metadata), result_set_(rowset), owned_result_set_(NULL) {
+    : metadata_(metadata), result_set_(rowset) {
   }
 
   // Rows are added into a new rowset that is owned by this result set.
   AsciiQueryResultSet(const TResultSetMetadata& metadata)
-    : metadata_(metadata), result_set_(new vector<string>()),
-      owned_result_set_(result_set_) {
-  }
+    : AsciiQueryResultSet(metadata, new vector<string>()) { }
 
   virtual ~AsciiQueryResultSet() { }
 

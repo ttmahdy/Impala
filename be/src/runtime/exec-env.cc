@@ -143,9 +143,7 @@ ExecEnv::ExecEnv()
     disk_io_mgr_(new DiskIoMgr()),
     webserver_(new Webserver()),
     metrics_(new MetricGroup("impala-metrics")),
-    mem_tracker_(NULL),
     thread_mgr_(new ThreadResourceMgr),
-    cgroups_mgr_(NULL),
     hdfs_op_thread_pool_(
         CreateHdfsOpThreadPool("hdfs-worker-pool", FLAGS_num_hdfs_worker_threads, 1024)),
     request_pool_service_(new RequestPoolService(metrics_.get())),
@@ -194,7 +192,6 @@ ExecEnv::ExecEnv(const string& hostname, int backend_port, int subscriber_port,
     disk_io_mgr_(new DiskIoMgr()),
     webserver_(new Webserver(webserver_port)),
     metrics_(new MetricGroup("impala-metrics")),
-    mem_tracker_(NULL),
     thread_mgr_(new ThreadResourceMgr),
     hdfs_op_thread_pool_(
         CreateHdfsOpThreadPool("hdfs-worker-pool", FLAGS_num_hdfs_worker_threads, 1024)),

@@ -242,8 +242,6 @@ Coordinator::Coordinator(ExecEnv* exec_env, RuntimeProfile::EventSequence* event
   : exec_env_(exec_env),
     has_called_wait_(false),
     returned_all_results_(false),
-    executor_(NULL), // Set in Prepare()
-    query_mem_tracker_(), // Set in Exec()
     num_remaining_backends_(0),
     obj_pool_(new ObjectPool()),
     query_events_(events) {

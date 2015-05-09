@@ -30,7 +30,6 @@ UnionNode::UnionNode(ObjectPool* pool, const TPlanNode& tnode,
       tuple_id_(tnode.union_node.tuple_id),
       const_result_expr_idx_(0),
       child_idx_(0),
-      child_row_batch_(NULL),
       child_eos_(false),
       child_row_idx_(0) {
 }

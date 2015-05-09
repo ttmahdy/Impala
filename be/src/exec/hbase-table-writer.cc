@@ -43,7 +43,6 @@ HBaseTableWriter::HBaseTableWriter(HBaseTableDescriptor* table_desc,
                                    const vector<ExprContext*>& output_expr_ctxs,
                                    RuntimeProfile* profile)
     : table_desc_(table_desc),
-      table_(NULL),
       output_expr_ctxs_(output_expr_ctxs),
       put_list_(NULL),
       runtime_profile_(profile) {

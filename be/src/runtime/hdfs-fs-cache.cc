@@ -26,6 +26,7 @@
 #include "common/names.h"
 
 using namespace strings;
+using std::unique_ptr;
 
 namespace impala {
 

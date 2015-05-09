@@ -105,7 +105,6 @@ LlvmCodeGen::LlvmCodeGen(ObjectPool* pool, const string& id) :
   is_compiled_(false),
   context_(new llvm::LLVMContext()),
   module_(NULL),
-  execution_engine_(NULL),
   debug_trace_fn_(NULL) {
 
   DCHECK(llvm_initialized) << "Must call LlvmCodeGen::InitializeLlvm first.";

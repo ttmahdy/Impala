@@ -32,8 +32,6 @@ HBaseTableSink::HBaseTableSink(const RowDescriptor& row_desc,
                                const vector<TExpr>& select_list_texprs,
                                const TDataSink& tsink)
     : table_id_(tsink.table_sink.target_table_id),
-      table_desc_(NULL),
-      hbase_table_writer_(NULL),
       row_desc_(row_desc),
       select_list_texprs_(select_list_texprs) {
 }
