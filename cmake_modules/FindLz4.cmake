@@ -5,37 +5,37 @@
 # LZ4_STATIC_LIB, path to liblz4.a
 # LZ4_FOUND, whether lz4 has been found
 
-set(LZ4_SEARCH_HEADER_PATHS
-  ${CMAKE_SOURCE_DIR}/thirdparty/lz4
-)
-
 set(LZ4_SEARCH_LIB_PATH
+  $ENV{IMPALA_TOOLCHAIN}/lz4-$ENV{IMPALA_LZ4_VERSION}/lib
   ${CMAKE_SOURCE_DIR}/thirdparty/lz4
 )
 
-set(LZ4_INCLUDE_DIR
+set(LZ4_SEARCH_INCLUDE_DIR
+  $ENV{IMPALA_TOOLCHAIN}/lz4-$ENV{IMPALA_LZ4_VERSION}/include
   ${CMAKE_SOURCE_DIR}/thirdparty/lz4
 )
 
-find_library(LZ4_LIB_PATH NAMES lz4
+find_path(LZ4_INCLUDE_DIR lz4.h
+  PATHS ${LZ4_SEARCH_INCLUDE_DIR}
+  NO_DEFAULT_PATH
+  DOC "Path to LZ4 headers"
+  )
+
+find_library(LZ4_LIBS NAMES lz4
   PATHS ${LZ4_SEARCH_LIB_PATH}
         NO_DEFAULT_PATH
+  DOC "Path to LZ4 library"
 )
 
-if (LZ4_LIB_PATH)
-  set(LZ4_FOUND TRUE)
-  set(LZ4_LIBS ${LZ4_SEARCH_LIB_PATH})
-  set(LZ4_STATIC_LIB ${LZ4_SEARCH_LIB_PATH}/liblz4.a)
-else ()
-  set(LZ4_FOUND FALSE)
-endif ()
+find_library(LZ4_STATIC_LIB NAMES liblz4.a
+  PATHS ${LZ4_SEARCH_LIB_PATH}
+        NO_DEFAULT_PATH
+  DOC "Path to LZ4 static library"
+)
 
-if (LZ4_FOUND)
-  if (NOT LZ4_FIND_QUIETLY)
-    message(STATUS "Lz4 Found in ${LZ4_SEARCH_LIB_PATH}")
-  endif ()
-else ()
-  message(STATUS "Lz4 includes and libraries NOT found. "
+if (LZ4_LIBS STREQUAL "LZ4_LIBS-NOTFOUND" OR
+    LZ4_STATIC_LIB STREQUAL "LZ4_STATIC_LIB-NOTFOUND")
+  message(FATAL_ERROR "Lz4 includes and libraries NOT found. "
     "Looked for headers in ${LZ4_SEARCH_HEADER_PATH}, "
     "and for libs in ${LZ4_SEARCH_LIB_PATH}")
 endif ()

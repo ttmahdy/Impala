@@ -32,13 +32,23 @@ add_library(Service
   query-options.cc
   child-query.cc
 )
+add_dependencies(Service thrift-cpp)
 
 # this shared library provides Impala executor functionality to FE test.
 add_library(fesupport SHARED
   fe-support.cc
 )
+add_dependencies(fesupport thrift-cpp)
 
-target_link_libraries(fesupport ${IMPALA_LINK_LIBS_NO_TCMALLOC})
+set(FE_SUPPORT_LIBS ${IMPALA_LINK_LIBS_NO_TCMALLOC})
+
+# When we use the toolchain, and link statically, we need to replace the static libhdfs.a
+# with the dynamic version
+if (IMPALA_TOOLCHAIN AND NOT BUILD_SHARED_LIBS)
+  list(REMOVE_ITEM FE_SUPPORT_LIBS hdfsstatic)
+  set(FE_SUPPORT_LIBS ${FE_SUPPORT_LIBS} ${HDFS_SO_LIB})
+endif()
+target_link_libraries(fesupport ${FE_SUPPORT_LIBS})
 
 add_executable(impalad
   impalad-main.cc

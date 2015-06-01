@@ -86,16 +86,33 @@ cd ${IMPALA_HOME}
 if [ "x${TARGET_BUILD_TYPE}" != "x" ] || [ "x${BUILD_SHARED_LIBS}" != "x" ]
 then
     rm -f ./CMakeCache.txt
-    CMAKE_ARGS=""
-    if [ "x${TARGET_BUILD_TYPE}" != "x" ]
-    then
-        CMAKE_ARGS="${CMAKE_ARGS} -DCMAKE_BUILD_TYPE=${TARGET_BUILD_TYPE}"
+    CMAKE_ARGS=()
+    CMAKE_ARGS+=(-DCMAKE_EXPORT_COMPILE_COMMANDS=On)
+
+    if [ "x${TARGET_BUILD_TYPE}" != "x" ]; then
+      CMAKE_ARGS+=(-DCMAKE_BUILD_TYPE=${TARGET_BUILD_TYPE})
     fi
-    if [ "x${BUILD_SHARED_LIBS}" != "x" ]
-    then
-        CMAKE_ARGS="${CMAKE_ARGS} -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}"
+
+    if [ "x${BUILD_SHARED_LIBS}" != "x" ]; then
+      CMAKE_ARGS+=(-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS})
     fi
-    cmake . ${CMAKE_ARGS} -DCMAKE_EXPORT_COMPILE_COMMANDS=On
+
+    if [[ ! -z $IMPALA_TOOLCHAIN ]]; then
+      CMAKE_ARGS+=(-DIMPALA_TOOLCHAIN=ON)
+    else
+      CMAKE_ARGS+=(-DIMPALA_TOOLCHAIN=OFF)
+    fi
+
+    # We have to unset IFS to avoid issues with how arguments are treated if they contain
+    # whitespace
+    if [[ ! -z $IMPALA_TOOLCHAIN && $USE_SYSTEM_GCC -eq 0 ]]; then
+      unset IFS
+      CMAKE_ARGS+=(-DCMAKE_C_COMPILER=$CC)
+      CMAKE_ARGS+=(-DCMAKE_CXX_COMPILER=$CXX)
+      cmake . ${CMAKE_ARGS[@]} -DCMAKE_CXX_LINK_FLAGS="$FULL_RPATH $FULL_LPATH"
+    else
+      cmake .
+    fi
 fi
 
 if [ $CLEAN -eq 1 ]

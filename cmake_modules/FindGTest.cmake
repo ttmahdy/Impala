@@ -33,19 +33,22 @@
 set(GTEST_H gtest/gtest.h)
 
 find_path(GTEST_INCLUDE_DIR ${GTEST_H}
-  PATHS ${CMAKE_SOURCE_DIR}/thirdparty/gtest-1.6.0/include
+  PATHS $ENV{IMPALA_TOOLCHAIN}/gtest-$ENV{IMPALA_GTEST_VERSION}/include
+        ${CMAKE_SOURCE_DIR}/thirdparty/gtest-1.6.0/include
         NO_DEFAULT_PATH
   DOC   "Path to the ${GTEST_H} file"
 )
 
 find_library(GTEST_LIBRARY NAMES gtest
-  PATHS ${CMAKE_SOURCE_DIR}/thirdparty/gtest-1.6.0
+  PATHS $ENV{IMPALA_TOOLCHAIN}/gtest-$ENV{IMPALA_GTEST_VERSION}/lib
+        ${CMAKE_SOURCE_DIR}/thirdparty/gtest-1.6.0
         NO_DEFAULT_PATH
   DOC   "Google's framework for writing C++ tests (gtest)"
 )
 
 find_library(GTEST_MAIN_LIBRARY NAMES gtest_main
-  PATHS ${CMAKE_SOURCE_DIR}/thirdparty/gtest-1.6.0
+  PATHS $ENV{IMPALA_TOOLCHAIN}/gtest-$ENV{IMPALA_GTEST_VERSION}/lib
+        ${CMAKE_SOURCE_DIR}/thirdparty/gtest-1.6.0
         NO_DEFAULT_PATH
   DOC   "Google's framework for writing C++ tests (gtest_main)"
 )
@@ -62,14 +65,7 @@ if(GTEST_FOUND)
     message(STATUS "Found GTest: ${GTEST_LIBRARIES}")
   endif(NOT GTest_FIND_QUIETLY)
 else(GTEST_FOUND)
-  if(NOT GTest_FIND_QUIETLY)
-    if(GTest_FIND_REQUIRED)
-      message(FATAL_ERROR "Could not find the GTest Library")
-    else(GTest_FIND_REQUIRED)
-      message(STATUS "Could not find the GTest Library")
-    endif(GTest_FIND_REQUIRED)
-  endif(NOT GTest_FIND_QUIETLY)
+  message(FATAL_ERROR "Could not find the GTest Library")
 endif(GTEST_FOUND)
 
 mark_as_advanced(GTEST_INCLUDE_DIR GTEST_LIBRARIES)
-

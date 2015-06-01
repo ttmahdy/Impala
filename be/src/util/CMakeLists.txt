@@ -73,6 +73,7 @@ add_library(Util
   url-parser.cc
   url-coding.cc
 )
+add_dependencies(Util thrift-cpp)
 
 add_library(Webserver STATIC
   ${SQUEASEL_SRC_DIR}/squeasel.c
@@ -89,14 +90,24 @@ add_library(loggingsupport SHARED
   logging-support.cc
 )
 
-target_link_libraries(Webserver pthread dl Util ssl crypto)
+target_link_libraries(Webserver pthread dl Util ${OPENSSL_LIBS})
 
 add_executable(network-perf-benchmark network-perf-benchmark.cc)
 add_executable(parquet-reader parquet-reader.cc)
 
 target_link_libraries(network-perf-benchmark ${IMPALA_LINK_LIBS})
 target_link_libraries(parquet-reader ${IMPALA_LINK_LIBS})
-target_link_libraries(loggingsupport ${IMPALA_LINK_LIBS_NO_TCMALLOC})
+
+
+set(LOGGING_SUPPORT_LIBS ${IMPALA_LINK_LIBS_NO_TCMALLOC})
+
+# When we use the toolchain, and link statically, we need to replace the static libhdfs.a
+# with the dynamic version
+if (IMPALA_TOOLCHAIN AND NOT BUILD_SHARED_LIBS)
+  list(REMOVE_ITEM LOGGING_SUPPORT_LIBS hdfsstatic)
+  set(LOGGING_SUPPORT_LIBS ${LOGGING_SUPPORT_LIBS} ${HDFS_SO_LIB})
+endif()
+target_link_libraries(loggingsupport ${LOGGING_SUPPORT_LIBS})
 
 ADD_BE_TEST(runtime-profile-test)
 ADD_BE_TEST(benchmark-test)

@@ -134,9 +134,9 @@ set(JAVA_EXT_DS_ARGS ${THRIFT_INCLUDE_DIR_OPTION} --gen java:hashcode -o ${EXT_D
 set(PYTHON_ARGS ${THRIFT_INCLUDE_DIR_OPTION} -r --gen py -o ${PYTHON_OUTPUT_DIR})
 
 set (EXT_DATA_SRC_FILES
+  ErrorCodes.thrift
   ExternalDataSource.thrift
   Data.thrift
-  ErrorCodes.thrift
   Status.thrift
   Types.thrift
 )
@@ -173,6 +173,8 @@ set (SRC_FILES
   StatestoreService.thrift
   ${EXT_DATA_SRC_FILES}
 )
+
+SET_SOURCE_FILES_PROPERTIES(Status.thrift PROPERTIES OBJECT_DEPENDS ErrorCodes.thrift)
 
 add_custom_command(OUTPUT ErrorCodes.thrift
   COMMAND python generate_error_codes.py

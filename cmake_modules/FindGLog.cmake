@@ -7,9 +7,11 @@
 
 set(THIRDPARTY ${CMAKE_SOURCE_DIR}/thirdparty)
 set(GLOG_SEARCH_HEADER_PATHS
+  $ENV{IMPALA_TOOLCHAIN}/glog-$ENV{IMPALA_GLOG_VERSION}/include
   ${THIRDPARTY}/glog-$ENV{IMPALA_GLOG_VERSION}/src
 )
 set(GLOG_SEARCH_LIB_PATH
+  $ENV{IMPALA_TOOLCHAIN}/glog-$ENV{IMPALA_GLOG_VERSION}/lib
   ${THIRDPARTY}/glog-$ENV{IMPALA_GLOG_VERSION}/.libs
 )
 
@@ -19,22 +21,12 @@ find_path(GLOG_INCLUDE_DIR glog/logging.h PATHS
   NO_DEFAULT_PATH
 )
 
-find_library(GLOG_LIB_PATH NAMES glog PATHS ${GLOG_SEARCH_LIB_PATH})
+find_library(GLOG_LIBS NAMES glog PATHS ${GLOG_SEARCH_LIB_PATH})
+find_library(GLOG_STATIC_LIB NAMES libglog.a PATHS ${GLOG_SEARCH_LIB_PATH})
 
-if (GLOG_LIB_PATH)
-  set(GLOG_FOUND TRUE)
-  set(GLOG_LIBS ${GLOG_SEARCH_LIB_PATH})
-  set(GLOG_STATIC_LIB ${GLOG_SEARCH_LIB_PATH}/libglog.a)
-else ()
-  set(GLOG_FOUND FALSE)
-endif ()
-
-if (GLOG_FOUND)
-  if (NOT GLOG_FIND_QUIETLY)
-    message(STATUS "GLog Found in ${GLOG_SEARCH_LIB_PATH}")
-  endif ()
-else ()
-  message(STATUS "GLog includes and libraries NOT found. "
+if (GLOG_LIBS STREQUAL "GLOG_LIBS-NOTFOUND" OR
+    GLOG_STATIC_LIB STREQUAL "GLOG_STATIC_LIB-NOTFOUND")
+  message(FATAL_ERROR "GLog includes and libraries NOT found. "
     "Looked for headers in ${GLOG_SEARCH_HEADER_PATH}, "
     "and for libs in ${GLOG_SEARCH_LIB_PATH}")
 endif ()

@@ -206,11 +206,14 @@ if [[ -z $METASTORE_SNAPSHOT_FILE && "${TARGET_FILESYSTEM}" != "hdfs" &&
   exit 1
 fi
 
-# Sanity check that thirdparty is built.
-if [ ! -e $IMPALA_HOME/thirdparty/gflags-${IMPALA_GFLAGS_VERSION}/libgflags.la ]
-then
-  echo "Couldn't find thirdparty build files.  Building thirdparty."
-  $IMPALA_HOME/bin/build_thirdparty.sh $([ ${CLEAN_ACTION} -eq 0 ] && echo '-noclean')
+# Only build thirdparty if no toolchain is set
+if [[ -z $IMPALA_TOOLCHAIN ]]; then
+  # Sanity check that thirdparty is built.
+  if [ ! -e $IMPALA_HOME/thirdparty/gflags-${IMPALA_GFLAGS_VERSION}/libgflags.la ]
+  then
+    echo "Couldn't find thirdparty build files.  Building thirdparty."
+    $IMPALA_HOME/bin/build_thirdparty.sh $([ ${CLEAN_ACTION} -eq 0 ] && echo '-noclean')
+  fi
 fi
 
 if [ -e $HADOOP_LZO/build/native/Linux-*-*/lib/libgplcompression.so ]

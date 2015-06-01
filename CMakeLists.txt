@@ -15,6 +15,10 @@
 
 cmake_minimum_required(VERSION 2.6)
 
+if (NOT DEFINED BUILD_SHARED_LIBS)
+  set(BUILD_SHARED_LIBS OFF)
+endif()
+
 # generate CTest input files
 enable_testing()
 
@@ -23,6 +27,11 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake_modules")
 
 # find libraries that will be statically linked if they were compiled with -fPIC
 find_package(PICLibs REQUIRED)
+
+if (IMPALA_TOOLCHAIN)
+  message(STATUS "Found Impala Toolchain, enabling toolchain boost")
+  set(ENV{BOOST_ROOT} "$ENV{IMPALA_TOOLCHAIN}/boost-$ENV{IMPALA_BOOST_VERSION}")
+endif ()
 
 # find boost headers and libs
 IF (DEFINED ENV{BOOST_ROOT})
@@ -36,13 +45,32 @@ IF (DEFINED ENV{BOOST_ROOT})
     set(Boost_INCLUDE_DIR ${BOOST_INCLUDEDIR})
 ENDIF (DEFINED ENV{BOOST_ROOT})
 
-set(Boost_DEBUG TRUE)
+if (CMAKE_DEBUG)
+  set(Boost_DEBUG TRUE)
+endif()
 set(Boost_USE_MULTITHREADED ON)
-find_package(Boost REQUIRED COMPONENTS thread regex-mt system-mt filesystem-mt)
+
+find_package(Boost $ENV{IMPALA_MIN_BOOST_VERSION} REQUIRED
+  COMPONENTS thread regex system filesystem date_time)
 include_directories(${Boost_INCLUDE_DIRS})
 set(LIBS ${LIBS} ${Boost_LIBRARIES})
 message(STATUS "Boost include dir: " ${Boost_INCLUDE_DIRS})
 message(STATUS "Boost libraries: " ${Boost_LIBRARIES})
+
+
+# Only append OpenSSL if we build with the toolchain
+if (IMPALA_TOOLCHAIN)
+  find_package(OpenSSL REQUIRED)
+  include_directories(${OPENSSL_INCLUDE_DIR})
+  if (BUILD_SHARED_LIBS)
+    set(OPENSSL_LIBS ${OPENSSL_SSL_LIB} ${OPENSSL_CRYPTO_LIB})
+  else()
+    set(OPENSSL_LIBS ${OPENSSL_SSL_STATIC_LIB} ${OPENSSL_CRYPTO_STATIC_LIB})
+  endif()
+else()
+  set(OPENSSL_LIBS ssl crypto)
+endif()
+message(STATUS "OpenSSL ${OPENSSL_LIBS}")
 
 # find jni headers and libs
 find_package(JNI REQUIRED)
@@ -54,7 +82,16 @@ message(STATUS "JNI_LIBRARIES: ${JNI_LIBRARIES}")
 # find HDFS headers and libs
 find_package(HDFS REQUIRED)
 include_directories(${HDFS_INCLUDE_DIR})
-set(LIBS ${LIBS} ${HDFS_LIBS})
+
+if(BUILD_SHARED_LIBS)
+  set(LIBS ${LIBS} ${HDFS_SO_LIB})
+  set(HDFS_LIB ${HDFS_SO_LIB})
+else()
+  add_library(hdfsstatic STATIC IMPORTED)
+  set_target_properties(hdfsstatic PROPERTIES IMPORTED_LOCATION ${HDFS_STATIC_LIB})
+  set(LIBS ${LIBS} hdfsstatic)
+  set(HDFS_LIB hdfsstatic)
+endif()
 
 # find the Squeasel webserver library
 find_package(Squeasel REQUIRED)
@@ -84,6 +121,7 @@ set(LIBS ${LIBS} ${GFLAGS_LIBS})
 add_library(gflagsstatic STATIC IMPORTED)
 set_target_properties(gflagsstatic PROPERTIES IMPORTED_LOCATION ${GFLAGS_STATIC_LIB})
 message(STATUS "GFlags include dir: " ${GFLAGS_INCLUDE_DIR})
+message(STATUS "GFlags lib dir: " ${GFLAGS_LIBS})
 
 # find PProf libs
 find_package(PProf REQUIRED)
@@ -94,6 +132,7 @@ set_target_properties(pprofstatic PROPERTIES IMPORTED_LOCATION "${PPROF_STATIC_L
 add_library(tcmallocstatic STATIC IMPORTED)
 set_target_properties(tcmallocstatic PROPERTIES IMPORTED_LOCATION "${HEAPPROF_STATIC_LIB}")
 message(STATUS "PProf include dir: " ${PPROF_INCLUDE_DIR})
+message(STATUS "PProf static lib: " ${PPROF_STATIC_LIB})
 
 # find GTest headers and libs
 find_package(GTest REQUIRED)
@@ -150,6 +189,7 @@ set_target_properties(snappy PROPERTIES IMPORTED_LOCATION "${SNAPPY_STATIC_LIB}"
 message(STATUS "Snappy include dir: " ${SNAPPY_INCLUDE_DIR})
 message(STATUS "Snappy library: " "${SNAPPY_STATIC_LIB}")
 
+# find lz4 lib
 find_package(Lz4 REQUIRED)
 include_directories(${LZ4_INCLUDE_DIR})
 set(LIBS ${LIBS} ${LZ4_LIBRARIES})
@@ -173,9 +213,11 @@ include_directories(${RAPIDJSON_INCLUDE_DIR})
 message(STATUS "RapidJson include dir: " ${RAPIDJSON_INCLUDE_DIR})
 
 # find boost multi precision headers
-find_package(BoostMultiPrecision REQUIRED)
-include_directories(${BOOST_MULTI_PRECISION_INCLUDE_DIR})
-message(STATUS "BoostMultiPrecision include dir: " ${BOOST_MULTI_PRECISION_INCLUDE_DIR})
+if (NOT IMPALA_TOOLCHAIN)
+  find_package(BoostMultiPrecision REQUIRED)
+  include_directories(${BOOST_MULTI_PRECISION_INCLUDE_DIR})
+  message(STATUS "BoostMultiPrecision include dir: " ${BOOST_MULTI_PRECISION_INCLUDE_DIR})
+endif ()
 
 # find Avro headers and libs
 find_package(Avro REQUIRED)
@@ -186,9 +228,6 @@ set_target_properties(avro PROPERTIES IMPORTED_LOCATION "${AVRO_STATIC_LIB}")
 message(STATUS "Avro include dir: " ${AVRO_INCLUDE_DIR})
 message(STATUS "Avro static library: " ${AVRO_STATIC_LIB})
 
-# Treat gutil just like an Impala native library (i.e., one built with CMake), so no need
-# for find_package()
-add_subdirectory($ENV{IMPALA_HOME}/thirdparty/gutil/)
 
 # compile these subdirs using their own CMakeLists.txt
 add_subdirectory(common/function-registry)

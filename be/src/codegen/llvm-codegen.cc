@@ -261,12 +261,17 @@ Status LlvmCodeGen::Init() {
   // blows up the fe tests (which take ~10-20 ms each).
   opt_level = CodeGenOpt::None;
 #endif
+
+  llvm::TargetOptions Opts;
+  Opts.JITExceptionHandling = false;
+
   EngineBuilder builder = EngineBuilder(module_).setOptLevel(opt_level);
   //TODO Uncomment the below line as soon as we upgrade to LLVM 3.5 to enable SSE, if
   // available. In LLVM 3.3 this is done automatically and cannot be enabled because
   // for some reason SSE4 intrinsics selection will not work.
   //builder.setMCPU(llvm::sys::getHostCPUName());
   builder.setErrorStr(&error_string_);
+  builder.setTargetOptions(Opts);
   execution_engine_.reset(builder.create());
   if (execution_engine_ == NULL) {
     // execution_engine_ will take ownership of the module if it is created

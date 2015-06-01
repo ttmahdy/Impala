@@ -36,10 +36,14 @@ PROJECT(ASSEMBLER)
 #  -pthread: enable multithreaded malloc
 #  -DBOOST_DATE_TIME_POSIX_TIME_STD_CONFIG: enable nanosecond precision for boost
 SET(CXX_COMMON_FLAGS "-Wall -Wno-sign-compare -Wno-unknown-pragmas -pthread")
+if (IMPALA_TOOLCHAIN)
+  SET(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} -DIMPALA_TOOLCHAIN")
+endif()
 SET(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} -fno-strict-aliasing")
 SET(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} -Wno-deprecated")
 SET(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} -DBOOST_DATE_TIME_POSIX_TIME_STD_CONFIG")
 SET(CXX_COVERAGE_FLAGS "-fprofile-arcs -ftest-coverage")
+SET(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} -static-libstdc++") #-static-libgcc -llibgcc_eh.a
 
 # For any clang builds (currently only ASAN):
 #   -Qunused-arguments: quiet warnings about unused arguments to clang because ccache
@@ -58,8 +62,10 @@ SET(CXX_GCC_FLAGS "-g -Wno-unused-local-typedefs")
 # For CMAKE_BUILD_TYPE=Release
 #   -O3: Enable all compiler optimizations
 #   -DNDEBUG: Turn off dchecks/asserts/debug only code.
-SET(CXX_FLAGS_DEBUG "${CXX_GCC_FLAGS} -ggdb")
-SET(CXX_FLAGS_RELEASE "${CXX_GCC_FLAGS} -O3 -DNDEBUG")
+#
+# Debug information is stored as dwarf2 to be as compatible as possible
+SET(CXX_FLAGS_DEBUG "${CXX_GCC_FLAGS} -ggdb -gdwarf-2")
+SET(CXX_FLAGS_RELEASE "${CXX_GCC_FLAGS} -O3 -DNDEBUG -gdwarf-2")
 SET(CXX_FLAGS_ADDRESS_SANITIZER
   "${CXX_CLANG_FLAGS} -O1 -g -fsanitize=address -fno-omit-frame-pointer -DADDRESS_SANITIZER")
 
@@ -223,7 +229,7 @@ set (IMPALA_LINK_LIBS
 # If using dynamic linking, -Wl does not have any effect (it's only for .a files). So we
 # need to add these redundant dependencies to resolve the circular references in our
 # libraries when dynamic linking is enabled.
-if ("${BUILD_SHARED_LIBS}" STREQUAL "ON")
+if (BUILD_SHARED_LIBS)
   set (IMPALA_LINK_LIBS ${IMPALA_LINK_LIBS}
     Runtime
     Exec
@@ -256,15 +262,15 @@ set (IMPALA_LINK_LIBS ${IMPALA_LINK_LIBS}
   ${LBER_LIBRARY}
   ThriftSaslTransport
   ${JAVA_JVM_LIBRARY}
-  ${HDFS_LIBS}
   gutil
   glogstatic
   gflagsstatic
   pprofstatic
+  ${HDFS_LIB}
   ${LIBZ}
   ${LIBBZ2}
   ${AVRO_STATIC_LIB}
-  -lrt -lboost_date_time
+  -lrt
 )
 
 
@@ -292,8 +298,11 @@ list(REMOVE_ITEM UDF_TEST_LINK_LIBS Udf)
 set (IMPALA_TEST_LINK_LIBS ${IMPALA_LINK_LIBS} gtest)
 set (UDF_TEST_LINK_LIBS ${UDF_TEST_LINK_LIBS} gtest)
 
-MESSAGE(STATUS, "Compiler Flags: ${CMAKE_CXX_FLAGS}")
-MESSAGE(STATUS, "Linker Libs: ${IMPALA_LINK_LIBS}")
+MESSAGE(STATUS "Compiler Flags: ${CMAKE_CXX_FLAGS}")
+
+if (CMAKE_DEBUG)
+  MESSAGE(STATUS "Linker Libs: ${IMPALA_LINK_LIBS}")
+endif()
 
 set(LLVM_IR_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/llvm-ir")
 file(MAKE_DIRECTORY ${LLVM_IR_OUTPUT_DIRECTORY})
@@ -327,6 +336,9 @@ function(COMPILE_TO_IR SRC_FILE)
     DEPENDS ${SRC_FILE})
   add_custom_target(${BASE_NAME}-ir ALL DEPENDS ${OUTPUT_FILE})
 endfunction(COMPILE_TO_IR)
+
+# Gutil is a little bit special
+add_subdirectory(src/gutil)
 
 # compile these subdirs using their own CMakeLists.txt
 add_subdirectory(src/catalog)
