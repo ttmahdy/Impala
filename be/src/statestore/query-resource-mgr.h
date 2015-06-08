@@ -108,7 +108,7 @@ class QueryResourceMgr {
   /// AboveVcoreSubscriptionThreshold(). We want to start acquiring more VCore allocations
   /// before we get so oversubscribed that adding new threads is considered a bad idea.
   inline bool IsVcoreOverSubscribed() {
-    boost::lock_guard<boost::mutex> l(threads_running_lock_);
+    std::lock_guard<boost::mutex> l(threads_running_lock_);
     return threads_running_ > vcores_ * max_vcore_oversubscription_ratio_;
   }
 

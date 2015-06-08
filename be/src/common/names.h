@@ -131,7 +131,7 @@ using boost::shared_mutex;
 /// implementations were not included using lock_types.hpp (for older boost versions) or if
 /// lock_guard.hpp was explicitly included.
 #if (defined(BOOST_THREAD_LOCKS_HPP) && BOOST_VERSION < 105300)  || defined(BOOST_THREAD_LOCK_GUARD_HPP)
-using boost::lock_guard;
+using std::lock_guard;
 #endif
 
 #if defined(BOOST_THREAD_LOCKS_HPP) || defined(BOOST_THREAD_LOCK_TYPES_HPP)

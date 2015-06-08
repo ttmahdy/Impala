@@ -284,7 +284,7 @@ class RuntimeProfile {
     /// current time (relative to the first time Start() was called) as
     /// the timestamp.
     void MarkEvent(const std::string& label) {
-      boost::lock_guard<boost::mutex> event_lock(lock_);
+      std::lock_guard<boost::mutex> event_lock(lock_);
       events_.push_back(make_pair(label, sw_.ElapsedTime()));
     }
 
@@ -300,7 +300,7 @@ class RuntimeProfile {
     /// The supplied vector 'events' is cleared before this.
     void GetEvents(std::vector<Event>* events) {
       events->clear();
-      boost::lock_guard<boost::mutex> event_lock(lock_);
+      std::lock_guard<boost::mutex> event_lock(lock_);
       events->insert(events->end(), events_.begin(), events_.end());
     }
 
@@ -378,7 +378,7 @@ class RuntimeProfile {
   /// invalidate pointers to profiles.
   template <class Compare>
   void SortChildren(const Compare& cmp) {
-    boost::lock_guard<boost::mutex> l(children_lock_);
+    std::lock_guard<boost::mutex> l(children_lock_);
     std::sort(children_.begin(), children_.end(), cmp);
   }
 

@@ -139,14 +139,14 @@ class SimpleMetric : public Metric {
 
   /// Returns the current value, updating it if necessary. Thread-safe.
   T value() {
-    boost::lock_guard<SpinLock> l(lock_);
+    std::lock_guard<SpinLock> l(lock_);
     CalculateValue();
     return value_;
   }
 
   /// Sets the current value. Thread-safe.
   void set_value(const T& value) {
-    boost::lock_guard<SpinLock> l(lock_);
+    std::lock_guard<SpinLock> l(lock_);
     value_ = value;
   }
 
@@ -156,7 +156,7 @@ class SimpleMetric : public Metric {
         << "Can't change value of PROPERTY metric: " << key();
     DCHECK(kind() != TMetricKind::COUNTER || delta >= 0)
         << "Can't decrement value of COUNTER metric: " << key();
-    boost::lock_guard<SpinLock> l(lock_);
+    std::lock_guard<SpinLock> l(lock_);
     value_ += delta;
   }
 
@@ -235,7 +235,7 @@ class MetricGroup {
     DCHECK(!metric->key_.empty());
     M* mt = obj_pool_->Add(metric);
 
-    boost::lock_guard<SpinLock> l(lock_);
+    std::lock_guard<SpinLock> l(lock_);
     DCHECK(metric_map_.find(metric->key_) == metric_map_.end());
     metric_map_[metric->key_] = mt;
     return mt;
@@ -273,7 +273,7 @@ class MetricGroup {
   M* FindMetricForTesting(const std::string& key) {
     std::stack<MetricGroup*> groups;
     groups.push(this);
-    boost::lock_guard<SpinLock> l(lock_);
+    std::lock_guard<SpinLock> l(lock_);
     do {
       MetricGroup* group = groups.top();
       groups.pop();

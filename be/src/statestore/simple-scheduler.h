@@ -79,7 +79,7 @@ class SimpleScheduler : public Scheduler {
   virtual void GetAllKnownBackends(BackendList* backends);
 
   virtual bool HasLocalBackend(const TNetworkAddress& data_location) {
-    boost::lock_guard<boost::mutex> l(backend_map_lock_);
+    std::lock_guard<boost::mutex> l(backend_map_lock_);
     BackendMap::iterator entry = backend_map_.find(data_location.hostname);
     return (entry != backend_map_.end() && entry->second.size() > 0);
   }

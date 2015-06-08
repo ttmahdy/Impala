@@ -88,7 +88,7 @@ class BlockingQueue {
   /// Shut down the queue. Wakes up all threads waiting on BlockingGet or BlockingPut.
   void Shutdown() {
     {
-      boost::lock_guard<boost::mutex> guard(lock_);
+      std::lock_guard<boost::mutex> guard(lock_);
       shutdown_ = true;
     }
 
@@ -103,13 +103,13 @@ class BlockingQueue {
 
   /// Returns the total amount of time threads have blocked in BlockingGet.
   uint64_t total_get_wait_time() const {
-    boost::lock_guard<boost::mutex> guard(lock_);
+    std::lock_guard<boost::mutex> guard(lock_);
     return total_get_wait_time_;
   }
 
   /// Returns the total amount of time threads have blocked in BlockingPut.
   uint64_t total_put_wait_time() const {
-    boost::lock_guard<boost::mutex> guard(lock_);
+    std::lock_guard<boost::mutex> guard(lock_);
     return total_put_wait_time_;
   }
 

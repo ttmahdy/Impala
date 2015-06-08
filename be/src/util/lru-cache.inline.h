@@ -27,7 +27,7 @@ FifoMultimap<Key, Value>::~FifoMultimap() {
 
 template <typename Key, typename Value>
 void FifoMultimap<Key, Value>::Put(const Key& k, const Value& v) {
-  boost::lock_guard<SpinLock> g(lock_);
+  std::lock_guard<SpinLock> g(lock_);
   if (capacity_ <= 0) return;
   if (size_ >= capacity_) EvictValue();
   const ValueType& kv_pair = std::make_pair(k, v);
@@ -47,7 +47,7 @@ void FifoMultimap<Key, Value>::Put(const Key& k, const Value& v) {
 
 template <typename Key, typename Value>
 bool FifoMultimap<Key, Value>::Pop(const Key& k, Value* out) {
-  boost::lock_guard<SpinLock> g(lock_);
+  std::lock_guard<SpinLock> g(lock_);
   // Find the first value under key k.
   typename MapType::iterator it = cache_.lower_bound(k);
   if (it == cache_.end() || it->first != k) return false;

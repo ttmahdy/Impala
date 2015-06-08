@@ -81,7 +81,7 @@ class ThreadPool {
   /// terminate.
   void Shutdown() {
     {
-      boost::lock_guard<boost::mutex> l(lock_);
+      std::lock_guard<boost::mutex> l(lock_);
       shutdown_ = true;
     }
     work_queue_.Shutdown();
@@ -136,7 +136,7 @@ class ThreadPool {
 
   /// Returns value of shutdown_ under a lock, forcing visibility to threads in the pool.
   bool IsShutdown() {
-    boost::lock_guard<boost::mutex> l(lock_);
+    std::lock_guard<boost::mutex> l(lock_);
     return shutdown_;
   }
 

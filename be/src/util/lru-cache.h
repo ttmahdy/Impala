@@ -89,7 +89,7 @@ class FifoMultimap {
 
   /// Returns the total number of entries in the collection.
   size_t size(){
-    boost::lock_guard<SpinLock> g(lock_);
+    std::lock_guard<SpinLock> g(lock_);
     return cache_.size();
   }
 

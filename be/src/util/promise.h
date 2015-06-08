@@ -90,7 +90,7 @@ class Promise {
 
   /// Returns whether the value is set.
   bool IsSet() {
-    boost::lock_guard<boost::mutex> l(val_lock_);
+    std::lock_guard<boost::mutex> l(val_lock_);
     return val_is_set_;
   }
 

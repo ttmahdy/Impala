@@ -180,13 +180,13 @@ class ImpalaServer::QueryExecState {
   }
 
   inline int64_t last_active() const {
-    boost::lock_guard<boost::mutex> l(expiration_data_lock_);
+    std::lock_guard<boost::mutex> l(expiration_data_lock_);
     return last_active_time_;
   }
 
   /// Returns true if Impala is actively processing this query.
   inline bool is_active() const {
-    boost::lock_guard<boost::mutex> l(expiration_data_lock_);
+    std::lock_guard<boost::mutex> l(expiration_data_lock_);
     return ref_count_ > 0;
   }
 

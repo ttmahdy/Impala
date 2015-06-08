@@ -237,7 +237,7 @@ class ImpalaServer : public ImpalaServiceIf, public ImpalaHiveServer2ServiceIf,
 
   /// Returns true if Impala is offline (and not accepting queries), false otherwise.
   bool IsOffline() {
-    boost::lock_guard<boost::mutex> l(is_offline_lock_);
+    std::lock_guard<boost::mutex> l(is_offline_lock_);
     return is_offline_;
   }
 
@@ -903,7 +903,7 @@ class ImpalaServer : public ImpalaServiceIf, public ImpalaHiveServer2ServiceIf,
   /// Decrement the session's reference counter and mark last_accessed_ms so that state
   /// expiration can proceed.
   inline void MarkSessionInactive(boost::shared_ptr<SessionState> session) {
-    boost::lock_guard<boost::mutex> l(session->lock);
+    std::lock_guard<boost::mutex> l(session->lock);
     DCHECK_GT(session->ref_count, 0);
     --session->ref_count;
     session->last_accessed_ms = UnixMillis();

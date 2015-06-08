@@ -54,13 +54,13 @@ class SetMetric : public Metric {
 
   /// Put an item in this set.
   void Add(const T& item) {
-    boost::lock_guard<boost::mutex> l(lock_);
+    std::lock_guard<boost::mutex> l(lock_);
     value_.insert(item);
   }
 
   /// Remove an item from this set by value.
   void Remove(const T& item) {
-    boost::lock_guard<boost::mutex> l(lock_);
+    std::lock_guard<boost::mutex> l(lock_);
     value_.erase(item);
   }
 
@@ -138,18 +138,18 @@ class StatsMetric : public Metric {
   }
 
   void Update(const T& value) {
-    boost::lock_guard<boost::mutex> l(lock_);
+    std::lock_guard<boost::mutex> l(lock_);
     value_ = value;
     acc_(value);
   }
 
   void Reset() {
-    boost::lock_guard<boost::mutex> l(lock_);
+    std::lock_guard<boost::mutex> l(lock_);
     acc_ = Accumulator();
   }
 
   virtual void ToJson(rapidjson::Document* document, rapidjson::Value* val) {
-    boost::lock_guard<boost::mutex> l(lock_);
+    std::lock_guard<boost::mutex> l(lock_);
     rapidjson::Value container(rapidjson::kObjectType);
     AddStandardFields(document, &container);
     rapidjson::Value units(PrintTUnit(unit_).c_str(), document->GetAllocator());
@@ -188,7 +188,7 @@ class StatsMetric : public Metric {
 
   virtual void ToLegacyJson(rapidjson::Document* document) {
     std::stringstream ss;
-    boost::lock_guard<boost::mutex> l(lock_);
+    std::lock_guard<boost::mutex> l(lock_);
     rapidjson::Value container(rapidjson::kObjectType);
 
     if (StatsSelection & StatsType::COUNT) {
