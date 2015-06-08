@@ -50,7 +50,7 @@ SET(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} -static-libstdc++") #-static-libgcc -l
 #        makes extra calls to clang which may have extra includes (-I) that are unused.
 #   -fcolor-diagnostics: ensure clang generates colorized output, which is necessary
 #        when using ccache as clang thinks it is not called from a terminal.
-SET(CXX_CLANG_FLAGS "-Qunused-arguments -fcolor-diagnostics")
+SET(CXX_CLANG_FLAGS "-Qunused-arguments -fcolor-diagnostics -std=c++11")
 # For any gcc builds:
 #   -g: Enable symbols for profiler tools
 #   -Wno-unused-local-typedefs: Do not warn for local typedefs that are unused.

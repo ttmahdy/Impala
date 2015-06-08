@@ -94,6 +94,10 @@ using std::istringstream;
 using std::ostringstream;
 #endif
 
+#ifdef _GLIBCXX_MEMORY
+using std::unique_ptr;
+#endif
+
 #ifdef _GLIBCXX_ALGORITHM
 using std::swap;
 #endif
