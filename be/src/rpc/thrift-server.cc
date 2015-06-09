@@ -108,11 +108,13 @@ class ThriftServer::ThriftServerEventProcessor : public TServerEventHandler {
   bool signal_fired_;
 
   // The time, in milliseconds, to wait for a server to come up
-  static const int TIMEOUT_MS = 2500;
+  static const int TIMEOUT_MS;
 
   // Called in a separate thread
   void Supervise();
 };
+
+const int ThriftServer::ThriftServerEventProcessor::TIMEOUT_MS = 2500;
 
 Status ThriftServer::ThriftServerEventProcessor::StartAndWaitForServer() {
   // Locking here protects against missed notifications if Supervise executes quickly
@@ -125,8 +127,7 @@ Status ThriftServer::ThriftServerEventProcessor::StartAndWaitForServer() {
       new Thread("thrift-server", name.str(),
                  &ThriftServer::ThriftServerEventProcessor::Supervise, this));
 
-  std::chrono::milliseconds wait_time =
-      std::chrono::milliseconds(ThriftServer::ThriftServerEventProcessor::TIMEOUT_MS);
+  std::chrono::milliseconds wait_time = std::chrono::milliseconds(TIMEOUT_MS);
 
   // Loop protects against spurious wakeup. Locks provide necessary fences to ensure
   // visibility.
@@ -136,7 +137,7 @@ Status ThriftServer::ThriftServerEventProcessor::StartAndWaitForServer() {
       stringstream ss;
       ss << "ThriftServer '" << thrift_server_->name_ << "' (on port: "
          << thrift_server_->port_ << ") did not start within "
-         << ThriftServer::ThriftServerEventProcessor::TIMEOUT_MS << "ms";
+         << TIMEOUT_MS << "ms";
       LOG(ERROR) << ss.str();
       return Status(ss.str());
     }
