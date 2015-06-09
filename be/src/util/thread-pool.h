@@ -17,7 +17,7 @@
 
 #include "util/blocking-queue.h"
 
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include <boost/bind/mem_fn.hpp>
 
 #include "util/thread.h"
@@ -81,7 +81,7 @@ class ThreadPool {
   /// terminate.
   void Shutdown() {
     {
-      std::lock_guard<boost::mutex> l(lock_);
+      std::lock_guard<std::mutex> l(lock_);
       shutdown_ = true;
     }
     work_queue_.Shutdown();
@@ -102,7 +102,7 @@ class ThreadPool {
   /// Any work Offer()'ed during DrainAndShutdown may or may not be processed.
   void DrainAndShutdown() {
     {
-      boost::unique_lock<boost::mutex> l(lock_);
+      std::unique_lock<std::mutex> l(lock_);
       while (work_queue_.GetSize() != 0) {
         empty_cv_.wait(l);
       }
@@ -128,7 +128,7 @@ class ThreadPool {
         /// Take lock to ensure that DrainAndShutdown() cannot be between checking
         /// GetSize() and wait()'ing when the condition variable is notified.
         /// (It will hang if we notify right before calling wait().)
-        boost::unique_lock<boost::mutex> l(lock_);
+        std::unique_lock<std::mutex> l(lock_);
         empty_cv_.notify_all();
       }
     }
@@ -136,7 +136,7 @@ class ThreadPool {
 
   /// Returns value of shutdown_ under a lock, forcing visibility to threads in the pool.
   bool IsShutdown() {
-    std::lock_guard<boost::mutex> l(lock_);
+    std::lock_guard<std::mutex> l(lock_);
     return shutdown_;
   }
 
@@ -151,13 +151,13 @@ class ThreadPool {
   ThreadGroup threads_;
 
   /// Guards shutdown_ and empty_cv_
-  boost::mutex lock_;
+  std::mutex lock_;
 
   /// Set to true when threads should stop doing work and terminate.
   bool shutdown_;
 
   /// Signalled when the queue becomes empty
-  boost::condition_variable empty_cv_;
+  std::condition_variable empty_cv_;
 };
 
 }

@@ -121,7 +121,7 @@ class Coordinator::BackendExecState {
   // protects fields below
   // lock ordering: Coordinator::lock_ can only get obtained *prior*
   // to lock
-  boost::mutex lock;
+  mutex lock;
 
   // if the status indicates an error status, execution of this fragment
   // has either been aborted by the remote backend (which then reported the error)

@@ -53,7 +53,7 @@ string GenerateRandomData() {
 }
 
 struct DiskIoMgrStress::Client {
-  boost::mutex lock;
+  mutex lock;
   DiskIoMgr::RequestContext* reader;
   int file_idx;
   vector<DiskIoMgr::ScanRange*> scan_ranges;

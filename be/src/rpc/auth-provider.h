@@ -17,7 +17,7 @@
 
 #include <string>
 #include <memory>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include <sasl/sasl.h>
 
 #include "common/status.h"

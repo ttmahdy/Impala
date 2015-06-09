@@ -12,14 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// The motivation for the using declarations below is to allow accessing the most relevant
-/// and most frequently used library classes without having to explicitly pull them into
-/// the global namespace. The goal is that when readers sees a usage of vector (etc.) without
-/// any further specialization they can rely on the fact that it will be a std::vector.
+/// The motivation for the using declarations below is to allow accessing the most
+/// relevant and most frequently used library classes without having to explicitly pull
+/// them into the global namespace. The goal is that when readers sees a usage of vector
+/// (etc.) without any further specialization they can rely on the fact that it will be a
+/// std::vector.
 //
 /// Instead of actually including the header files for the symbols, this file only checks
-/// if certain include guards are defined before applying the using declaration. This makes sure
-/// that including this file has no impact on the compile time.
+/// if certain include guards are defined before applying the using declaration. This
+/// makes sure that including this file has no impact on the compile time.
 //
 /// Please make sure that this file is included last in the cc file's include list to make
 /// sure that all relevant include guards are defined.
@@ -111,7 +112,6 @@ using boost::thread_group;
 #endif
 
 #ifdef BOOST_THREAD_MUTEX_HPP
-using boost::mutex;
 using boost::try_mutex;
 #endif
 
@@ -124,18 +124,24 @@ using boost::shared_mutex;
 #endif
 
 
-/// In older versions of boost, when including mutex.hpp, it would include locks.hpp that
-/// would in turn provide lock_guard<>. In more recent versions, including mutex.hpp would
-/// include lock_types.hpp that does not provide lock_guard<>. This check verifies if boost
-/// locks have been included and makes sure to only include lock_guard if the provided lock
-/// implementations were not included using lock_types.hpp (for older boost versions) or if
-/// lock_guard.hpp was explicitly included.
-#if (defined(BOOST_THREAD_LOCKS_HPP) && BOOST_VERSION < 105300)  || defined(BOOST_THREAD_LOCK_GUARD_HPP)
+/// In older versions of boost, when including mutex, it would include locks.hpp that
+/// would in turn provide lock_guard<>. In more recent versions, including mutex would
+/// include lock_types.hpp that does not provide lock_guard<>. This check verifies if
+/// boost locks have been included and makes sure to only include lock_guard if the
+/// provided lock implementations were not included using lock_types.hpp (for older boost
+/// versions) or if lock_guard.hpp was explicitly included.
+#ifdef _GLIBCXX_MUTEX
 using std::lock_guard;
+using std::mutex;
+using std::unique_lock;
+using std::adopt_lock_t;
+#endif
+
+#ifdef _GLIBCXX_CONDITION_VARIABLE
+using std::condition_variable;
 #endif
 
 #if defined(BOOST_THREAD_LOCKS_HPP) || defined(BOOST_THREAD_LOCK_TYPES_HPP)
-using boost::unique_lock;
 using boost::shared_lock;
 using boost::upgrade_lock;
 #endif

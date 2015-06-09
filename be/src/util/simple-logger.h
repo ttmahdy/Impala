@@ -46,7 +46,7 @@ class SimpleLogger {
 
  private:
   /// Protects log_file_, num_log_file_entries_ and log_file_name_
-  boost::mutex log_file_lock_;
+  std::mutex log_file_lock_;
 
   /// Directory to log to
   std::string log_dir_;

@@ -16,11 +16,8 @@
 #ifndef IMPALA_UTIL_INTERNAL_QUEUE_H
 #define IMPALA_UTIL_INTERNAL_QUEUE_H
 
-#include <boost/thread/locks.hpp>
-
 #include "common/atomic.h"
 #include "util/spinlock.h"
-
 
 namespace impala {
 

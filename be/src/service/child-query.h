@@ -59,7 +59,7 @@ class ChildQuery {
   }
 
   /// Allow child queries to be added to std collections.
-  /// (boost::mutex's operator= and copy c'tor are private)
+  /// (std::mutex's operator= and copy c'tor are private)
   ChildQuery(const ChildQuery& other)
     : query_(other.query_),
       parent_exec_state_(other.parent_exec_state_),
@@ -68,7 +68,7 @@ class ChildQuery {
       is_cancelled_(other.is_cancelled_) {}
 
   /// Allow child queries to be added to std collections.
-  /// (boost::mutex's operator= and copy c'tor are private)
+  /// (std::mutex's operator= and copy c'tor are private)
   ChildQuery& operator=(const ChildQuery& other) {
     query_ = other.query_;
     parent_exec_state_ = other.parent_exec_state_;
@@ -129,7 +129,7 @@ class ChildQuery {
   apache::hive::service::cli::thrift::TOperationHandle hs2_handle_;
 
   /// Protects is_running_ and is_cancelled_ to ensure idempotent cancellations.
-  boost::mutex lock_;
+  std::mutex lock_;
 
   /// Indicates whether this query is running. False if the query has not started yet
   /// or if the query has finished either successfully or because of an error.

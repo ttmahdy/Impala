@@ -16,7 +16,7 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
-#include <boost/thread/locks.hpp>
+#include <mutex>
 
 #include "codegen/llvm-codegen.h"
 #include "runtime/hdfs-fs-cache.h"
@@ -39,7 +39,7 @@ unique_ptr<LibCache> LibCache::instance_;
 
 struct LibCache::LibCacheEntry {
   // Lock protecting all fields in this entry
-  boost::mutex lock;
+  mutex lock;
 
   // The number of users that are using this cache entry. If this is
   // a .so, we can't dlclose unless the use_count goes to 0.

@@ -16,8 +16,8 @@
 #ifndef IMPALA_UTIL_BLOCKING_QUEUE_H
 #define IMPALA_UTIL_BLOCKING_QUEUE_H
 
-#include <boost/thread/condition_variable.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
+#include <condition_variable>
 #include <list>
 #include <unistd.h>
 
@@ -45,7 +45,7 @@ class BlockingQueue {
   /// are no more elements available.
   bool BlockingGet(T* out) {
     MonotonicStopWatch timer;
-    boost::unique_lock<boost::mutex> unique_lock(lock_);
+    std::unique_lock<std::mutex> unique_lock(lock_);
 
     while (true) {
       if (!list_.empty()) {
@@ -68,7 +68,7 @@ class BlockingQueue {
   /// If the queue is shut down, returns false.
   bool BlockingPut(const T& val) {
     MonotonicStopWatch timer;
-    boost::unique_lock<boost::mutex> unique_lock(lock_);
+    std::unique_lock<std::mutex> unique_lock(lock_);
 
     while (list_.size() >= max_elements_ && !shutdown_) {
       timer.Start();
@@ -88,7 +88,7 @@ class BlockingQueue {
   /// Shut down the queue. Wakes up all threads waiting on BlockingGet or BlockingPut.
   void Shutdown() {
     {
-      std::lock_guard<boost::mutex> guard(lock_);
+      std::lock_guard<std::mutex> guard(lock_);
       shutdown_ = true;
     }
 
@@ -97,29 +97,29 @@ class BlockingQueue {
   }
 
   uint32_t GetSize() const {
-    boost::unique_lock<boost::mutex> l(lock_);
+    std::unique_lock<std::mutex> l(lock_);
     return list_.size();
   }
 
   /// Returns the total amount of time threads have blocked in BlockingGet.
   uint64_t total_get_wait_time() const {
-    std::lock_guard<boost::mutex> guard(lock_);
+    std::lock_guard<std::mutex> guard(lock_);
     return total_get_wait_time_;
   }
 
   /// Returns the total amount of time threads have blocked in BlockingPut.
   uint64_t total_put_wait_time() const {
-    std::lock_guard<boost::mutex> guard(lock_);
+    std::lock_guard<std::mutex> guard(lock_);
     return total_put_wait_time_;
   }
 
  private:
   bool shutdown_;
   const int max_elements_;
-  boost::condition_variable get_cv_;   // 'get' callers wait on this
-  boost::condition_variable put_cv_;   // 'put' callers wait on this
+  std::condition_variable get_cv_;   // 'get' callers wait on this
+  std::condition_variable put_cv_;   // 'put' callers wait on this
   /// lock_ guards access to list_, total_get_wait_time, and total_put_wait_time
-  mutable boost::mutex lock_;
+  mutable std::mutex lock_;
   std::list<T> list_;
   uint64_t total_get_wait_time_;
   uint64_t total_put_wait_time_;

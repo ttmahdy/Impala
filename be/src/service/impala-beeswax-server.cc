@@ -66,7 +66,7 @@
 
 #include "common/names.h"
 
-using boost::adopt_lock_t;
+//using boost::adopt_lock_t;
 using boost::algorithm::join;
 using namespace apache::thrift;
 using namespace apache::hive::service::cli::thrift;

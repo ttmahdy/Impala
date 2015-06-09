@@ -17,8 +17,7 @@
 #define IMPALA_COMMON_OBJECT_POOL_H
 
 #include <vector>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 
 #include "util/spinlock.h"
 

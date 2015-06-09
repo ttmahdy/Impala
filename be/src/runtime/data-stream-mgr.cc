@@ -16,8 +16,6 @@
 
 #include <iostream>
 #include <boost/functional/hash.hpp>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/thread.hpp>
 
 #include "runtime/row-batch.h"
 #include "runtime/data-stream-recvr.h"

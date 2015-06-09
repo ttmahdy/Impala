@@ -21,7 +21,7 @@
 #include <vector>
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include <boost/unordered_map.hpp>
 
 #include "common/logging.h"
@@ -378,7 +378,7 @@ class MemTracker {
   SpinLock gc_lock_;
 
   /// Protects request_to_mem_trackers_ and pool_to_mem_trackers_
-  static boost::mutex static_mem_trackers_lock_;
+  static std::mutex static_mem_trackers_lock_;
 
   /// All per-request MemTracker objects that are in use.  For memory management, this map
   /// contains only weak ptrs.  MemTrackers that are handed out via GetQueryMemTracker()
@@ -427,7 +427,7 @@ class MemTracker {
 
   /// All the child trackers of this tracker. Used for error reporting only.
   /// i.e., Updating a parent tracker does not update the children.
-  mutable boost::mutex child_trackers_lock_;
+  mutable std::mutex child_trackers_lock_;
   std::list<MemTracker*> child_trackers_;
 
   /// Iterator into parent_->child_trackers_ for this object. Stored to have O(1)
@@ -455,7 +455,7 @@ class MemTracker {
 
   /// Lock is taken during ExpandRmReservation() to prevent concurrent acquisition of new
   /// resources.
-  boost::mutex resource_acquisition_lock_;
+  std::mutex resource_acquisition_lock_;
 
   /// If non-NULL, contains all the information required to expand resource reservations if
   /// required.

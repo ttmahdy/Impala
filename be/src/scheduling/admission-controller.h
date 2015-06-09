@@ -22,7 +22,7 @@
 
 #include <boost/unordered_map.hpp>
 #include <boost/unordered_set.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 
 #include "common/status.h"
 #include "scheduling/request-pool-service.h"
@@ -186,7 +186,7 @@ class AdmissionController {
   /// Protects all access to all variables below.
   /// Coordinates access to the results of the promise QueueNode::is_admitted,
   /// but the lock is not required to wait on the promise.
-  boost::mutex admission_ctrl_lock_;
+  std::mutex admission_ctrl_lock_;
 
   /// Map of pool names to pool statistics.
   typedef boost::unordered_map<std::string, TPoolStats> PoolStatsMap;
@@ -240,7 +240,7 @@ class AdmissionController {
 
   /// Notifies the dequeuing thread that pool stats have changed and it may be
   /// possible to dequeue and admit queries.
-  boost::condition_variable dequeue_cv_;
+  std::condition_variable dequeue_cv_;
 
   /// If true, tear down the dequeuing thread. This only happens in unit tests.
   bool done_;

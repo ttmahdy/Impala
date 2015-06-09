@@ -20,7 +20,7 @@
 #include <string>
 #include <list>
 #include <boost/unordered_map.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 
 #include "common/status.h"
 #include "statestore/scheduler.h"
@@ -79,7 +79,7 @@ class SimpleScheduler : public Scheduler {
   virtual void GetAllKnownBackends(BackendList* backends);
 
   virtual bool HasLocalBackend(const TNetworkAddress& data_location) {
-    std::lock_guard<boost::mutex> l(backend_map_lock_);
+    std::lock_guard<std::mutex> l(backend_map_lock_);
     BackendMap::iterator entry = backend_map_.find(data_location.hostname);
     return (entry != backend_map_.end() && entry->second.size() > 0);
   }
@@ -97,7 +97,7 @@ class SimpleScheduler : public Scheduler {
   /// Protects access to backend_map_ and backend_ip_map_, which might otherwise be updated
   /// asynchronously with respect to reads. Also protects the locality
   /// counters, which are updated in GetBackends.
-  boost::mutex backend_map_lock_;
+  std::mutex backend_map_lock_;
 
   /// Map from a datanode's IP address to a list of backend addresses running on that node.
   typedef boost::unordered_map<std::string, std::list<TBackendDescriptor> > BackendMap;
@@ -151,7 +151,7 @@ class SimpleScheduler : public Scheduler {
   uint32_t update_count_;
 
   /// Protects active_reservations_ and active_client_resources_.
-  boost::mutex active_resources_lock_;
+  std::mutex active_resources_lock_;
 
   /// Maps from a Llama reservation id to the coordinator of the query using that
   /// reservation.  The map is used to cancel queries whose reservation has been preempted.

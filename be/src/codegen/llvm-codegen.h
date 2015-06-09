@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include <boost/unordered_set.hpp>
 
 #include <llvm/Analysis/Verifier.h>
@@ -509,7 +509,7 @@ class LlvmCodeGen {
   std::map<llvm::Function*, bool> jitted_functions_;
 
   /// Lock protecting jitted_functions_
-  boost::mutex jitted_functions_lock_;
+  std::mutex jitted_functions_lock_;
 
   /// Keeps track of the external functions that have been included in this module
   /// e.g libc functions or non-jitted impala functions.

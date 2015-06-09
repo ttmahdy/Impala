@@ -14,7 +14,6 @@
 
 #include "runtime/hdfs-fs-cache.h"
 
-#include <boost/thread/locks.hpp>
 #include <gutil/strings/substitute.h>
 
 #include "common/logging.h"

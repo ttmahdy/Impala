@@ -160,8 +160,8 @@ class ImpalaServer::QueryExecState {
   TDdlType::type ddl_type() const {
     return exec_request_.catalog_op_request.ddl_params.ddl_type;
   }
-  boost::mutex* lock() { return &lock_; }
-  boost::mutex* fetch_rows_lock() { return &fetch_rows_lock_; }
+  std::mutex* lock() { return &lock_; }
+  std::mutex* fetch_rows_lock() { return &fetch_rows_lock_; }
   const beeswax::QueryState::type query_state() const { return query_state_; }
   void set_query_state(beeswax::QueryState::type state) { query_state_ = state; }
   const Status& query_status() const { return query_status_; }
@@ -180,13 +180,13 @@ class ImpalaServer::QueryExecState {
   }
 
   inline int64_t last_active() const {
-    std::lock_guard<boost::mutex> l(expiration_data_lock_);
+    std::lock_guard<std::mutex> l(expiration_data_lock_);
     return last_active_time_;
   }
 
   /// Returns true if Impala is actively processing this query.
   inline bool is_active() const {
-    std::lock_guard<boost::mutex> l(expiration_data_lock_);
+    std::lock_guard<std::mutex> l(expiration_data_lock_);
     return ref_count_ > 0;
   }
 
@@ -200,12 +200,12 @@ class ImpalaServer::QueryExecState {
   /// responsible for acquiring this lock. To avoid deadlocks, callers must not hold lock_
   /// while acquiring this lock (since FetchRows() will release and re-acquire lock_ during
   /// its execution).
-  boost::mutex fetch_rows_lock_;
+  std::mutex fetch_rows_lock_;
 
   /// Protects last_active_time_ and ref_count_.
   /// Must always be taken as the last lock, that is no other locks may be taken while
   /// holding this lock.
-  mutable boost::mutex expiration_data_lock_;
+  mutable std::mutex expiration_data_lock_;
   int64_t last_active_time_;
 
   /// ref_count_ > 0 if Impala is currently performing work on this query's behalf. Every
@@ -216,7 +216,7 @@ class ImpalaServer::QueryExecState {
   /// Thread for asynchronously running Wait().
   std::unique_ptr<Thread> wait_thread_;
 
-  boost::mutex lock_;  // protects all following fields
+  std::mutex lock_;  // protects all following fields
   ExecEnv* exec_env_;
 
   /// Session that this query is from

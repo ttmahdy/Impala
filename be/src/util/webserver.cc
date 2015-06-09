@@ -20,7 +20,6 @@
 #include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/mem_fn.hpp>
-#include <boost/thread/locks.hpp>
 #include <gutil/strings/substitute.h>
 #include <map>
 #include <fstream>

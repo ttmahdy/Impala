@@ -20,7 +20,7 @@
 
 #include <memory>
 #include <boost/shared_ptr.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include <boost/thread/thread.hpp>
 
 #include "statestore/statestore.h"
@@ -144,7 +144,7 @@ class StatestoreSubscriber {
 
   /// Class-wide lock. Protects all subsequent members. Most private methods must
   /// be called holding this lock; this is noted in the method comments.
-  boost::mutex lock_;
+  std::mutex lock_;
 
   /// Set to true after Register(...) is successful, after which no
   /// more topics may be subscribed to.
@@ -152,7 +152,7 @@ class StatestoreSubscriber {
 
   /// Protects registration_id_. Must be taken after lock_ if both are to be taken
   /// together.
-  boost::mutex registration_id_lock_;
+  std::mutex registration_id_lock_;
 
   /// Set during Register(), this is the unique ID of the current registration with the
   /// statestore. If this subscriber must recover, or disconnects and then reconnects, the

@@ -17,7 +17,7 @@
 #define IMPALA_RUNTIME_PARALLEL_EXECUTOR_H
 
 #include <boost/function.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 
 #include "common/status.h"
 #include "util/collection-metrics.h"
@@ -55,7 +55,7 @@ class ParallelExecutor {
   //
   /// If 'latencies' is not NULL, it is updated with the time elapsed while executing
   /// 'function'.
-  static void Worker(Function function, void* arg, boost::mutex* lock, Status* status,
+  static void Worker(Function function, void* arg, std::mutex* lock, Status* status,
       StatsMetric<double>* latencies);
 };
 

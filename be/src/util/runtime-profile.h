@@ -18,7 +18,7 @@
 
 #include <boost/function.hpp>
 #include <memory>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include <boost/unordered_map.hpp>
 #include <iostream>
 #include <sys/time.h>
@@ -284,7 +284,7 @@ class RuntimeProfile {
     /// current time (relative to the first time Start() was called) as
     /// the timestamp.
     void MarkEvent(const std::string& label) {
-      std::lock_guard<boost::mutex> event_lock(lock_);
+      std::lock_guard<std::mutex> event_lock(lock_);
       events_.push_back(make_pair(label, sw_.ElapsedTime()));
     }
 
@@ -300,7 +300,7 @@ class RuntimeProfile {
     /// The supplied vector 'events' is cleared before this.
     void GetEvents(std::vector<Event>* events) {
       events->clear();
-      std::lock_guard<boost::mutex> event_lock(lock_);
+      std::lock_guard<std::mutex> event_lock(lock_);
       events->insert(events->end(), events_.begin(), events_.end());
     }
 
@@ -308,7 +308,7 @@ class RuntimeProfile {
 
    private:
     /// Protect access to events_
-    boost::mutex lock_;
+    std::mutex lock_;
 
     /// Stored in increasing time order
     EventList events_;
@@ -378,7 +378,7 @@ class RuntimeProfile {
   /// invalidate pointers to profiles.
   template <class Compare>
   void SortChildren(const Compare& cmp) {
-    std::lock_guard<boost::mutex> l(children_lock_);
+    std::lock_guard<std::mutex> l(children_lock_);
     std::sort(children_.begin(), children_.end(), cmp);
   }
 
@@ -576,7 +576,7 @@ class RuntimeProfile {
   std::set<std::vector<Counter*>* > bucketing_counters_;
 
   /// protects counter_map_, counter_child_map_ and bucketing_counters_
-  mutable boost::mutex counter_map_lock_;
+  mutable std::mutex counter_map_lock_;
 
   /// Child profiles.  Does not own memory.
   /// We record children in both a map (to facilitate updates) and a vector
@@ -586,7 +586,7 @@ class RuntimeProfile {
   /// vector of (profile, indentation flag)
   typedef std::vector<std::pair<RuntimeProfile*, bool> > ChildVector;
   ChildVector children_;
-  mutable boost::mutex children_lock_;  // protects child_map_ and children_
+  mutable std::mutex children_lock_;  // protects child_map_ and children_
 
   typedef std::map<std::string, std::string> InfoStrings;
   InfoStrings info_strings_;
@@ -596,15 +596,15 @@ class RuntimeProfile {
   InfoStringsDisplayOrder info_strings_display_order_;
 
   /// Protects info_strings_ and info_strings_display_order_
-  mutable boost::mutex info_strings_lock_;
+  mutable std::mutex info_strings_lock_;
 
   typedef std::map<std::string, EventSequence*> EventSequenceMap;
   EventSequenceMap event_sequence_map_;
-  mutable boost::mutex event_sequence_lock_;
+  mutable std::mutex event_sequence_lock_;
 
   typedef std::map<std::string, TimeSeriesCounter*> TimeSeriesCounterMap;
   TimeSeriesCounterMap time_series_counter_map_;
-  mutable boost::mutex time_series_counter_map_lock_;
+  mutable std::mutex time_series_counter_map_lock_;
 
   Counter counter_total_time_;
 

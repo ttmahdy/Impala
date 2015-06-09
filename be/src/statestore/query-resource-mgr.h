@@ -25,7 +25,7 @@
 #include "util/thread.h"
 
 #include <boost/function.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include <boost/unordered_map.hpp>
 #include <boost/unordered_set.hpp>
 #include <boost/shared_ptr.hpp>
@@ -108,7 +108,7 @@ class QueryResourceMgr {
   /// AboveVcoreSubscriptionThreshold(). We want to start acquiring more VCore allocations
   /// before we get so oversubscribed that adding new threads is considered a bad idea.
   inline bool IsVcoreOverSubscribed() {
-    std::lock_guard<boost::mutex> l(threads_running_lock_);
+    std::lock_guard<std::mutex> l(threads_running_lock_);
     return threads_running_ > vcores_ * max_vcore_oversubscription_ratio_;
   }
 
@@ -151,11 +151,11 @@ class QueryResourceMgr {
   TNetworkAddress local_resource_location_;
 
   /// Used to control shutdown of AcquireCpuResources().
-  boost::mutex exit_lock_;
+  std::mutex exit_lock_;
   bool exit_;
 
   /// Protects callbacks_ and callbacks_it_
-  boost::mutex callbacks_lock_;
+  std::mutex callbacks_lock_;
 
   /// List of callbacks to notify when a new VCore resource is available.
   typedef boost::unordered_map<int32_t, VcoreAvailableCb> CallbackMap;
@@ -169,10 +169,10 @@ class QueryResourceMgr {
   int32_t callback_count_;
 
   /// Protects threads_running_, threads_changed_cv_ and vcores_.
-  boost::mutex threads_running_lock_;
+  std::mutex threads_running_lock_;
 
   /// Waited on by AcquireCpuResources(), and notified by NotifyThreadUsageChange().
-  boost::condition_variable threads_changed_cv_;
+  std::condition_variable threads_changed_cv_;
 
   /// The number of threads we know to be running on behalf of this query.
   int64_t threads_running_;

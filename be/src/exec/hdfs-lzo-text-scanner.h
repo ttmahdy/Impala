@@ -19,7 +19,6 @@
 #include <exec/scan-node.h>
 #include <exec/hdfs-scanner.h>
 #include <exec/hdfs-scan-node.h>
-#include <boost/thread/locks.hpp>
 
 namespace impala {
 
@@ -42,7 +41,7 @@ class HdfsLzoTextScanner {
   static Status library_load_status_;
 
   /// Lock to protect loading of the lzo file library.
-  static boost::mutex lzo_load_lock_;
+  static std::mutex lzo_load_lock_;
 
   /// Dynamically linked function to create the Lzo Scanner Object.
   static HdfsScanner* (*CreateLzoTextScanner)

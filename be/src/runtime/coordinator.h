@@ -29,7 +29,7 @@
 #include <boost/unordered_map.hpp>
 #include <boost/unordered_set.hpp>
 #include <boost/thread/thread.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include <boost/thread/condition_variable.hpp>
 
 #include "common/status.h"
@@ -222,7 +222,7 @@ class Coordinator {
   TFinalizeParams finalize_params_;
 
   /// ensures single-threaded execution of Wait(); must not hold lock_ when acquiring this
-  boost::mutex wait_lock_;
+  std::mutex wait_lock_;
 
   bool has_called_wait_;  // if true, Wait() was called; protected by wait_lock_
 
@@ -230,7 +230,7 @@ class Coordinator {
   ProgressUpdater progress_;
 
   /// protects all fields below
-  boost::mutex lock_;
+  std::mutex lock_;
 
   /// Overall status of the entire query; set to the first reported fragment error
   /// status or to CANCELLED, if Cancel() is called.
@@ -271,7 +271,7 @@ class Coordinator {
   /// If there is no coordinator fragment, Wait simply waits until all
   /// backends report completion by notifying on backend_completion_cv_.
   /// Tied to lock_.
-  boost::condition_variable backend_completion_cv_;
+  std::condition_variable backend_completion_cv_;
 
   /// Count of the number of backends for which done != true. When this
   /// hits 0, any Wait()'ing thread is notified

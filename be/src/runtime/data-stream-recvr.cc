@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
-
 #include "runtime/data-stream-recvr.h"
 #include "runtime/data-stream-mgr.h"
 #include "runtime/row-batch.h"
@@ -23,8 +20,6 @@
 #include "util/periodic-counter-updater.h"
 
 #include "common/names.h"
-
-using boost::condition_variable;
 
 namespace impala {
 

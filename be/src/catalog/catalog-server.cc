@@ -208,11 +208,14 @@ void CatalogServer::UpdateCatalogTopicCallback(
       incoming_topic_deltas.find(CatalogServer::IMPALA_CATALOG_TOPIC);
   if (topic == incoming_topic_deltas.end()) return;
 
-  try_mutex::scoped_try_lock l(catalog_lock_);
   // Return if unable to acquire the catalog_lock_ or if the topic update data is
   // not yet ready for processing. This indicates the catalog_update_gathering_thread_
   // is still building a topic update.
-  if (!l || !topic_updates_ready_) return;
+  if (!catalog_lock_.try_lock()) return;
+  if (!topic_updates_ready_) {
+    catalog_lock_.unlock();
+    return;
+  }
 
   const TTopicDelta& delta = topic->second;
 
@@ -245,6 +248,7 @@ void CatalogServer::UpdateCatalogTopicCallback(
   // Signal the catalog update gathering thread to start.
   topic_updates_ready_ = false;
   catalog_update_cv_.notify_one();
+  catalog_lock_.unlock();
 }
 
 void CatalogServer::GatherCatalogUpdatesThread() {

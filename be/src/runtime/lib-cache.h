@@ -20,7 +20,7 @@
 #include <memory>
 #include <boost/unordered_map.hpp>
 #include <boost/unordered_set.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include "common/atomic.h"
 #include "common/object-pool.h"
 #include "common/status.h"
@@ -121,7 +121,7 @@ class LibCache {
 
   /// Protects lib_cache_. For lock ordering, this lock must always be taken before
   /// the per entry lock.
-  boost::mutex lock_;
+  std::mutex lock_;
 
   /// Maps HDFS library path => cache entry.
   /// Entries in the cache need to be explicitly deleted.
@@ -141,12 +141,12 @@ class LibCache {
   /// taken and returned in *entry_lock.
   /// If an error is returned, there will be no entry in lib_cache_ and *entry is NULL.
   Status GetCacheEntry(const std::string& hdfs_lib_file, LibType type,
-      boost::unique_lock<boost::mutex>* entry_lock, LibCacheEntry** entry);
+      std::unique_lock<std::mutex>* entry_lock, LibCacheEntry** entry);
 
   /// Implementation to get the cache entry for 'hdfs_lib_file'. Errors are returned
   /// without evicting the cache entry if the status is not OK and *entry is not NULL.
   Status GetCacheEntryInternal(const std::string& hdfs_lib_file, LibType type,
-      boost::unique_lock<boost::mutex>* entry_lock, LibCacheEntry** entry);
+      std::unique_lock<std::mutex>* entry_lock, LibCacheEntry** entry);
 
   /// Utility function for generating a filename unique to this process and
   /// 'hdfs_path'. This is to prevent multiple impalad processes or different library files

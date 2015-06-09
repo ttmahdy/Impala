@@ -17,7 +17,7 @@
 
 #include "util/metrics.h"
 
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include <boost/bind.hpp>
 #include <google/malloc_extension.h>
 

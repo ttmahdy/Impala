@@ -19,7 +19,7 @@
 #include <boost/thread/thread_time.hpp>
 #include <string>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 
 namespace impala {
 
@@ -84,7 +84,7 @@ class TimeoutFailureDetector : public FailureDetector {
 
  private:
   /// Protects all members
-  boost::mutex lock_;
+  std::mutex lock_;
 
   /// Record of last time a successful heartbeat was received
   std::map<std::string, boost::system_time> peer_heartbeat_record_;
@@ -124,7 +124,7 @@ class MissedHeartbeatFailureDetector : public FailureDetector {
 
  private:
   /// Protects all members
-  boost::mutex lock_;
+  std::mutex lock_;
 
   /// The maximum number of heartbeats that can be missed consecutively before a
   /// peer is considered failed.

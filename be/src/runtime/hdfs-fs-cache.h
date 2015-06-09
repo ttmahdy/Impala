@@ -19,7 +19,7 @@
 #include <string>
 #include <memory>
 #include <boost/unordered_map.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include <hdfs.h>
 
 #include "common/status.h"
@@ -63,7 +63,7 @@ class HdfsFsCache {
   /// Singleton instance. Instantiated in Init().
   static std::unique_ptr<HdfsFsCache> instance_;
 
-  boost::mutex lock_;  // protects fs_map_
+  std::mutex lock_;  // protects fs_map_
   HdfsFsMap fs_map_;
 
   HdfsFsCache() { };

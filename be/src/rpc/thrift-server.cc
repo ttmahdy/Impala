@@ -38,6 +38,7 @@
 #include "util/network-util.h"
 #include "util/uid-util.h"
 #include <sstream>
+#include <chrono>
 
 #include "common/names.h"
 
@@ -51,6 +52,7 @@ using namespace apache::thrift::protocol;
 using namespace apache::thrift::server;
 using namespace apache::thrift::transport;
 using namespace apache::thrift;
+using namespace std::chrono;
 
 DEFINE_int32(rpc_cnxn_attempts, 10, "Deprecated");
 DEFINE_int32(rpc_cnxn_retry_interval_ms, 2000, "Deprecated");
@@ -92,11 +94,11 @@ class ThriftServer::ThriftServerEventProcessor : public TServerEventHandler {
   // Lock used to ensure that there are no missed notifications between starting the
   // supervision thread and calling signal_cond_.timed_wait. Also used to ensure
   // thread-safe access to members of thrift_server_
-  boost::mutex signal_lock_;
+  std::mutex signal_lock_;
 
   // Condition variable that is notified by the supervision thread once either
   // a) all is well or b) an error occurred.
-  boost::condition_variable signal_cond_;
+  std::condition_variable signal_cond_;
 
   // The ThriftServer under management. This class is a friend of ThriftServer, and
   // reaches in to change member variables at will.
@@ -123,14 +125,14 @@ Status ThriftServer::ThriftServerEventProcessor::StartAndWaitForServer() {
       new Thread("thrift-server", name.str(),
                  &ThriftServer::ThriftServerEventProcessor::Supervise, this));
 
-  system_time deadline = get_system_time() +
-      posix_time::milliseconds(ThriftServer::ThriftServerEventProcessor::TIMEOUT_MS);
+  std::chrono::milliseconds wait_time =
+      std::chrono::milliseconds(ThriftServer::ThriftServerEventProcessor::TIMEOUT_MS);
 
   // Loop protects against spurious wakeup. Locks provide necessary fences to ensure
   // visibility.
   while (!signal_fired_) {
     // Yields lock and allows supervision thread to continue and signal
-    if (!signal_cond_.timed_wait(lock, deadline)) {
+    if (signal_cond_.wait_for(lock, wait_time) == std::cv_status::timeout) {
       stringstream ss;
       ss << "ThriftServer '" << thrift_server_->name_ << "' (on port: "
          << thrift_server_->port_ << ") did not start within "

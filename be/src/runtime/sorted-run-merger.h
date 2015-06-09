@@ -17,7 +17,7 @@
 #define IMPALA_RUNTIME_SORTED_RUN_MERGER_H_
 
 #include <memory>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 
 #include "common/object-pool.h"
 #include "util/tuple-row-compare.h"

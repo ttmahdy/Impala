@@ -131,7 +131,7 @@ class HdfsOperationSet {
   hdfsFS* hdfs_connection_;
 
   /// Protects errors_ and abort_on_error_ during Execute
-  boost::mutex errors_lock_;
+  std::mutex errors_lock_;
 
   /// All errors produced during Execute
   Errors errors_;

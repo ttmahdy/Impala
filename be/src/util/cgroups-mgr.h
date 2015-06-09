@@ -16,7 +16,7 @@
 #define IMPALA_UTIL_CGROUPS_MGR_H
 
 #include <string>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include <boost/unordered_map.hpp>
 #include "common/status.h"
 #include "util/metrics.h"
@@ -159,7 +159,7 @@ class CgroupsMgr {
   std::string staging_cgroup_;
 
   /// Protects active_cgroups_.
-  boost::mutex active_cgroups_lock_;
+  std::mutex active_cgroups_lock_;
 
   /// Process-wide map from cgroup to number of fragments using the cgroup.
   /// A cgroup can be safely dropped once the number of fragments in the cgroup,

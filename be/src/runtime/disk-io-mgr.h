@@ -20,7 +20,7 @@
 #include <vector>
 #include <memory>
 #include <boost/unordered_set.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/thread.hpp>
 
@@ -435,7 +435,7 @@ class DiskIoMgr {
 
     /// Lock protecting fields below.
     /// This lock should not be taken during Open/Read/Close.
-    boost::mutex lock_;
+    std::mutex lock_;
 
     /// Number of bytes read so far for this scan range
     int bytes_read_;
@@ -457,7 +457,7 @@ class DiskIoMgr {
 
     /// IO buffers that are queued for this scan range.
     /// Condition variable for GetNext
-    boost::condition_variable buffer_ready_cv_;
+    std::condition_variable buffer_ready_cv_;
     std::list<BufferDescriptor*> ready_buffers_;
 
     /// The soft capacity limit for ready_buffers_. ready_buffers_ can exceed
@@ -472,7 +472,7 @@ class DiskIoMgr {
     /// that the disk threads are finished with HDFS calls before is_cancelled_ is set
     /// to true and cleanup starts.
     /// If this lock and lock_ need to be taken, lock_ must be taken first.
-    boost::mutex hdfs_lock_;
+    std::mutex hdfs_lock_;
 
     /// If true, this scan range has been cancelled.
     bool is_cancelled_;
@@ -719,7 +719,7 @@ class DiskIoMgr {
   std::unique_ptr<RequestContextCache> request_context_cache_;
 
   /// Protects free_buffers_ and free_buffer_descs_
-  boost::mutex free_buffers_lock_;
+  std::mutex free_buffers_lock_;
 
   /// Free buffers that can be handed out to clients. There is one list for each buffer
   /// size, indexed by the Log2 of the buffer size in units of min_buffer_size_. The

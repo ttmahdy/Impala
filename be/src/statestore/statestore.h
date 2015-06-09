@@ -247,11 +247,11 @@ class Statestore {
 
   /// Protects access to exit_flag_, but is used mostly to ensure visibility of updates
   /// between threads..
-  boost::mutex exit_flag_lock_;
+  std::mutex exit_flag_lock_;
   bool exit_flag_;
 
   /// Controls access to topics_. Cannot take subscribers_lock_ after acquiring this lock.
-  boost::mutex topic_lock_;
+  std::mutex topic_lock_;
 
   /// The entire set of topics tracked by the statestore
   typedef boost::unordered_map<TopicId, Topic> TopicMap;
@@ -340,7 +340,7 @@ class Statestore {
 
   /// Protects access to subscribers_ and subscriber_uuid_generator_. Must be taken before
   /// topic_lock_.
-  boost::mutex subscribers_lock_;
+  std::mutex subscribers_lock_;
 
   /// Map of subscribers currently connected; upon failure their entry is removed from this
   /// map. Subscribers must only be removed by UnregisterSubscriber() which ensures that

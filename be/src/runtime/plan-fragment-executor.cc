@@ -19,6 +19,7 @@
 #include <boost/unordered_map.hpp>
 #include <boost/foreach.hpp>
 #include <gutil/strings/substitute.h>
+#include <chrono>
 
 #include "codegen/llvm-codegen.h"
 #include "common/logging.h"
@@ -51,10 +52,10 @@ DECLARE_bool(enable_rm);
 #include "common/names.h"
 
 namespace posix_time = boost::posix_time;
-using boost::get_system_time;
 using boost::system_time;
 using namespace apache::thrift;
 using namespace strings;
+using namespace std::chrono;
 
 namespace impala {
 
@@ -384,21 +385,20 @@ void PlanFragmentExecutor::ReportProfile() {
   // updates at once so its better for contention as well as smoother progress
   // reporting.
   int report_fragment_offset = rand() % FLAGS_status_report_interval;
-  system_time timeout = get_system_time()
-      + posix_time::seconds(report_fragment_offset);
+  std::chrono::seconds timeout = std::chrono::seconds(report_fragment_offset);
   // We don't want to wait longer than it takes to run the entire fragment.
-  stop_report_thread_cv_.timed_wait(l, timeout);
+  stop_report_thread_cv_.wait_for(l, timeout);
 
   while (report_thread_active_) {
-    system_time timeout = get_system_time()
-        + posix_time::seconds(FLAGS_status_report_interval);
+    std::chrono::seconds timeout =
+        std::chrono::seconds(FLAGS_status_report_interval);
 
-    // timed_wait can return because the timeout occurred or the condition variable
+    // wait_for can return because the timeout occurred or the condition variable
     // was signaled.  We can't rely on its return value to distinguish between the
     // two cases (e.g. there is a race here where the wait timed out but before grabbing
     // the lock, the condition variable was signaled).  Instead, we will use an external
     // flag, report_thread_active_, to coordinate this.
-    stop_report_thread_cv_.timed_wait(l, timeout);
+    stop_report_thread_cv_.wait_for(l, timeout);
 
     if (VLOG_FILE_IS_ON) {
       VLOG_FILE << "Reporting " << (!report_thread_active_ ? "final " : " ")

@@ -30,7 +30,6 @@
 
 #include "common/names.h"
 
-using boost::adopt_lock_t;
 using namespace apache::thrift;
 using namespace beeswax;
 using namespace impala;

@@ -24,7 +24,7 @@
 #include <boost/unordered_set.hpp>
 #include <memory>
 #include <boost/thread/condition_variable.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include <boost/thread/thread.hpp>
 
 #include "exec/scan-node.h"
@@ -353,7 +353,7 @@ class HdfsScanNode : public ScanNode {
 
   /// Scanner specific per file metadata (e.g. header information) and associated lock.
   /// This lock cannot be taken together with any other locks except lock_.
-  boost::mutex metadata_lock_;
+  std::mutex metadata_lock_;
   std::map<std::string, void*> per_file_metadata_;
 
   /// Thread group for all scanner worker threads
@@ -405,7 +405,7 @@ class HdfsScanNode : public ScanNode {
   /// Lock protects access between scanner thread and main query thread (the one calling
   /// GetNext()) for all fields below.  If this lock and any other locks needs to be taken
   /// together, this lock must be taken first.
-  boost::mutex lock_;
+  std::mutex lock_;
 
   /// Flag signaling that all scanner threads are done.  This could be because they
   /// are finished, an error/cancellation occurred, or the limit was reached.

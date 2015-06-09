@@ -263,7 +263,7 @@ class ResourceBroker {
 
   /// Lock to ensure that only a single registration with Llama is sent, e.g.,
   /// when multiple concurrent requests realize that Llama has restarted.
-  boost::mutex llama_registration_lock_;
+  std::mutex llama_registration_lock_;
 
   /// Handle received from Llama during registration. Set in RegisterWithLlama().
   llama::TUniqueId llama_handle_;
@@ -331,7 +331,7 @@ class ResourceBroker {
   };
 
   /// Protects pending_requests_
-  boost::mutex pending_requests_lock_;
+  std::mutex pending_requests_lock_;
 
   /// Map from unique request ID provided to Llama (for both reservation and expansion
   /// requests) to PendingRequest object used to coordinate when a response is received
@@ -368,7 +368,7 @@ class ResourceBroker {
   };
 
   /// Protectes allocated_requests_
-  boost::mutex allocated_requests_lock_;
+  std::mutex allocated_requests_lock_;
 
   /// Map from reservation ID to all satisfied requests - reservation and expansion -
   /// associated with that reservation. Used only for bookkeeping so that Impala can report
@@ -378,7 +378,7 @@ class ResourceBroker {
   AllocatedRequestMap allocated_requests_;
 
   /// Protects query_resource_mgrs_
-  boost::mutex query_resource_mgrs_lock_;
+  std::mutex query_resource_mgrs_lock_;
   typedef boost::unordered_map<TUniqueId, std::pair<int32_t, QueryResourceMgr*> >
       QueryResourceMgrsMap;
 

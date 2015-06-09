@@ -280,7 +280,7 @@ class BufferedBlockMgr {
     /// Only used if client_local_ is true.
     /// TODO: Currently we use block_mgr_->lock_ for this condvar. There is no reason to
     /// use that lock_ that is already overloaded, see IMPALA-1883.
-    boost::condition_variable write_complete_cv_;
+    std::condition_variable write_complete_cv_;
 
     /// If true, this block is being written out so the underlying buffer can be
     /// transferred to another block from the same client. We don't want this buffer
@@ -460,7 +460,7 @@ class BufferedBlockMgr {
   ///   2. Using a buffer from the free list (which is populated by moving blocks from
   ///      the unpinned list by writing them out).
   /// Must be called with the lock_ already taken. This function can block.
-  Status FindBuffer(boost::unique_lock<boost::mutex>& lock,
+  Status FindBuffer(std::unique_lock<std::mutex>& lock,
       BufferDescriptor** buffer);
 
   /// Writes unpinned blocks via DiskIoMgr until one of the following is true:
@@ -515,7 +515,7 @@ class BufferedBlockMgr {
   /// used for the blocking condvars: buffer_available_cv_ and block->write_complete_cv_.
   /// TODO: We should break the protection of the various structures and usages to
   ///       different spinlocks and a mutex to be used in the wait()s, see IMPALA-1883.
-  boost::mutex lock_;
+  std::mutex lock_;
 
   /// If true, Init() has been called.
   bool initialized_;
@@ -531,7 +531,7 @@ class BufferedBlockMgr {
   int non_local_outstanding_writes_;
 
   /// Signal availability of free buffers.
-  boost::condition_variable buffer_available_cv_;
+  std::condition_variable buffer_available_cv_;
 
   /// List of blocks is_pinned_ = false AND are not on DiskIoMgr's write queue.
   /// Blocks are added to and removed from the back of the list. (i.e. in LIFO order).

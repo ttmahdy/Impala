@@ -16,7 +16,7 @@
 #define IMPALA_RUNTIME_DATA_STREAM_RECVR_H
 
 #include <memory>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 
 #include "common/object-pool.h"
 #include "common/status.h"

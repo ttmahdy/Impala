@@ -79,7 +79,6 @@
 
 #include "common/names.h"
 
-using boost::adopt_lock_t;
 using boost::algorithm::is_any_of;
 using boost::algorithm::istarts_with;
 using boost::algorithm::replace_all_copy;

@@ -19,8 +19,6 @@
 
 #include <boost/bind.hpp>
 #include <boost/foreach.hpp>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/thread.hpp>
 
 #include "common/object-pool.h"
 #include "rpc/thrift-util.h"

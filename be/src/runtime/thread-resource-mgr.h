@@ -20,7 +20,7 @@
 #include <boost/function.hpp>
 #include <memory>
 #include <boost/shared_ptr.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include <boost/thread/thread.hpp>
 
 #include <list>
@@ -184,7 +184,7 @@ class ThreadResourceMgr {
     /// Lock for the fields below.  This lock is taken when the callback
     /// function is called.
     /// TODO: reconsider this.
-    boost::mutex lock_;
+    std::mutex lock_;
 
     ThreadAvailableCb thread_available_fn_;
   };
@@ -209,7 +209,7 @@ class ThreadResourceMgr {
   int system_threads_quota_;
 
   /// Lock for the entire object.  Protects all fields below.
-  boost::mutex lock_;
+  std::mutex lock_;
 
   /// Pools currently being managed
   typedef std::set<ResourcePool*> Pools;
@@ -276,7 +276,7 @@ inline void ThreadResourceMgr::ResourcePool::ReleaseThreadToken(bool required) {
   /// happens once when the scanner thread is complete.
   /// TODO: reconsider this.
   if (num_available_threads() > 0 && thread_available_fn_ != NULL) {
-    boost::unique_lock<boost::mutex> l(lock_);
+    std::unique_lock<std::mutex> l(lock_);
     if (num_available_threads() > 0 && thread_available_fn_ != NULL) {
       thread_available_fn_(this);
     }

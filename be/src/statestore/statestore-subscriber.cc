@@ -20,7 +20,6 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/foreach.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/thread/shared_mutex.hpp>
 #include <gutil/strings/substitute.h>
 
 #include "common/logging.h"
@@ -299,8 +298,7 @@ Status StatestoreSubscriber::UpdateState(const TopicDeltaMap& incoming_topic_del
   // RecoveryModeChecker(). Similarly, we set *skipped = true.
   // TODO: Consider returning an error in this case so that the statestore will eventually
   // stop sending updates even if re-registration fails.
-  try_mutex::scoped_try_lock l(lock_);
-  if (l) {
+  if (lock_.try_lock()) {
     *skipped = false;
     RETURN_IF_ERROR(CheckRegistrationId(registration_id));
 
@@ -351,6 +349,7 @@ Status StatestoreSubscriber::UpdateState(const TopicDeltaMap& incoming_topic_del
     }
     sw.Stop();
     topic_update_duration_metric_->Update(sw.ElapsedTime() / (1000.0 * 1000.0 * 1000.0));
+    lock_.unlock();
   } else {
     *skipped = true;
   }

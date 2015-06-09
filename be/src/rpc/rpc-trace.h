@@ -109,7 +109,7 @@ class RpcEventHandler : public apache::thrift::TProcessorEventHandler {
   };
 
   /// Protects method_map_ and rpc_counter_
-  boost::mutex method_map_lock_;
+  std::mutex method_map_lock_;
 
   /// Map of all methods, populated lazily as they are invoked for the first time.
   MethodMap method_map_;

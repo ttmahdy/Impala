@@ -15,11 +15,14 @@
 #ifndef IMPALA_UTIL_PROMISE_H
 #define IMPALA_UTIL_PROMISE_H
 
-#include <boost/thread.hpp>
+#include <condition_variable>
+#include <chrono>
 
 #include "common/logging.h"
 #include "runtime/timestamp-value.h"
 #include "util/time.h"
+
+#include "common/names.h"
 
 namespace impala {
 
@@ -36,7 +39,7 @@ class Promise {
   /// Copies val into this promise, and notifies any consumers blocked in Get().
   /// It is invalid to call Set() twice.
   void Set(const T& val) {
-    boost::unique_lock<boost::mutex> l(val_lock_);
+    std::unique_lock<std::mutex> l(val_lock_);
     DCHECK(!val_is_set_) << "Called Set(..) twice on the same Promise";
     val_ = val;
     val_is_set_ = true;
@@ -57,7 +60,7 @@ class Promise {
   /// Blocks until a value is set, and then returns a reference to that value. Once Get()
   /// returns, the returned value will not change, since Set(..) may not be called twice.
   const T& Get() {
-    boost::unique_lock<boost::mutex> l(val_lock_);
+    std::unique_lock<std::mutex> l(val_lock_);
     while (!val_is_set_) {
       val_set_cond_.wait(l);
     }
@@ -74,14 +77,14 @@ class Promise {
     DCHECK_GT(timeout_millis, 0);
     int64_t timeout_micros = timeout_millis * 1000;
     DCHECK(timed_out != NULL);
-    boost::unique_lock<boost::mutex> l(val_lock_);
+    std::unique_lock<std::mutex> l(val_lock_);
     int64_t start;
     int64_t now;
     now = start = MonotonicMicros();
     while (!val_is_set_ && (now - start) < timeout_micros) {
-      boost::posix_time::microseconds wait_time =
-          boost::posix_time::microseconds(std::max(1L, timeout_micros - (now - start)));
-      val_set_cond_.timed_wait(l, wait_time);
+      std::chrono::microseconds wait_time =
+          std::chrono::microseconds(std::max(1L, timeout_micros - (now - start)));
+      val_set_cond_.wait_for(l, wait_time);
       now = MonotonicMicros();
     }
     *timed_out = !val_is_set_;
@@ -90,16 +93,16 @@ class Promise {
 
   /// Returns whether the value is set.
   bool IsSet() {
-    std::lock_guard<boost::mutex> l(val_lock_);
+    std::lock_guard<std::mutex> l(val_lock_);
     return val_is_set_;
   }
 
  private:
   /// These variables deal with coordination between consumer and producer, and protect
   /// access to val_;
-  boost::condition_variable val_set_cond_;
+  std::condition_variable val_set_cond_;
   bool val_is_set_;
-  boost::mutex val_lock_;
+  std::mutex val_lock_;
 
   /// The actual value transferred from producer to consumer
   T val_;

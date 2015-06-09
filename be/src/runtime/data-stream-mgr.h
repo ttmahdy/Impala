@@ -18,7 +18,7 @@
 
 #include <list>
 #include <set>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/unordered_map.hpp>
@@ -94,7 +94,7 @@ class DataStreamMgr {
   friend class DataStreamRecvr;
 
   /// protects all fields below
-  boost::mutex lock_;
+  std::mutex lock_;
 
   /// map from hash value of fragment instance id/node id pair to stream receivers;
   /// Ownership of the stream revcr is shared between this instance and the caller of

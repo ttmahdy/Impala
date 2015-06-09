@@ -22,7 +22,6 @@
 #include <boost/foreach.hpp>
 #include <boost/function.hpp>
 #include <memory>
-#include <boost/thread/locks.hpp>
 
 #include "common/logging.h"
 #include "common/status.h"

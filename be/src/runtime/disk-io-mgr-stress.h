@@ -18,7 +18,7 @@
 
 #include <vector>
 #include <memory>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/unordered_map.hpp>

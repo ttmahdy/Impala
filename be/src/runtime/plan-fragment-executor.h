@@ -141,15 +141,15 @@ class PlanFragmentExecutor {
   /// profile reporting-related
   ReportStatusCallback report_status_cb_;
   std::unique_ptr<Thread> report_thread_;
-  boost::mutex report_thread_lock_;
+  std::mutex report_thread_lock_;
 
   /// Indicates that profile reporting thread should stop.
   /// Tied to report_thread_lock_.
-  boost::condition_variable stop_report_thread_cv_;
+  std::condition_variable stop_report_thread_cv_;
 
   /// Indicates that profile reporting thread started.
   /// Tied to report_thread_lock_.
-  boost::condition_variable report_thread_started_cv_;
+  std::condition_variable report_thread_started_cv_;
   bool report_thread_active_;  // true if we started the thread
 
   /// true if plan_->GetNext() indicated that it's done
@@ -172,7 +172,7 @@ class PlanFragmentExecutor {
   /// lock ordering:
   /// 1. report_thread_lock_
   /// 2. status_lock_
-  boost::mutex status_lock_;
+  std::mutex status_lock_;
 
   /// Output sink for rows sent to this fragment. May not be set, in which case rows are
   /// returned via GetNext's row batch

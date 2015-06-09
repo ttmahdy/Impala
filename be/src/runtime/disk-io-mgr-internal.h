@@ -17,7 +17,6 @@
 
 #include "disk-io-mgr.h"
 #include <queue>
-#include <boost/thread/locks.hpp>
 #include <unistd.h>
 #include <gutil/strings/substitute.h>
 
@@ -41,13 +40,13 @@ struct DiskIoMgr::DiskQueue {
   int disk_id;
 
   /// Lock that protects access to 'request_contexts' and 'work_available'
-  boost::mutex lock;
+  std::mutex lock;
 
   /// Condition variable to signal the disk threads that there is work to do or the
   /// thread should shut down.  A disk thread will be woken up when there is a reader
   /// added to the queue. A reader is only on the queue when it has at least one
   /// scan range that is not blocked on available buffers.
-  boost::condition_variable work_available;
+  std::condition_variable work_available;
 
   /// list of all request contexts that have work queued on this disk
   std::list<RequestContext*> request_contexts;
@@ -55,7 +54,7 @@ struct DiskIoMgr::DiskQueue {
   /// Enqueue the request context to the disk queue.  The DiskQueue lock must not be taken.
   inline void EnqueueContext(RequestContext* worker) {
     {
-      boost::unique_lock<boost::mutex> disk_lock(lock);
+      std::unique_lock<std::mutex> disk_lock(lock);
       /// Check that the reader is not already on the queue
       DCHECK(find(request_contexts.begin(), request_contexts.end(), worker) ==
           request_contexts.end());
@@ -264,7 +263,7 @@ class DiskIoMgr::RequestContext {
 
   /// All fields below are accessed by multiple threads and the lock needs to be
   /// taken before accessing them.
-  boost::mutex lock_;
+  std::mutex lock_;
 
   /// Current state of the reader
   State state_;
@@ -289,13 +288,13 @@ class DiskIoMgr::RequestContext {
   /// We currently populate one range per disk.
   /// TODO: think about this some more.
   InternalQueue<ScanRange> ready_to_start_ranges_;
-  boost::condition_variable ready_to_start_ranges_cv_;  // used with lock_
+  std::condition_variable ready_to_start_ranges_cv_;  // used with lock_
 
   /// Ranges that are blocked due to back pressure on outgoing buffers.
   InternalQueue<ScanRange> blocked_ranges_;
 
   /// Condition variable for UnregisterContext() to wait for all disks to complete
-  boost::condition_variable disks_complete_cond_var_;
+  std::condition_variable disks_complete_cond_var_;
 
   /// Struct containing state per disk. See comments in the disk read loop on how
   /// they are used.

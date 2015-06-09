@@ -25,7 +25,7 @@
 #include <pthread.h>
 
 #include <boost/shared_ptr.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include <thrift/transport/TTransport.h>
 #include "transport/TSasl.h"
 #include "transport/TSaslTransport.h"
@@ -177,7 +177,7 @@ class TSaslServerTransport : public TSaslTransport {
         boost::shared_ptr<TBufferedTransport> > transportMap_;
 
     /* Lock to synchronize the transport map. */
-    boost::mutex transportMap_mutex_;
+    std::mutex transportMap_mutex_;
 
   };
 

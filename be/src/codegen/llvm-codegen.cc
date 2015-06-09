@@ -77,7 +77,7 @@ static mutex llvm_initialization_lock;
 static bool llvm_initialized = false;
 
 void LlvmCodeGen::InitializeLlvm(bool load_backend) {
-  mutex::scoped_lock initialization_lock(llvm_initialization_lock);
+  lock_guard<mutex> initialization_lock(llvm_initialization_lock);
   if (llvm_initialized) return;
   // This allocates a global llvm struct and enables multithreading.
   // There is no real good time to clean this up but we only make it once.

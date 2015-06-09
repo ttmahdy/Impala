@@ -16,7 +16,7 @@
 #define IMPALA_SERVICE_FRAGMENT_EXEC_STATE_H
 
 #include <boost/bind.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 
 #include "common/status.h"
 #include "runtime/client-cache.h"
@@ -76,7 +76,7 @@ class FragmentMgr::FragmentExecState {
   std::unique_ptr<Thread> exec_thread_;
 
   /// protects exec_status_
-  boost::mutex status_lock_;
+  std::mutex status_lock_;
 
   /// set in ReportStatusCb();
   /// if set to anything other than OK, execution has terminated w/ an error

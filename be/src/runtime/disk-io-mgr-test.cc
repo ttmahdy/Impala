@@ -30,8 +30,6 @@
 
 #include "common/names.h"
 
-using boost::condition_variable;
-
 const int MIN_BUFFER_SIZE = 512;
 const int MAX_BUFFER_SIZE = 1024;
 const int LARGE_MEM_LIMIT = 1024 * 1024 * 1024;
