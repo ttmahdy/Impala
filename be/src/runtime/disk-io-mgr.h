@@ -21,7 +21,6 @@
 #include <memory>
 #include <boost/unordered_set.hpp>
 #include <mutex>
-#include <boost/thread/condition_variable.hpp>
 #include <boost/thread/thread.hpp>
 
 #include "common/atomic.h"

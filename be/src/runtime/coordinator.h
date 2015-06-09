@@ -30,7 +30,6 @@
 #include <boost/unordered_set.hpp>
 #include <boost/thread/thread.hpp>
 #include <mutex>
-#include <boost/thread/condition_variable.hpp>
 
 #include "common/status.h"
 #include "common/global-types.h"

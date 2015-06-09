@@ -23,7 +23,6 @@
 #include <boost/unordered_map.hpp>
 #include <boost/unordered_set.hpp>
 #include <memory>
-#include <boost/thread/condition_variable.hpp>
 #include <mutex>
 #include <boost/thread/thread.hpp>
 

@@ -20,7 +20,6 @@
 #include <set>
 #include <mutex>
 #include <boost/shared_ptr.hpp>
-#include <boost/thread/condition_variable.hpp>
 #include <boost/unordered_map.hpp>
 
 #include "common/status.h"

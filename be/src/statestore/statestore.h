@@ -21,7 +21,6 @@
 #include <map>
 #include <boost/unordered_map.hpp>
 #include <memory>
-#include <boost/thread/condition_variable.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 
 #include "gen-cpp/Types_types.h"
