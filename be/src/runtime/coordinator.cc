@@ -29,7 +29,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/unordered_set.hpp>
+#include <unordered_map>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string.hpp>
 #include <gutil/strings/substitute.h>
@@ -1486,7 +1486,7 @@ void Coordinator::ReportQuerySummary() {
 
     // Add per node peak memory usage as InfoString
     // Map from Impalad address to peak memory usage of this query
-    typedef boost::unordered_map<TNetworkAddress, int64_t> PerNodePeakMemoryUsage;
+    typedef std::unordered_map<TNetworkAddress, int64_t> PerNodePeakMemoryUsage;
     PerNodePeakMemoryUsage per_node_peak_mem_usage;
     if (executor_.get() != NULL) {
       // Coordinator fragment is not included in backend_exec_states_.

@@ -18,7 +18,6 @@
 #include <algorithm>
 #include <boost/algorithm/string/join.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
-#include <boost/unordered_set.hpp>
 #include <jni.h>
 #include <thrift/protocol/TDebugProtocol.h>
 #include <gtest/gtest.h>

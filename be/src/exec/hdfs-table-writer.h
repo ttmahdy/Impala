@@ -18,7 +18,6 @@
 
 #include <hdfs.h>
 #include <memory>
-#include <boost/unordered_map.hpp>
 
 #include "runtime/descriptors.h"
 #include "exec/hdfs-table-sink.h"

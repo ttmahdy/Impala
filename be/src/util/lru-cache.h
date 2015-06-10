@@ -18,7 +18,6 @@
 #include <boost/optional.hpp>
 #include <boost/thread.hpp>
 #include <mutex>
-#include <boost/unordered_map.hpp>
 #include <list>
 #include <map>
 #include <stack>

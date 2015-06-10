@@ -19,7 +19,6 @@
 #include <list>
 #include <vector>
 #include <memory>
-#include <boost/unordered_set.hpp>
 #include <mutex>
 #include <boost/thread/thread.hpp>
 

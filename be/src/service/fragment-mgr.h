@@ -17,10 +17,11 @@
 
 #include <boost/shared_ptr.hpp>
 #include <mutex>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 
 #include "gen-cpp/ImpalaInternalService.h"
 #include "common/status.h"
+#include "util/uid-util.h"
 
 namespace impala {
 
@@ -64,7 +65,7 @@ class FragmentMgr {
 
   /// map from fragment id to exec state; FragmentExecState is owned by us and
   /// referenced as a shared_ptr to allow asynchronous calls to CancelPlanFragment()
-  typedef boost::unordered_map<TUniqueId, boost::shared_ptr<FragmentExecState> >
+  typedef std::unordered_map<TUniqueId, boost::shared_ptr<FragmentExecState> >
   FragmentExecStateMap;
   FragmentExecStateMap fragment_exec_state_map_;
 };

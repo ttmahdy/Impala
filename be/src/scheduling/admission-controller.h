@@ -20,8 +20,8 @@
 #include <string>
 #include <list>
 
-#include <boost/unordered_map.hpp>
-#include <boost/unordered_set.hpp>
+#include <unordered_map>
+#include <unordered_set>
 #include <mutex>
 
 #include "common/status.h"
@@ -189,14 +189,14 @@ class AdmissionController {
   std::mutex admission_ctrl_lock_;
 
   /// Map of pool names to pool statistics.
-  typedef boost::unordered_map<std::string, TPoolStats> PoolStatsMap;
+  typedef std::unordered_map<std::string, TPoolStats> PoolStatsMap;
 
   /// The local pool statistics. Updated when requests are executed, queued, and
   /// completed.
   PoolStatsMap local_pool_stats_;
 
   /// A set of pool names.
-  typedef boost::unordered_set<std::string> PoolSet;
+  typedef std::unordered_set<std::string> PoolSet;
 
   /// The set of local pools that have changed between topic updates that
   /// need to be sent to the statestore.
@@ -208,7 +208,7 @@ class AdmissionController {
   /// update is received. By storing the local pool stats in local_pool_stats_, we can
   /// simply clear() the map.
   /// Pool names -> full topic keys (i.e. "<topic>!<backend_id>") -> pool stats
-  typedef boost::unordered_map<std::string, PoolStatsMap> PerBackendPoolStatsMap;
+  typedef std::unordered_map<std::string, PoolStatsMap> PerBackendPoolStatsMap;
   PerBackendPoolStatsMap per_backend_pool_stats_map_;
 
   /// The (estimated) total pool statistics for the entire cluster. Includes the current
@@ -225,17 +225,17 @@ class AdmissionController {
   typedef InternalQueue<QueueNode> RequestQueue;
 
   /// Map of pool names to request queues.
-  typedef boost::unordered_map<std::string, RequestQueue> RequestQueueMap;
+  typedef std::unordered_map<std::string, RequestQueue> RequestQueueMap;
   RequestQueueMap request_queue_map_;
 
   /// Map of pool names to pool metrics.
-  typedef boost::unordered_map<std::string, PoolMetrics> PoolMetricsMap;
+  typedef std::unordered_map<std::string, PoolMetrics> PoolMetricsMap;
   PoolMetricsMap pool_metrics_map_;
 
   /// Map of pool names to the most recent pool configs returned by request_pool_service_.
   /// Stored so that the dequeue thread does not need to access the configs via the
   /// request pool service again (which involves a JNI call and error checking).
-  typedef boost::unordered_map<std::string, TPoolConfigResult> PoolConfigMap;
+  typedef std::unordered_map<std::string, TPoolConfigResult> PoolConfigMap;
   PoolConfigMap pool_config_cache_;
 
   /// Notifies the dequeuing thread that pool stats have changed and it may be

@@ -174,7 +174,7 @@ class StatestoreSubscriber {
   /// stores a pointer to an UpdateCallback, memory errors will occur if an UpdateCallback
   /// is deleted before being unregistered. The UpdateCallback destructor checks for
   /// such problems, so that we will have an assertion failure rather than a memory error.
-  typedef boost::unordered_map<Statestore::TopicId, Callbacks> UpdateCallbacks;
+  typedef std::unordered_map<Statestore::TopicId, Callbacks> UpdateCallbacks;
 
   /// Callback for all services that have registered for updates (indexed by the associated
   /// SubscriptionId), and associated lock.
@@ -187,7 +187,7 @@ class StatestoreSubscriber {
 
   /// Mapping of TopicId to the last version of the topic this subscriber successfully
   /// processed.
-  typedef boost::unordered_map<Statestore::TopicId, int64_t> TopicVersionMap;
+  typedef std::unordered_map<Statestore::TopicId, int64_t> TopicVersionMap;
   TopicVersionMap current_topic_versions_;
 
   /// statestore client cache - only one client is ever used.

@@ -18,8 +18,7 @@
 
 #include <string>
 #include <memory>
-#include <boost/unordered_map.hpp>
-#include <boost/unordered_set.hpp>
+#include <unordered_map>
 #include <mutex>
 #include "common/atomic.h"
 #include "common/object-pool.h"
@@ -125,7 +124,7 @@ class LibCache {
 
   /// Maps HDFS library path => cache entry.
   /// Entries in the cache need to be explicitly deleted.
-  typedef boost::unordered_map<std::string, LibCacheEntry*> LibMap;
+  typedef std::unordered_map<std::string, LibCacheEntry*> LibMap;
   LibMap lib_cache_;
 
   LibCache();

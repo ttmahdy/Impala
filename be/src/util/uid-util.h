@@ -23,14 +23,20 @@
 #include "util/debug-util.h"
 #include "common/names.h"
 
-namespace impala {
-/// This function must be called 'hash_value' to be picked up by boost.
-inline std::size_t hash_value(const impala::TUniqueId& id) {
-  std::size_t seed = 0;
-  boost::hash_combine(seed, id.lo);
-  boost::hash_combine(seed, id.hi);
-  return seed;
+namespace std {
+
+template<>
+struct hash<impala::TUniqueId> {
+  inline std::size_t operator() (const impala::TUniqueId& id) const {
+    std::size_t seed = 0;
+    boost::hash_combine(seed, id.lo);
+    boost::hash_combine(seed, id.hi);
+    return seed;
+  }
+};
 }
+
+namespace impala {
 
 /// Templated so that this method is not namespace-specific (since we also call this on
 /// llama::TUniqueId)

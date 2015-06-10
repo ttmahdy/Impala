@@ -17,23 +17,57 @@
 #define IMPALA_UTIL_CONTAINER_UTIL_H
 
 #include <map>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
+#include <boost/functional/hash.hpp>
 
 #include "util/hash-util.h"
 #include "gen-cpp/Types_types.h"
 
-namespace impala {
+namespace std {
 
-/// Hash function for TNetworkAddress. This function must be called hash_value to be picked
-/// up properly by boost.
-inline std::size_t hash_value(const TNetworkAddress& host_port) {
-  uint32_t hash =
-      HashUtil::Hash(host_port.hostname.c_str(), host_port.hostname.length(), 0);
-  return HashUtil::Hash(&host_port.port, sizeof(host_port.port), hash);
+/// Hash function for TNetworkAddress. This function must be called hash_value to be
+/// picked up properly by boost.
+template<>
+struct hash<impala::TNetworkAddress> {
+ public:
+  inline std::size_t operator() (const impala::TNetworkAddress& host_port) const {
+    uint32_t hash =
+        impala::HashUtil::Hash(host_port.hostname.c_str(), host_port.hostname.length(), 0);
+    return impala::HashUtil::Hash(&host_port.port, sizeof(host_port.port), hash);
+  }
+};
+
 }
 
+
+namespace impala {
+
+template<typename K, typename V>
+struct PairHash {
+  inline std::size_t operator() (const std::pair<K,V>& p) const {
+    size_t seed = 0;
+    boost::hash_combine(seed, std::hash<K>()(p.first));
+    boost::hash_combine(seed, std::hash<V>()(p.second));
+    return seed;
+  }
+};
+
+template<typename T>
+struct VectorHash {
+  inline size_t operator() (const std::vector<T>& to_hash) const {
+    size_t hash_value = 0;
+    for (const T& s: to_hash) {
+      boost::hash_combine(hash_value, s);
+    }
+    return hash_value;
+  }
+};
+
+
 struct HashTNetworkAddressPtr : public std::unary_function<TNetworkAddress*, size_t> {
-  size_t operator()(const TNetworkAddress* const& p) const { return hash_value(*p); }
+  size_t operator()(const TNetworkAddress* const& p) const {
+    return std::hash<TNetworkAddress>()(*p);
+  }
 };
 
 struct TNetworkAddressPtrEquals : public std::unary_function<TNetworkAddress*, bool> {
@@ -57,8 +91,8 @@ V* FindOrInsert(std::map<K,V>* m, const K& key, const V& default_val) {
 }
 
 template <typename K, typename V>
-V* FindOrInsert(boost::unordered_map<K,V>* m, const K& key, const V& default_val) {
-  typename boost::unordered_map<K,V>::iterator it = m->find(key);
+V* FindOrInsert(std::unordered_map<K,V>* m, const K& key, const V& default_val) {
+  typename std::unordered_map<K,V>::iterator it = m->find(key);
   if (it == m->end()) {
     it = m->insert(std::make_pair(key, default_val)).first;
   }
@@ -77,9 +111,9 @@ const V& FindWithDefault(const std::map<K, V>& m, const K& key, const V& default
 }
 
 template <typename K, typename V>
-const V& FindWithDefault(const boost::unordered_map<K, V>& m, const K& key,
+const V& FindWithDefault(const std::unordered_map<K, V>& m, const K& key,
                          const V& default_val) {
-  typename boost::unordered_map<K,V>::const_iterator it = m.find(key);
+  typename std::unordered_map<K,V>::const_iterator it = m.find(key);
   if (it == m.end()) return default_val;
   return it->second;
 }

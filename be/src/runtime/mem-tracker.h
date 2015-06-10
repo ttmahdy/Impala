@@ -22,7 +22,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 #include <mutex>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 
 #include "common/logging.h"
 #include "common/atomic.h"
@@ -384,13 +384,13 @@ class MemTracker {
   /// contains only weak ptrs.  MemTrackers that are handed out via GetQueryMemTracker()
   /// are shared ptrs.  When all the shared ptrs are no longer referenced, the MemTracker
   /// d'tor will be called at which point the weak ptr will be removed from the map.
-  typedef boost::unordered_map<TUniqueId, boost::weak_ptr<MemTracker> >
+  typedef std::unordered_map<TUniqueId, boost::weak_ptr<MemTracker> >
   RequestTrackersMap;
   static RequestTrackersMap request_to_mem_trackers_;
 
   /// All per-request pool MemTracker objects. It is assumed that request pools will live
   /// for the entire duration of the process lifetime.
-  typedef boost::unordered_map<std::string, MemTracker*> PoolTrackersMap;
+  typedef std::unordered_map<std::string, MemTracker*> PoolTrackersMap;
   static PoolTrackersMap pool_to_mem_trackers_;
 
   /// Only valid for MemTrackers returned from GetQueryMemTracker()

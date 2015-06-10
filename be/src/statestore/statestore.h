@@ -19,13 +19,14 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 #include <memory>
 #include <boost/uuid/uuid_generators.hpp>
 
 #include "gen-cpp/Types_types.h"
 #include "gen-cpp/StatestoreSubscriber.h"
 #include "gen-cpp/StatestoreService.h"
+#include "util/container-util.h"
 #include "util/metrics.h"
 #include "util/collection-metrics.h"
 #include "rpc/thrift-client.h"
@@ -163,7 +164,7 @@ class Statestore {
   };
 
   /// Map from TopicEntryKey to TopicEntry, maintained by a Topic object.
-  typedef boost::unordered_map<TopicEntryKey, TopicEntry> TopicEntryMap;
+  typedef std::unordered_map<TopicEntryKey, TopicEntry> TopicEntryMap;
 
   /// Map from Version to TopicEntryKey, maintained by a Topic object. Effectively a log of
   /// the updates made to a Topic, ordered by version.
@@ -253,7 +254,7 @@ class Statestore {
   std::mutex topic_lock_;
 
   /// The entire set of topics tracked by the statestore
-  typedef boost::unordered_map<TopicId, Topic> TopicMap;
+  typedef std::unordered_map<TopicId, Topic> TopicMap;
   TopicMap topics_;
 
   /// The statestore-side representation of an individual subscriber client, which tracks a
@@ -277,7 +278,7 @@ class Statestore {
 
     /// The set of topics subscribed to, and current state (as seen by this subscriber) of
     /// the topic.
-    typedef boost::unordered_map<TopicId, TopicState> Topics;
+    typedef std::unordered_map<TopicId, TopicState> Topics;
 
     /// The Version value used to initialize new Topic subscriptions for this Subscriber.
     static const TopicEntry::Version TOPIC_INITIAL_VERSION;
@@ -297,7 +298,8 @@ class Statestore {
 
     /// Map from the topic / key pair to the version of a transient update made by this
     /// subscriber.
-    typedef boost::unordered_map<std::pair<TopicId, TopicEntryKey>, TopicEntry::Version>
+    typedef std::unordered_map<std::pair<TopicId, TopicEntryKey>, TopicEntry::Version,
+                               PairHash<TopicId, TopicEntryKey>>
         TransientEntryMap;
 
     const TransientEntryMap& transient_entries() const { return transient_entries_; }
@@ -306,8 +308,8 @@ class Statestore {
     /// processed. Will never decrease.
     const TopicEntry::Version LastTopicVersionProcessed(const TopicId& topic_id) const;
 
-    /// Sets the subscriber's last processed version of the topic to the given value.  This
-    /// should only be set when once a subscriber has succesfully processed the given
+    /// Sets the subscriber's last processed version of the topic to the given value.
+    /// This should only be set when once a subscriber has succesfully processed the given
     /// update corresponding to this version.
     void SetLastTopicVersionProcessed(const TopicId& topic_id,
         TopicEntry::Version version);
@@ -332,8 +334,8 @@ class Statestore {
     /// Subscriber on the topic.
     Topics subscribed_topics_;
 
-    /// List of updates made by this subscriber so that transient entries may be deleted on
-    /// failure.
+    /// List of updates made by this subscriber so that transient entries may be deleted
+    /// on failure.
     TransientEntryMap transient_entries_;
   };
 
@@ -341,15 +343,15 @@ class Statestore {
   /// topic_lock_.
   std::mutex subscribers_lock_;
 
-  /// Map of subscribers currently connected; upon failure their entry is removed from this
-  /// map. Subscribers must only be removed by UnregisterSubscriber() which ensures that
-  /// the correct cleanup is done. If a subscriber re-registers, it must be unregistered
-  /// prior to re-entry into this map.
+  /// Map of subscribers currently connected; upon failure their entry is removed from
+  /// this map. Subscribers must only be removed by UnregisterSubscriber() which ensures
+  /// that the correct cleanup is done. If a subscriber re-registers, it must be
+  /// unregistered prior to re-entry into this map.
   //
   /// Subscribers are held in shared_ptrs so that RegisterSubscriber() may overwrite their
   /// entry in this map while UpdateSubscriber() tries to update an existing registration
   /// without risk of use-after-free.
-  typedef boost::unordered_map<SubscriberId, boost::shared_ptr<Subscriber> >
+  typedef std::unordered_map<SubscriberId, boost::shared_ptr<Subscriber> >
     SubscriberMap;
   SubscriberMap subscribers_;
 

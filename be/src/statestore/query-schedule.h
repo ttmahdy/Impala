@@ -17,13 +17,14 @@
 
 #include <vector>
 #include <string>
-#include <boost/unordered_set.hpp>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
+#include <unordered_set>
 #include <memory>
 
 #include "common/global-types.h"
 #include "common/status.h"
 #include "statestore/query-resource-mgr.h"
+#include "util/container-util.h"
 #include "util/promise.h"
 #include "util/runtime-profile.h"
 #include "gen-cpp/Types_types.h"  // for TNetworkAddress
@@ -38,7 +39,7 @@ class Coordinator;
 typedef std::map<TPlanNodeId, std::vector<TScanRangeParams> > PerNodeScanRanges;
 /// map from an impalad host address to the per-node assigned scan ranges;
 /// records scan range assignment for a single fragment
-typedef boost::unordered_map<TNetworkAddress, PerNodeScanRanges>
+typedef std::unordered_map<TNetworkAddress, PerNodeScanRanges>
     FragmentScanRangeAssignment;
 
 /// execution parameters for a single fragment; used to assemble the
@@ -108,7 +109,7 @@ class QuerySchedule {
   int64_t num_scan_ranges() const { return num_scan_ranges_; }
   int32_t GetFragmentIdx(PlanNodeId id) const { return plan_node_to_fragment_idx_[id]; }
   std::vector<FragmentExecParams>* exec_params() { return &fragment_exec_params_; }
-  const boost::unordered_set<TNetworkAddress>& unique_hosts() const {
+  const std::unordered_set<TNetworkAddress>& unique_hosts() const {
     return unique_hosts_;
   }
   TResourceBrokerReservationResponse* reservation() { return &reservation_; }
@@ -120,7 +121,7 @@ class QuerySchedule {
   RuntimeProfile* summary_profile() { return summary_profile_; }
   RuntimeProfile::EventSequence* query_events() { return query_events_; }
 
-  void SetUniqueHosts(const boost::unordered_set<TNetworkAddress>& unique_hosts);
+  void SetUniqueHosts(const std::unordered_set<TNetworkAddress>& unique_hosts);
 
   /// Populates reservation_request_ ready to submit a query to Llama for all initial
   /// resources required for this query.
@@ -145,7 +146,7 @@ class QuerySchedule {
   std::vector<FragmentExecParams> fragment_exec_params_;
 
   /// The set of hosts that the query will run on excluding the coordinator.
-  boost::unordered_set<TNetworkAddress> unique_hosts_;
+  std::unordered_set<TNetworkAddress> unique_hosts_;
 
   /// Number of backends executing plan fragments on behalf of this query.
   int64_t num_backends_;

@@ -19,7 +19,7 @@
 #include <vector>
 #include <boost/shared_ptr.hpp>
 #include <mutex>
-#include <boost/unordered_set.hpp>
+#include <unordered_set>
 
 #include "gen-cpp/CatalogService.h"
 #include "gen-cpp/Frontend_types.h"
@@ -89,7 +89,7 @@ class CatalogServer {
   /// During each IMPALA_CATALOG_TOPIC heartbeat, stores the set of known catalog objects
   /// that exist by their topic entry key. Used to track objects that have been removed
   /// since the last heartbeat.
-  boost::unordered_set<std::string> catalog_topic_entry_keys_;
+  std::unordered_set<std::string> catalog_topic_entry_keys_;
 
   /// Protects catalog_update_cv_, pending_topic_updates_,
   /// catalog_objects_to/from_version_, and last_sent_catalog_version.

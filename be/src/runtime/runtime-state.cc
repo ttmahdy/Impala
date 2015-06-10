@@ -94,7 +94,7 @@ RuntimeState::RuntimeState(const TQueryCtx& query_ctx)
 RuntimeState::~RuntimeState() {
   block_mgr_.reset();
 
-  typedef boost::unordered_map<SlotId, Bitmap*>::iterator SlotBitmapIterator;
+  typedef std::unordered_map<SlotId, Bitmap*>::iterator SlotBitmapIterator;
   for (SlotBitmapIterator it = slot_bitmap_filters_.begin();
        it != slot_bitmap_filters_.end(); ++it) {
     if (it->second != NULL) {

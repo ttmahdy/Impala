@@ -26,7 +26,6 @@
 #include "gen-cpp/Frontend_types.h"
 
 #include <boost/thread.hpp>
-#include <boost/unordered_set.hpp>
 #include <vector>
 
 namespace impala {

@@ -16,7 +16,6 @@
 
 #include <thrift/protocol/TDebugProtocol.h>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
-#include <boost/unordered_map.hpp>
 #include <boost/foreach.hpp>
 #include <gutil/strings/substitute.h>
 #include <chrono>

@@ -17,7 +17,6 @@
 #define IMPALA_EXEC_CROSS_JOIN_NODE_H
 
 #include <memory>
-#include <boost/unordered_set.hpp>
 #include <boost/thread.hpp>
 #include <string>
 

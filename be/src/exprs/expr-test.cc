@@ -22,7 +22,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/random/mersenne_twister.hpp>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 #include <gtest/gtest.h>
 
 #include "codegen/llvm-codegen.h"

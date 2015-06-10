@@ -15,16 +15,30 @@
 #ifndef RESOURCE_BROKER_H_
 #define RESOURCE_BROKER_H_
 
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 #include <memory>
 #include <boost/uuid/uuid.hpp>
 
 #include "runtime/client-cache.h"
 #include "util/collection-metrics.h"
+#include "util/uid-util.h"
 #include "util/promise.h"
 #include "gen-cpp/LlamaAMService.h"
 #include "gen-cpp/LlamaNotificationService.h"
 #include "gen-cpp/ResourceBrokerService_types.h"
+
+namespace std {
+
+template<>
+struct hash<llama::TUniqueId> {
+  inline std::size_t operator() (const llama::TUniqueId& id) const {
+    std::size_t seed = 0;
+    boost::hash_combine(seed, id.lo);
+    boost::hash_combine(seed, id.hi);
+    return seed;
+  }
+};
+}
 
 namespace impala {
 
@@ -336,7 +350,7 @@ class ResourceBroker {
   /// Map from unique request ID provided to Llama (for both reservation and expansion
   /// requests) to PendingRequest object used to coordinate when a response is received
   /// from Llama.
-  typedef boost::unordered_map<llama::TUniqueId, PendingRequest*> PendingRequestMap;
+  typedef std::unordered_map<llama::TUniqueId, PendingRequest*> PendingRequestMap;
   PendingRequestMap pending_requests_;
 
   /// An AllocatedRequest tracks resources allocated in response to one reservation or
@@ -373,13 +387,13 @@ class ResourceBroker {
   /// Map from reservation ID to all satisfied requests - reservation and expansion -
   /// associated with that reservation. Used only for bookkeeping so that Impala can report
   /// on the current resource usage.
-  typedef boost::unordered_map<llama::TUniqueId, std::vector<AllocatedRequest> >
+  typedef std::unordered_map<llama::TUniqueId, std::vector<AllocatedRequest> >
       AllocatedRequestMap;
   AllocatedRequestMap allocated_requests_;
 
   /// Protects query_resource_mgrs_
   std::mutex query_resource_mgrs_lock_;
-  typedef boost::unordered_map<TUniqueId, std::pair<int32_t, QueryResourceMgr*> >
+  typedef std::unordered_map<TUniqueId, std::pair<int32_t, QueryResourceMgr*> >
       QueryResourceMgrsMap;
 
   /// Map from query ID to a (ref_count, QueryResourceMgr*) pair, i.e. one QueryResourceMgr

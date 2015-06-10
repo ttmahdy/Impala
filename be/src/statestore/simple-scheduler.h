@@ -19,7 +19,7 @@
 #include <vector>
 #include <string>
 #include <list>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 #include <mutex>
 
 #include "common/status.h"
@@ -27,6 +27,7 @@
 #include "statestore/statestore-subscriber.h"
 #include "statestore/statestore.h"
 #include "util/metrics.h"
+#include "util/uid-util.h"
 #include "scheduling/admission-controller.h"
 #include "gen-cpp/Types_types.h"  // for TNetworkAddress
 #include "gen-cpp/ResourceBrokerService_types.h"
@@ -100,12 +101,12 @@ class SimpleScheduler : public Scheduler {
   std::mutex backend_map_lock_;
 
   /// Map from a datanode's IP address to a list of backend addresses running on that node.
-  typedef boost::unordered_map<std::string, std::list<TBackendDescriptor> > BackendMap;
+  typedef std::unordered_map<std::string, std::list<TBackendDescriptor> > BackendMap;
   BackendMap backend_map_;
 
   /// Map from a datanode's hostname to its IP address to support both hostname based
   /// lookup.
-  typedef boost::unordered_map<std::string, std::string> BackendIpAddressMap;
+  typedef std::unordered_map<std::string, std::string> BackendIpAddressMap;
   BackendIpAddressMap backend_ip_map_;
 
   /// Map from unique backend id to TBackendDescriptor. Used to track the known backends
@@ -113,7 +114,7 @@ class SimpleScheduler : public Scheduler {
   /// TBackendDescriptor so we know what is being removed in a given update.
   /// Locking of this map is not needed since it should only be read/modified from
   /// within the UpdateMembership() function.
-  typedef boost::unordered_map<std::string, TBackendDescriptor> BackendIdMap;
+  typedef std::unordered_map<std::string, TBackendDescriptor> BackendIdMap;
   BackendIdMap current_membership_;
 
   /// MetricGroup subsystem access
@@ -157,14 +158,14 @@ class SimpleScheduler : public Scheduler {
   /// reservation.  The map is used to cancel queries whose reservation has been preempted.
   /// Entries are added in Schedule() calls that result in granted resource allocations.
   /// Entries are removed in Release().
-  typedef boost::unordered_map<TUniqueId, Coordinator*> ActiveReservationsMap;
+  typedef std::unordered_map<TUniqueId, Coordinator*> ActiveReservationsMap;
   ActiveReservationsMap active_reservations_;
 
   /// Maps from client resource id to the coordinator of the query using that resource.
   /// The map is used to cancel queries whose resource(s) have been preempted.
   /// Entries are added in Schedule() calls that result in granted resource allocations.
   /// Entries are removed in Release().
-  typedef boost::unordered_map<TUniqueId, Coordinator*> ActiveClientResourcesMap;
+  typedef std::unordered_map<TUniqueId, Coordinator*> ActiveClientResourcesMap;
   ActiveClientResourcesMap active_client_resources_;
 
   /// Resource broker that mediates resource requests between Impala and the Llama.

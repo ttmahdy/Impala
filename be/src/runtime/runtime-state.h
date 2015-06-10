@@ -375,7 +375,7 @@ class RuntimeState {
 
   /// Bitmap filter on the hash for 'SlotId'. If bitmap[hash(slot]] is unset, this
   /// value can be filtered out. These filters are generated during the query execution.
-  boost::unordered_map<SlotId, Bitmap*> slot_bitmap_filters_;
+  std::unordered_map<SlotId, Bitmap*> slot_bitmap_filters_;
 
   /// prohibit copies
   RuntimeState(const RuntimeState&);

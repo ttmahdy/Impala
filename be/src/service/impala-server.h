@@ -18,8 +18,8 @@
 #include <mutex>
 #include <boost/shared_ptr.hpp>
 #include <memory>
-#include <boost/unordered_map.hpp>
-#include <boost/unordered_set.hpp>
+#include <unordered_map>
+#include <unordered_set>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -725,7 +725,7 @@ class ImpalaServer : public ImpalaServiceIf, public ImpalaHiveServer2ServiceIf,
   QueryLog query_log_;
 
   /// Index that allows lookup via TUniqueId into the query log
-  typedef boost::unordered_map<TUniqueId, QueryLog::iterator> QueryLogIndex;
+  typedef std::unordered_map<TUniqueId, QueryLog::iterator> QueryLogIndex;
   QueryLogIndex query_log_index_;
 
   /// Logger for writing encoded query profiles, one per line with the following format:
@@ -761,7 +761,7 @@ class ImpalaServer : public ImpalaServiceIf, public ImpalaHiveServer2ServiceIf,
 
   /// map from query id to exec state; QueryExecState is owned by us and referenced
   /// as a shared_ptr to allow asynchronous deletion
-  typedef boost::unordered_map<TUniqueId, boost::shared_ptr<QueryExecState> >
+  typedef std::unordered_map<TUniqueId, boost::shared_ptr<QueryExecState> >
       QueryExecStateMap;
   QueryExecStateMap query_exec_state_map_;
   std::mutex query_exec_state_map_lock_;  // protects query_exec_state_map_
@@ -819,7 +819,7 @@ class ImpalaServer : public ImpalaServiceIf, public ImpalaHiveServer2ServiceIf,
     apache::hive::service::cli::thrift::TProtocolVersion::type hs2_version;
 
     /// Inflight queries belonging to this session
-    boost::unordered_set<TUniqueId> inflight_queries;
+    std::unordered_set<TUniqueId> inflight_queries;
 
     /// Time the session was last accessed.
     int64_t last_accessed_ms;
@@ -878,7 +878,7 @@ class ImpalaServer : public ImpalaServiceIf, public ImpalaHiveServer2ServiceIf,
   std::mutex session_state_map_lock_;
 
   /// A map from session identifier to a structure containing per-session information
-  typedef boost::unordered_map<TUniqueId, boost::shared_ptr<SessionState> >
+  typedef std::unordered_map<TUniqueId, boost::shared_ptr<SessionState> >
     SessionStateMap;
   SessionStateMap session_state_map_;
 
@@ -889,7 +889,7 @@ class ImpalaServer : public ImpalaServiceIf, public ImpalaHiveServer2ServiceIf,
   /// when the connection ends. HS2 allows for multiplexing several sessions across a
   /// single connection. If a session has already been closed (only possible via HS2) it is
   /// not removed from this map to avoid the cost of looking it up.
-  typedef boost::unordered_map<TUniqueId, std::vector<TUniqueId> >
+  typedef std::unordered_map<TUniqueId, std::vector<TUniqueId> >
     ConnectionToSessionMap;
   ConnectionToSessionMap connection_to_sessions_map_;
 
@@ -914,7 +914,7 @@ class ImpalaServer : public ImpalaServiceIf, public ImpalaHiveServer2ServiceIf,
   std::mutex query_locations_lock_;
 
   /// A map from backend to the list of queries currently running there.
-  typedef boost::unordered_map<TNetworkAddress, boost::unordered_set<TUniqueId> >
+  typedef std::unordered_map<TNetworkAddress, std::unordered_set<TUniqueId> >
       QueryLocations;
   QueryLocations query_locations_;
 
@@ -927,7 +927,7 @@ class ImpalaServer : public ImpalaServiceIf, public ImpalaHiveServer2ServiceIf,
   /// TODO: Currently there are multiple locations where cluster membership is tracked,
   /// here and in the scheduler. This should be consolidated so there is a single component
   /// (the scheduler?) that tracks this information and calls other interested components.
-  typedef boost::unordered_map<std::string, TBackendDescriptor> BackendDescriptorMap;
+  typedef std::unordered_map<std::string, TBackendDescriptor> BackendDescriptorMap;
   BackendDescriptorMap known_backends_;
 
   /// Generate unique session id for HiveServer2 session
@@ -969,7 +969,7 @@ class ImpalaServer : public ImpalaServiceIf, public ImpalaHiveServer2ServiceIf,
   /// Map of short usernames of authorized proxy users to the set of user(s) they are
   /// allowed to delegate to. Populated by parsing the --authorized_proxy_users_config
   /// flag.
-  typedef boost::unordered_map<std::string, boost::unordered_set<std::string> >
+  typedef std::unordered_map<std::string, std::unordered_set<std::string> >
       ProxyUserMap;
   ProxyUserMap authorized_proxy_user_config_;
 

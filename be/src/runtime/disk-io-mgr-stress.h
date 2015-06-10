@@ -20,7 +20,6 @@
 #include <memory>
 #include <mutex>
 #include <boost/thread/thread.hpp>
-#include <boost/unordered_map.hpp>
 
 #include "runtime/disk-io-mgr.h"
 #include "runtime/mem-tracker.h"

@@ -14,8 +14,9 @@
 
 #include "incr-stats-util.h"
 
+#include <boost/functional/hash.hpp>
 #include <boost/foreach.hpp>
-#include <boost/unordered_set.hpp>
+#include <unordered_set>
 #include <gutil/strings/substitute.h>
 #include <cmath>
 #include <sstream>
@@ -23,12 +24,14 @@
 #include "common/logging.h"
 #include "service/hs2-util.h"
 #include "udf/udf.h"
+#include "util/container-util.h"
 #include "gen-cpp/CatalogService_types.h"
 #include "gen-cpp/CatalogObjects_types.h"
 #include "exprs/aggregate-functions.h"
 
 #include "common/names.h"
 
+using boost::hash_combine;
 using namespace apache::hive::service::cli::thrift;
 using namespace impala;
 using namespace impala_udf;
@@ -196,7 +199,7 @@ void FinalizePartitionedColumnStats(const TTableSchema& col_stats_schema,
 
   const int num_cols =
       (col_stats_schema.columns.size() - num_partition_cols) / COLUMNS_PER_STAT;
-  unordered_set<vector<string> > seen_partitions;
+  unordered_set<vector<string>, VectorHash<string>> seen_partitions;
   vector<PerColumnStats> stats(num_cols);
 
   if (rowset.rows.size() > 0) {

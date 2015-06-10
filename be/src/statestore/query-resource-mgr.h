@@ -15,21 +15,22 @@
 #ifndef STATESTORE_QUERY_RESOURCE_MGR_H
 #define STATESTORE_QUERY_RESOURCE_MGR_H
 
+#include <boost/function.hpp>
+#include <mutex>
+#include <unordered_map>
+#include <unordered_set>
+#include <boost/shared_ptr.hpp>
+#include <string>
+
 #include "common/atomic.h"
 #include "common/status.h"
 #include "gen-cpp/Types_types.h"
 #include "gen-cpp/ResourceBrokerService.h"
 #include "gen-cpp/ImpalaInternalService.h"
 #include "gen-cpp/Frontend_types.h"
+#include "util/container-util.h"
 #include "util/promise.h"
 #include "util/thread.h"
-
-#include <boost/function.hpp>
-#include <mutex>
-#include <boost/unordered_map.hpp>
-#include <boost/unordered_set.hpp>
-#include <boost/shared_ptr.hpp>
-#include <string>
 
 namespace impala {
 
@@ -39,7 +40,7 @@ class ResourceBroker;
 /// (i.e. datanodes).
 class ResourceResolver {
  public:
-  ResourceResolver(const boost::unordered_set<TNetworkAddress>& unique_hosts);
+  ResourceResolver(const std::unordered_set<TNetworkAddress>& unique_hosts);
 
   /// Translates src into a network address suitable for identifying resources across
   /// interactions with the Llama. The MiniLlama expects resources to be requested on
@@ -55,13 +56,13 @@ class ResourceResolver {
   /// to Hadoop DN hostports registered with the Llama during resource requests
   /// (and then in reverse for translating granted resources to impalads).
   /// These maps form a bi-directional hostport mapping Hadoop DN <-> impalad.
-  boost::unordered_map<TNetworkAddress, TNetworkAddress> impalad_to_dn_;
-  boost::unordered_map<TNetworkAddress, TNetworkAddress> dn_to_impalad_;
+  std::unordered_map<TNetworkAddress, TNetworkAddress> impalad_to_dn_;
+  std::unordered_map<TNetworkAddress, TNetworkAddress> dn_to_impalad_;
 
   /// Called only in pseudo-distributed setups (i.e. testing only) to populate
   /// impalad_to_dn_ and dn_to_impalad_
   void CreateLocalLlamaNodeMapping(
-      const boost::unordered_set<TNetworkAddress>& unique_hosts);
+      const std::unordered_set<TNetworkAddress>& unique_hosts);
 };
 
 /// Tracks all the state necessary to create expansion requests for all fragments of a
@@ -158,7 +159,7 @@ class QueryResourceMgr {
   std::mutex callbacks_lock_;
 
   /// List of callbacks to notify when a new VCore resource is available.
-  typedef boost::unordered_map<int32_t, VcoreAvailableCb> CallbackMap;
+  typedef std::unordered_map<int32_t, VcoreAvailableCb> CallbackMap;
   CallbackMap callbacks_;
 
   /// Round-robin iterator to notify callbacks about new VCores one at a time.

@@ -19,7 +19,7 @@
 #include <mutex>
 #include <memory>
 #include <boost/shared_ptr.hpp>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 #include <boost/uuid/uuid_generators.hpp>
 #include <thrift/server/TServer.h>
 #include <thrift/TProcessor.h>
@@ -176,7 +176,7 @@ class ThriftServer {
 
   /// Map of active connection context to a shared_ptr containing that context; when an
   /// item is removed from the map, it is automatically freed.
-  typedef boost::unordered_map<ConnectionContext*, boost::shared_ptr<ConnectionContext> >
+  typedef std::unordered_map<ConnectionContext*, boost::shared_ptr<ConnectionContext> >
       ConnectionContextSet;
   ConnectionContextSet connection_contexts_;
 

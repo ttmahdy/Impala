@@ -18,10 +18,11 @@
 #include <vector>
 #include <list>
 #include <string>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 #include <mutex>
 #include <boost/bind.hpp>
 
+#include "util/container-util.h"
 #include "util/metrics.h"
 #include "rpc/thrift-client.h"
 #include "rpc/thrift-util.h"
@@ -142,7 +143,7 @@ class ClientCacheHelper {
   /// Map from an address to a PerHostCache containing a list of keys that have entries in
   /// client_map_ for that host. The value type is wrapped in a shared_ptr so that the copy
   /// c'tor for PerHostCache is not required.
-  typedef boost::unordered_map<
+  typedef std::unordered_map<
       TNetworkAddress, boost::shared_ptr<PerHostCache> > PerHostCacheMap;
   PerHostCacheMap per_host_caches_;
 

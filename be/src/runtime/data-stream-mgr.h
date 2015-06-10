@@ -20,7 +20,7 @@
 #include <set>
 #include <mutex>
 #include <boost/shared_ptr.hpp>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 
 #include "common/status.h"
 #include "common/object-pool.h"
@@ -100,7 +100,7 @@ class DataStreamMgr {
   /// CreateRecvr().
   /// we don't want to create a map<pair<TUniqueId, PlanNodeId>, DataStreamRecvr*>,
   /// because that requires a bunch of copying of ids for lookup
-  typedef boost::unordered_multimap<uint32_t,
+  typedef std::unordered_multimap<uint32_t,
       boost::shared_ptr<DataStreamRecvr> > StreamMap;
   StreamMap receiver_map_;
 

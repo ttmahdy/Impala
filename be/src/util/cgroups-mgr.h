@@ -17,7 +17,7 @@
 
 #include <string>
 #include <mutex>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 #include "common/status.h"
 #include "util/metrics.h"
 #include "util/thread.h"
@@ -164,7 +164,7 @@ class CgroupsMgr {
   /// Process-wide map from cgroup to number of fragments using the cgroup.
   /// A cgroup can be safely dropped once the number of fragments in the cgroup,
   /// according to this map, reaches zero.
-  boost::unordered_map<std::string, int32_t> active_cgroups_;
+  std::unordered_map<std::string, int32_t> active_cgroups_;
 };
 
 }

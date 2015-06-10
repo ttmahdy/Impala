@@ -17,6 +17,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
 #include <mutex>
+#include <unordered_set>
 
 #include "codegen/llvm-codegen.h"
 #include "runtime/hdfs-fs-cache.h"
@@ -70,14 +71,14 @@ struct LibCache::LibCacheEntry {
 
   // mapping from symbol => address of loaded symbol.
   // Only used if the type is TYPE_SO.
-  typedef boost::unordered_map<std::string, void*> SymbolMap;
+  typedef unordered_map<std::string, void*> SymbolMap;
   SymbolMap symbol_cache;
 
   // Set of symbols in this entry. This is populated once on load and read
   // only. This is only used if it is a llvm module.
   // TODO: it would be nice to be able to do this for .so's as well but it's
   // not trivial to walk an .so for the symbol table.
-  boost::unordered_set<std::string> symbols;
+  unordered_set<std::string> symbols;
 
   // Set if an error occurs loading the cache entry before the cache entry
   // can be evicted. This allows other threads that attempt to use the entry

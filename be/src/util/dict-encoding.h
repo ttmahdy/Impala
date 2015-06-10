@@ -19,7 +19,6 @@
 
 #include <boost/foreach.hpp>
 #include <memory>
-#include <boost/unordered_map.hpp>
 
 #include "exec/parquet-common.h"
 #include "runtime/mem-pool.h"

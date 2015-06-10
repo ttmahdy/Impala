@@ -26,8 +26,8 @@
 #include <boost/accumulators/statistics/median.hpp>
 #include <boost/accumulators/statistics/max.hpp>
 #include <boost/accumulators/statistics/variance.hpp>
-#include <boost/unordered_map.hpp>
-#include <boost/unordered_set.hpp>
+#include <unordered_map>
+#include <unordered_set>
 #include <boost/thread/thread.hpp>
 #include <mutex>
 
@@ -255,7 +255,7 @@ class Coordinator {
 
   /// map from fragment instance id to corresponding exec state stored in
   /// backend_exec_states_
-  typedef boost::unordered_map<TUniqueId, BackendExecState*> BackendExecStateMap;
+  typedef std::unordered_map<TUniqueId, BackendExecState*> BackendExecStateMap;
   BackendExecStateMap backend_exec_state_map_;
 
   /// Returns a local object pool.
@@ -299,7 +299,7 @@ class Coordinator {
   TExecSummary exec_summary_;
 
   /// A mapping of plan node ids to index into exec_summary_.nodes
-  boost::unordered_map<TPlanNodeId, int> plan_node_id_to_summary_map_;
+  std::unordered_map<TPlanNodeId, int> plan_node_id_to_summary_map_;
 
   /// Aggregate counters for the entire query.
   std::unique_ptr<RuntimeProfile> query_profile_;
@@ -341,7 +341,7 @@ class Coordinator {
   FragmentInstanceCounters coordinator_counters_;
 
   /// The set of hosts that the query will run on. Populated in Exec.
-  boost::unordered_set<TNetworkAddress> unique_hosts_;
+  std::unordered_set<TNetworkAddress> unique_hosts_;
 
   /// Total time spent in finalization (typically 0 except for INSERT into hdfs tables)
   RuntimeProfile::Counter* finalization_timer_;
@@ -446,7 +446,7 @@ class Coordinator {
   /// inherit when created. Otherwise permissions is set to the actual permissions of the
   /// path. The PermissionCache argument is also used to cache the output across repeated
   /// calls, to avoid repeatedly calling hdfsGetPathInfo() on the same path.
-  typedef boost::unordered_map<std::string, std::pair<bool, short> > PermissionCache;
+  typedef std::unordered_map<std::string, std::pair<bool, short> > PermissionCache;
   void PopulatePathPermissionCache(hdfsFS fs, const std::string& path_str,
       PermissionCache* permissions_cache);
 };

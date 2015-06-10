@@ -154,12 +154,12 @@ using boost::shared_ptr;
 using std::unique_ptr;
 #endif
 
-#ifdef BOOST_UNORDERED_MAP_HPP_INCLUDED
-using boost::unordered_map;
+#ifdef _GLIBCXX_UNORDERED_SET
+using std::unordered_set;
 #endif
 
-#ifdef BOOST_UNORDERED_SET_HPP_INCLUDED
-using boost::unordered_set;
+#ifdef _GLIBCXX_UNORDERED_MAP
+using std::unordered_map;
 #endif
 
 #ifdef BOOST_FUNCTION_PROLOGUE_HPP

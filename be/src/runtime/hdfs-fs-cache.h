@@ -18,7 +18,7 @@
 
 #include <string>
 #include <memory>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 #include <mutex>
 #include <hdfs.h>
 
@@ -38,7 +38,7 @@ namespace impala {
 /// impalad crashes).
 class HdfsFsCache {
  public:
-  typedef boost::unordered_map<std::string, hdfsFS> HdfsFsMap;
+  typedef std::unordered_map<std::string, hdfsFS> HdfsFsMap;
 
   static HdfsFsCache* instance() { return HdfsFsCache::instance_.get(); }
 

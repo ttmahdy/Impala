@@ -20,8 +20,8 @@
 #include <memory>
 #include <stdint.h>
 
-#include <boost/unordered_map.hpp>
-#include <boost/unordered_set.hpp>
+#include <unordered_set>
+#include <unordered_map>
 #include <memory>
 #include <mutex>
 #include <boost/thread/thread.hpp>
@@ -31,6 +31,7 @@
 #include "runtime/descriptors.h"
 #include "runtime/disk-io-mgr.h"
 #include "runtime/string-buffer.h"
+#include "util/container-util.h"
 #include "util/progress-updater.h"
 #include "util/spinlock.h"
 #include "util/thread.h"
@@ -67,8 +68,8 @@ struct HdfsFileDesc {
 
   /// Splits (i.e. raw byte ranges) for this file, assigned to this scan node.
   std::vector<DiskIoMgr::ScanRange*> splits;
-  HdfsFileDesc(const std::string& filename)
-      : filename(filename), file_length(0), mtime(0), file_compression(THdfsCompression::NONE) {
+  HdfsFileDesc(const std::string& filename) : filename(filename), file_length(0),
+      mtime(0), file_compression(THdfsCompression::NONE) {
   }
 };
 
@@ -249,7 +250,7 @@ class HdfsScanNode : public ScanNode {
   void ComputeSlotMaterializationOrder(std::vector<int>* order) const;
 
   /// map from volume id to <number of split, per volume split lengths>
-  typedef boost::unordered_map<int32_t, std::pair<int, int64_t> > PerVolumnStats;
+  typedef std::unordered_map<int32_t, std::pair<int, int64_t> > PerVolumnStats;
 
   /// Update the per volume stats with the given scan range params list
   static void UpdateHdfsSplitStats(
@@ -291,7 +292,7 @@ class HdfsScanNode : public ScanNode {
   bool unknown_disk_id_warned_;
 
   /// Partitions scanned by this scan node.
-  boost::unordered_set<int64_t> partition_ids_;
+  std::unordered_set<int64_t> partition_ids_;
 
   /// File path => file descriptor (which includes the file's splits)
   typedef std::map<std::string, HdfsFileDesc*> FileDescMap;
@@ -328,7 +329,7 @@ class HdfsScanNode : public ScanNode {
   std::vector<ExprContext*> conjunct_ctxs_;
 
   /// Maps from a slot's path to its index into materialized_slots_.
-  typedef boost::unordered_map<std::vector<int>, int> PathToSlotIdxMap;
+  typedef std::unordered_map<std::vector<int>, int, VectorHash<int>> PathToSlotIdxMap;
   PathToSlotIdxMap path_to_materialized_slot_idx_;
 
   /// is_materialized_col_[i] = <true i-th column should be materialized, false otherwise>

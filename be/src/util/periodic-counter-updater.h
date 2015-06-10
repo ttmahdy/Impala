@@ -20,8 +20,8 @@
 #include <memory>
 #include <mutex>
 #include <boost/thread/thread.hpp>
-#include <boost/unordered_map.hpp>
-#include <boost/unordered_set.hpp>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "util/runtime-profile.h"
 
@@ -109,7 +109,7 @@ class PeriodicCounterUpdater {
   SpinLock rate_lock_;
 
   /// A map of the dst (rate) counter to the src counter and elapsed time.
-  typedef boost::unordered_map<RuntimeProfile::Counter*, RateCounterInfo> RateCounterMap;
+  typedef std::unordered_map<RuntimeProfile::Counter*, RateCounterInfo> RateCounterMap;
   RateCounterMap rate_counters_;
 
   /// Spinlock that protects the map of averages over samples of counters
@@ -117,7 +117,7 @@ class PeriodicCounterUpdater {
 
   /// A map of the dst (averages over samples) counter to the src counter (to be sampled)
   /// and number of samples taken.
-  typedef boost::unordered_map<RuntimeProfile::Counter*, SamplingCounterInfo>
+  typedef std::unordered_map<RuntimeProfile::Counter*, SamplingCounterInfo>
       SamplingCounterMap;
   SamplingCounterMap sampling_counters_;
 
@@ -125,7 +125,7 @@ class PeriodicCounterUpdater {
   SpinLock bucketing_lock_;
 
   /// Map from a bucket of counters to the src counter
-  typedef boost::unordered_map<std::vector<RuntimeProfile::Counter*>*, BucketCountersInfo>
+  typedef std::unordered_map<std::vector<RuntimeProfile::Counter*>*, BucketCountersInfo>
       BucketCountersMap;
   BucketCountersMap bucketing_counters_;
 
@@ -133,7 +133,7 @@ class PeriodicCounterUpdater {
   SpinLock time_series_lock_;
 
   /// Set of time series counters that need to be updated
-  typedef boost::unordered_set<RuntimeProfile::TimeSeriesCounter*> TimeSeriesCounters;
+  typedef std::unordered_set<RuntimeProfile::TimeSeriesCounter*> TimeSeriesCounters;
   TimeSeriesCounters time_series_counters_;
 
   /// If 1, tear down the update thread.

@@ -19,7 +19,7 @@
 #include <boost/function.hpp>
 #include <memory>
 #include <mutex>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 #include <iostream>
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -194,7 +194,7 @@ class RuntimeProfile {
     /// UpdateAverage(), which obtains locks on the entire counter map in a profile.
     void UpdateCounter(Counter* new_counter) {
       DCHECK_EQ(new_counter->unit_, unit_);
-      boost::unordered_map<Counter*, int64_t>::iterator it =
+      std::unordered_map<Counter*, int64_t>::iterator it =
           counter_value_map_.find(new_counter);
       int64_t old_val = 0;
       if (it != counter_value_map_.end()) {
@@ -231,7 +231,7 @@ class RuntimeProfile {
 
    private:
     /// Map from counters to their existing values. Modified via UpdateCounter().
-    boost::unordered_map<Counter*, int64_t> counter_value_map_;
+    std::unordered_map<Counter*, int64_t> counter_value_map_;
 
     /// Current sums of values from counter_value_map_. Only one of these is used,
     /// depending on the unit of the counter. current_double_sum_ is used for

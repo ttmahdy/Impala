@@ -21,7 +21,7 @@
 
 #include <thrift/TProcessor.h>
 #include <boost/thread/thread.hpp>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 
 #include <rapidjson/document.h>
 
@@ -88,7 +88,7 @@ class RpcEventHandler : public apache::thrift::TProcessorEventHandler {
   };
 
   /// Map from method name to descriptor
-  typedef boost::unordered_map<std::string, MethodDescriptor*> MethodMap;
+  typedef std::unordered_map<std::string, MethodDescriptor*> MethodMap;
 
   /// Created per-Rpc invocation
   struct InvocationContext {

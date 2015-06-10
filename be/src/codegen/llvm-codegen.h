@@ -23,7 +23,7 @@
 #include <vector>
 #include <memory>
 #include <mutex>
-#include <boost/unordered_set.hpp>
+#include <unordered_set>
 
 #include <llvm/Analysis/Verifier.h>
 #include <llvm/IR/DerivedTypes.h>
@@ -399,7 +399,7 @@ class LlvmCodeGen {
   void GetFunctions(std::vector<llvm::Function*>* functions);
 
   /// Fils in 'symbols' with all the symbols in the module.
-  void GetSymbols(boost::unordered_set<std::string>* symbols);
+  void GetSymbols(std::unordered_set<std::string>* symbols);
 
   /// Generates function to return min/max(v1, v2)
   llvm::Function* CodegenMinMax(const ColumnType& type, bool min);
