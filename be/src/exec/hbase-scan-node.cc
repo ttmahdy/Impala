@@ -15,7 +15,6 @@
 #include "hbase-scan-node.h"
 
 #include <algorithm>
-#include <boost/foreach.hpp>
 
 #include "runtime/runtime-state.h"
 #include "runtime/row-batch.h"
@@ -98,7 +97,7 @@ Status HBaseScanNode::Prepare(RuntimeState* state) {
   // Convert TScanRangeParams to ScanRanges
   DCHECK(scan_range_params_ != NULL)
       << "Must call SetScanRanges() before calling Prepare()";
-  BOOST_FOREACH(const TScanRangeParams& params, *scan_range_params_) {
+  for (const TScanRangeParams& params: *scan_range_params_) {
     DCHECK(params.scan_range.__isset.hbase_key_range);
     const THBaseKeyRange& key_range = params.scan_range.hbase_key_range;
     scan_range_vector_.push_back(HBaseTableScanner::ScanRange());
@@ -293,7 +292,7 @@ void HBaseScanNode::Close(RuntimeState* state) {
 void HBaseScanNode::DebugString(int indentation_level, stringstream* out) const {
   *out << string(indentation_level * 2, ' ');
   *out << "HBaseScanNode(tupleid=" << tuple_id_ << " table=" << table_name_;
-  for(int i = 0; i < scan_range_vector_.size(); i++) {
+  for (int i = 0; i < scan_range_vector_.size(); i++) {
     *out << " region(" << i << "):";
     HBaseTableScanner::ScanRange scan_range = scan_range_vector_[i];
     scan_range.DebugString(0, out);

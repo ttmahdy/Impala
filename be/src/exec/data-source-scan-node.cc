@@ -14,7 +14,6 @@
 
 #include "exec/data-source-scan-node.h"
 
-#include <boost/foreach.hpp>
 #include <vector>
 #include <gutil/strings/substitute.h>
 
@@ -82,7 +81,7 @@ Status DataSourceScanNode::Prepare(RuntimeState* state) {
       data_src_node_.init_string));
 
   // Initialize materialized_slots_ and cols_next_val_idx_.
-  BOOST_FOREACH(SlotDescriptor* slot, tuple_desc_->slots()) {
+  for (SlotDescriptor* slot: tuple_desc_->slots()) {
     if (!slot->is_materialized()) continue;
     materialized_slots_.push_back(slot);
     cols_next_val_idx_.push_back(0);
@@ -97,7 +96,7 @@ Status DataSourceScanNode::Open(RuntimeState* state) {
 
   // Prepare the schema for TOpenParams.row_schema
   vector<extdatasource::TColumnDesc> cols;
-  BOOST_FOREACH(const SlotDescriptor* slot, materialized_slots_) {
+  for (const SlotDescriptor* slot: materialized_slots_) {
     extdatasource::TColumnDesc col;
     int col_idx = slot->col_pos();
     col.__set_name(tuple_desc_->table_desc()->col_names()[col_idx]);

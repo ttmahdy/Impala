@@ -14,7 +14,6 @@
 
 #include "util/error-util.h"
 
-#include <boost/foreach.hpp>
 
 #include <errno.h>
 #include <string.h>
@@ -134,9 +133,9 @@ ErrorMsg ErrorMsg::Init(TErrorCode::type error, const ArgType& arg0,
 }
 
 void PrintErrorMap(ostream* stream, const ErrorLogMap& errors) {
-  BOOST_FOREACH(const ErrorLogMap::value_type& v, errors) {
+  for (const ErrorLogMap::value_type& v: errors) {
     if (v.first == TErrorCode::GENERAL) {
-      BOOST_FOREACH(const string& s, v.second.messages) {
+      for (const string& s: v.second.messages) {
         *stream << s << "\n";
       }
     } else {
@@ -157,7 +156,7 @@ string PrintErrorMapToString(const ErrorLogMap& errors) {
 }
 
 void MergeErrorMaps(ErrorLogMap* left, const ErrorLogMap& right) {
-  BOOST_FOREACH(const ErrorLogMap::value_type& v, right) {
+  for (const ErrorLogMap::value_type& v: right) {
     // Append generic message, append specific codes or increment count if exists
     if (v.first == TErrorCode::GENERAL) {
       (*left)[v.first].messages.insert(

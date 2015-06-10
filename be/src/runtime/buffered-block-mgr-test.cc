@@ -467,7 +467,7 @@ TEST_F(BufferedBlockMgrTest, Eviction) {
   AllocateBlocks(block_mgr.get(), client, max_num_buffers, &blocks);
 
   EXPECT_EQ(block_mgr->bytes_allocated(), max_num_buffers * block_size_);
-  BOOST_FOREACH(BufferedBlockMgr::Block* block, blocks) {
+  for (BufferedBlockMgr::Block* block: blocks) {
     block->Unpin();
   }
 
@@ -483,7 +483,7 @@ TEST_F(BufferedBlockMgrTest, Eviction) {
   EXPECT_EQ(buffered_pin->value(), buffered_pins_expected);
 
   // Unpin all blocks
-  BOOST_FOREACH(BufferedBlockMgr::Block* block, blocks) {
+  for (BufferedBlockMgr::Block* block: blocks) {
     block->Unpin();
   }
   // Get two new blocks.
@@ -521,7 +521,7 @@ TEST_F(BufferedBlockMgrTest, Deletion) {
   AllocateBlocks(block_mgr.get(), client, max_num_buffers, &blocks);
   EXPECT_TRUE(created_cnt->value() == max_num_buffers);
 
-  BOOST_FOREACH(BufferedBlockMgr::Block* block, blocks) {
+  for (BufferedBlockMgr::Block* block: blocks) {
     block->Delete();
   }
   AllocateBlocks(block_mgr.get(), client, max_num_buffers, &blocks);

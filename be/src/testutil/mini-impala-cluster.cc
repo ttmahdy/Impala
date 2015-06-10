@@ -16,7 +16,6 @@
 // A standalone test utility that starts multiple Impala backends and a state store
 // within a single process.
 
-#include <boost/foreach.hpp>
 
 #include "codegen/llvm-codegen.h"
 #include "common/logging.h"
@@ -84,7 +83,7 @@ int main(int argc, char** argv) {
 
   impala_servers[0]->Join();
 
-  BOOST_FOREACH(InProcessImpalaServer* server, impala_servers) {
+  for (InProcessImpalaServer* server: impala_servers) {
     delete server;
   }
 }

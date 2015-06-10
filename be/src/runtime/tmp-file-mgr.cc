@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include <boost/algorithm/string.hpp>
-#include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/uuid/random_generator.hpp>

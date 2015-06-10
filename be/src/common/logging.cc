@@ -14,7 +14,6 @@
 
 #include "common/logging.h"
 
-#include <boost/foreach.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -188,7 +187,7 @@ void impala::CheckAndRotateLogFiles(int max_log_files) {
     if (log_file_mtime.size() <= max_log_files) return;
     int files_to_delete = log_file_mtime.size() - max_log_files;
     DCHECK_GT(files_to_delete, 0);
-    BOOST_FOREACH(const LogFileMap::reference val, log_file_mtime) {
+    for (const LogFileMap::reference val: log_file_mtime) {
       if (unlink(val.second.c_str()) == 0) {
         LOG(INFO) << "Old log file deleted during log rotation: " << val.second;
       } else {

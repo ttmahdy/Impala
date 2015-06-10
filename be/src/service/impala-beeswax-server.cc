@@ -20,7 +20,6 @@
 #include <jni.h>
 #include <thrift/protocol/TDebugProtocol.h>
 #include <gtest/gtest.h>
-#include <boost/foreach.hpp>
 #include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
 #include <google/heap-profiler.h>
@@ -528,7 +527,7 @@ Status ImpalaServer::QueryToTQueryContext(const Query& query,
 
   // Override default query options with Query.Configuration
   if (query.__isset.configuration) {
-    BOOST_FOREACH(const string& option, query.configuration) {
+    for (const string& option: query.configuration) {
       RETURN_IF_ERROR(ParseQueryOptions(option, &query_ctx->request.query_options));
     }
     VLOG_QUERY << "TClientRequest.queryOptions: "
@@ -629,7 +628,7 @@ Status ImpalaServer::CloseInsertInternal(const TUniqueId& query_id,
       // need to revisit this, since that might lead us to insert a row without a
       // coordinator, depending on how we choose to drive the table sink.
       if (exec_state->coord() != NULL) {
-        BOOST_FOREACH(const PartitionStatusMap::value_type& v,
+        for (const PartitionStatusMap::value_type& v:
             exec_state->coord()->per_partition_status()) {
           const pair<string, TInsertPartitionStatus> partition_status = v;
           insert_result->rows_appended[partition_status.first] =

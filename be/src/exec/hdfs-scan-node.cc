@@ -23,7 +23,6 @@
 
 #include <sstream>
 #include <boost/algorithm/string.hpp>
-#include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
 #include <gutil/strings/substitute.h>
 
@@ -430,7 +429,7 @@ Status HdfsScanNode::Prepare(RuntimeState* state) {
   // will need to be decompressed at once). For all other formats, we use a constant.
   // TODO: can we do something better?
   int64_t scanner_thread_mem_usage = SCANNER_THREAD_MEM_USAGE;
-  BOOST_FOREACH(HdfsFileDesc* file, per_type_files_[THdfsFileFormat::TEXT]) {
+  for (HdfsFileDesc* file: per_type_files_[THdfsFileFormat::TEXT]) {
     if (file->file_compression != THdfsCompression::NONE) {
       int64_t bytes_required = file->file_length * COMPRESSED_TEXT_COMPRESSION_RATIO;
       scanner_thread_mem_usage = ::max(bytes_required, scanner_thread_mem_usage);
@@ -439,7 +438,7 @@ Status HdfsScanNode::Prepare(RuntimeState* state) {
   scanner_thread_bytes_required_ += scanner_thread_mem_usage;
 
   // Prepare all the partitions scanned by the scan node
-  BOOST_FOREACH(const int64_t& partition_id, partition_ids_) {
+  for (const int64_t& partition_id: partition_ids_) {
     HdfsPartitionDescriptor* partition_desc = hdfs_table_->GetPartition(partition_id);
     DCHECK(partition_desc != NULL);
     RETURN_IF_ERROR(partition_desc->PrepareExprs(state));
@@ -534,7 +533,7 @@ Status HdfsScanNode::Open(RuntimeState* state) {
   }
 
   // Open all the partition exprs used by the scan node
-  BOOST_FOREACH(const int64_t& partition_id, partition_ids_) {
+  for (const int64_t& partition_id: partition_ids_) {
     HdfsPartitionDescriptor* partition_desc = hdfs_table_->GetPartition(partition_id);
     DCHECK(partition_desc != NULL);
     RETURN_IF_ERROR(partition_desc->OpenExprs(state));
@@ -655,7 +654,7 @@ void HdfsScanNode::Close(RuntimeState* state) {
   Expr::Close(conjunct_ctxs_, state);
 
   // Close all the partitions scanned by the scan node
-  BOOST_FOREACH(const int64_t& partition_id, partition_ids_) {
+  for (const int64_t& partition_id: partition_ids_) {
     HdfsPartitionDescriptor* partition_desc = hdfs_table_->GetPartition(partition_id);
     DCHECK(partition_desc != NULL);
     partition_desc->CloseExprs(state);
@@ -1048,7 +1047,7 @@ void HdfsScanNode::UpdateHdfsSplitStats(
     const vector<TScanRangeParams>& scan_range_params_list,
     PerVolumnStats* per_volume_stats) {
   pair<int, int64_t> init_value(0, 0);
-  BOOST_FOREACH(const TScanRangeParams& scan_range_params, scan_range_params_list) {
+  for (const TScanRangeParams& scan_range_params: scan_range_params_list) {
     const TScanRange& scan_range = scan_range_params.scan_range;
     if (!scan_range.__isset.hdfs_file_split) continue;
     const THdfsFileSplit& split = scan_range.hdfs_file_split;

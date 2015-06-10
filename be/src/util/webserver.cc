@@ -17,7 +17,6 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/bind.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/mem_fn.hpp>
 #include <gutil/strings/substitute.h>
@@ -182,7 +181,7 @@ void Webserver::BuildArgumentMap(const string& args, ArgumentMap* output) {
   vector<string> arg_pairs;
   split(arg_pairs, args, is_any_of("&"));
 
-  BOOST_FOREACH(const string& arg_pair, arg_pairs) {
+  for (const string& arg_pair: arg_pairs) {
     vector<string> key_value;
     split(key_value, arg_pair, is_any_of("="));
     if (key_value.empty()) continue;
@@ -302,7 +301,7 @@ void Webserver::GetCommonJson(Document* document) {
       document->GetAllocator());
 
   Value lst(kArrayType);
-  BOOST_FOREACH(const UrlHandlerMap::value_type& handler, url_handlers_) {
+  for (const UrlHandlerMap::value_type& handler: url_handlers_) {
     if (handler.second.is_on_nav_bar()) {
       Value obj(kObjectType);
       obj.AddMember("link", handler.first.c_str(), document->GetAllocator());

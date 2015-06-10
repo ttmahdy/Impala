@@ -84,7 +84,7 @@ class Promise {
     while (!val_is_set_ && (now - start) < timeout_micros) {
       std::chrono::microseconds wait_time =
           std::chrono::microseconds(std::max(1L, timeout_micros - (now - start)));
-      val_set_cond_.wait_for(l, wait_time);
+      val_set_cond_.wait_for (l, wait_time);
       now = MonotonicMicros();
     }
     *timed_out = !val_is_set_;

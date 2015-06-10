@@ -16,7 +16,6 @@
 
 #include <thrift/protocol/TDebugProtocol.h>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
-#include <boost/foreach.hpp>
 #include <gutil/strings/substitute.h>
 #include <chrono>
 
@@ -210,7 +209,7 @@ Status PlanFragmentExecutor::Prepare(const TExecPlanFragmentParams& request) {
   // set #senders of exchange nodes before calling Prepare()
   vector<ExecNode*> exch_nodes;
   plan_->CollectNodes(TPlanNodeType::EXCHANGE_NODE, &exch_nodes);
-  BOOST_FOREACH(ExecNode* exch_node, exch_nodes)
+  for (ExecNode* exch_node: exch_nodes)
   {
     DCHECK_EQ(exch_node->type(), TPlanNodeType::EXCHANGE_NODE);
     int num_senders = FindWithDefault(params.per_exch_num_senders,
@@ -286,7 +285,7 @@ void PlanFragmentExecutor::PrintVolumeIds(
   if (per_node_scan_ranges.empty()) return;
 
   HdfsScanNode::PerVolumnStats per_volume_stats;
-  BOOST_FOREACH(const PerNodeScanRanges::value_type& entry, per_node_scan_ranges) {
+  for (const PerNodeScanRanges::value_type& entry: per_node_scan_ranges) {
     HdfsScanNode::UpdateHdfsSplitStats(entry.second, &per_volume_stats);
   }
 
@@ -386,7 +385,7 @@ void PlanFragmentExecutor::ReportProfile() {
   int report_fragment_offset = rand() % FLAGS_status_report_interval;
   std::chrono::seconds timeout = std::chrono::seconds(report_fragment_offset);
   // We don't want to wait longer than it takes to run the entire fragment.
-  stop_report_thread_cv_.wait_for(l, timeout);
+  stop_report_thread_cv_.wait_for (l, timeout);
 
   while (report_thread_active_) {
     std::chrono::seconds timeout =
@@ -397,7 +396,7 @@ void PlanFragmentExecutor::ReportProfile() {
     // two cases (e.g. there is a race here where the wait timed out but before grabbing
     // the lock, the condition variable was signaled).  Instead, we will use an external
     // flag, report_thread_active_, to coordinate this.
-    stop_report_thread_cv_.wait_for(l, timeout);
+    stop_report_thread_cv_.wait_for (l, timeout);
 
     if (VLOG_FILE_IS_ON) {
       VLOG_FILE << "Reporting " << (!report_thread_active_ ? "final " : " ")
@@ -571,7 +570,7 @@ void PlanFragmentExecutor::Close() {
     }
     if (plan_ != NULL) plan_->Close(runtime_state_.get());
     if (sink_.get() != NULL) sink_->Close(runtime_state());
-    BOOST_FOREACH(DiskIoMgr::RequestContext* context,
+    for (DiskIoMgr::RequestContext* context:
         *runtime_state_->reader_contexts()) {
       runtime_state_->io_mgr()->UnregisterContext(context);
     }

@@ -19,7 +19,6 @@
 #include <string>
 #include <sstream>
 #include <stack>
-#include <boost/foreach.hpp>
 #include <boost/function.hpp>
 #include <memory>
 
@@ -278,7 +277,7 @@ class MetricGroup {
       groups.pop();
       MetricMap::const_iterator it = group->metric_map_.find(key);
       if (it != group->metric_map_.end()) return reinterpret_cast<M*>(it->second);
-      BOOST_FOREACH(const ChildGroupMap::value_type& child, group->children_) {
+      for (const ChildGroupMap::value_type& child: group->children_) {
         groups.push(child.second);
       }
     } while (!groups.empty());

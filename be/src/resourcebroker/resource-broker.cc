@@ -15,7 +15,6 @@
 #include "resourcebroker/resource-broker.h"
 
 #include <boost/algorithm/string/join.hpp>
-#include <boost/foreach.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -266,7 +265,7 @@ bool ResourceBroker::LlamaHasRestarted(const llama::TStatus& status) const {
 
 void ResourceBroker::Close() {
   // Close connections to all Llama addresses, not just the active one.
-  BOOST_FOREACH(const TNetworkAddress& llama_address, llama_addresses_) {
+  for (const TNetworkAddress& llama_address: llama_addresses_) {
     llama_client_cache_->CloseConnections(llama_address);
   }
   llama_callback_server_->Join();
@@ -414,7 +413,7 @@ Status ResourceBroker::ReRegisterWithLlama(const llama::TLlamaAMGetNodesRequest&
 
 void ResourceBroker::PendingRequest::GetResources(ResourceMap* resources) {
   resources->clear();
-  BOOST_FOREACH(const llama::TAllocatedResource& resource, allocated_resources_) {
+  for (const llama::TAllocatedResource& resource: allocated_resources_) {
     TNetworkAddress host = MakeNetworkAddress(resource.location);
     (*resources)[host] = resource;
     VLOG_QUERY << "Getting allocated resource for reservation id "
@@ -426,7 +425,7 @@ void ResourceBroker::PendingRequest::SetResources(
     const vector<llama::TAllocatedResource>& resources) {
   // TODO: Llama returns a dump of all resources that we need to manually group by
   // reservation id. Can Llama do the grouping for us?
-  BOOST_FOREACH(const llama::TAllocatedResource& resource, resources) {
+  for (const llama::TAllocatedResource& resource: resources) {
     // Ignore resources that don't belong to the given reservation id.
     if (resource.reservation_id == request_id()) {
       allocated_resources_.push_back(resource);
@@ -448,7 +447,7 @@ bool ResourceBroker::WaitForNotification(int64_t timeout, ResourceMap* resources
     pending_request->GetResources(resources);
     int64_t total_memory_mb = 0L;
     int32_t total_vcpus = 0;
-    BOOST_FOREACH(const ResourceMap::value_type& resource, *resources) {
+    for (const ResourceMap::value_type& resource: *resources) {
       total_memory_mb += resource.second.memory_mb;
       total_vcpus += resource.second.v_cpu_cores;
     }
@@ -674,7 +673,7 @@ void ResourceBroker::AMNotification(const llama::TLlamaAMNotificationRequest& re
   lock_guard<mutex> l(pending_requests_lock_);
 
   // Process granted allocations.
-  BOOST_FOREACH(const llama::TUniqueId& res_id, request.allocated_reservation_ids) {
+  for (const llama::TUniqueId& res_id: request.allocated_reservation_ids) {
     // TODO: Garbage collect fulfillments that live for a long time, since they probably
     // don't correspond to any query.
     PendingRequestMap::iterator it = pending_requests_.find(res_id);
@@ -689,7 +688,7 @@ void ResourceBroker::AMNotification(const llama::TLlamaAMNotificationRequest& re
   }
 
   // Process rejected allocations.
-  BOOST_FOREACH(const llama::TUniqueId& res_id, request.rejected_reservation_ids) {
+  for (const llama::TUniqueId& res_id: request.rejected_reservation_ids) {
     PendingRequestMap::iterator it = pending_requests_.find(res_id);
     if (it == pending_requests_.end()) {
       VLOG_RPC << "Rejection for " << res_id << " arrived after timeout";
@@ -701,21 +700,21 @@ void ResourceBroker::AMNotification(const llama::TLlamaAMNotificationRequest& re
   // TODO: We maybe want a thread pool for handling preemptions to avoid
   // blocking this function on query cancellations.
   // Process preempted reservations.
-  BOOST_FOREACH(const llama::TUniqueId& res_id, request.preempted_reservation_ids) {
+  for (const llama::TUniqueId& res_id: request.preempted_reservation_ids) {
     TUniqueId impala_res_id;
     impala_res_id << res_id;
     scheduler_->HandlePreemptedReservation(impala_res_id);
   }
 
   // Process preempted client resources.
-  BOOST_FOREACH(const llama::TUniqueId& res_id, request.preempted_client_resource_ids) {
+  for (const llama::TUniqueId& res_id: request.preempted_client_resource_ids) {
     TUniqueId impala_res_id;
     impala_res_id << res_id;
     scheduler_->HandlePreemptedResource(impala_res_id);
   }
 
   // Process lost client resources.
-  BOOST_FOREACH(const llama::TUniqueId& res_id, request.lost_client_resource_ids) {
+  for (const llama::TUniqueId& res_id: request.lost_client_resource_ids) {
     TUniqueId impala_res_id;
     impala_res_id << res_id;
     scheduler_->HandlePreemptedResource(impala_res_id);
@@ -771,7 +770,7 @@ ostream& operator<<(ostream& os,
     const map<TNetworkAddress, llama::TAllocatedResource>& resources) {
   typedef map<TNetworkAddress, llama::TAllocatedResource> ResourceMap;
   int count = 0;
-  BOOST_FOREACH(const ResourceMap::value_type& resource, resources) {
+  for (const ResourceMap::value_type& resource: resources) {
     os << "(" << resource.first << "," << resource.second << ")";
     if (++count != resources.size()) os << ",";
   }

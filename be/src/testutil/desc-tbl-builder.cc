@@ -67,7 +67,7 @@ DescriptorTbl* DescriptorTblBuilder::Build() {
     int byte_offset = num_null_bytes;
     int tuple_id = i;
 
-    for(int j = 0; j < slot_types.size(); ++j) {
+    for (int j = 0; j < slot_types.size(); ++j) {
       thrift_desc_tbl.slotDescriptors.push_back(
           MakeSlotDescriptor(++slot_id, tuple_id, slot_types[j], j, byte_offset));
 

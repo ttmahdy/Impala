@@ -238,7 +238,7 @@ void RuntimeState::GetUnreportedErrors(ErrorLogMap* new_errors) {
   *new_errors = error_log_;
   // Reset the map, but keep all already reported keys so that we do not
   // report the same errors multiple times.
-  BOOST_FOREACH(ErrorLogMap::value_type v, error_log_) {
+  for (ErrorLogMap::value_type v: error_log_) {
     v.second.messages.clear();
     v.second.count = 0;
   }

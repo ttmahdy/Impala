@@ -1073,7 +1073,7 @@ Status PartitionedHashJoinNode::BuildHashTables(RuntimeState* state) {
   // Decide whether probe filters will be built.
   if (input_partition_ == NULL && can_add_probe_filters_) {
     uint64_t num_build_rows = 0;
-    BOOST_FOREACH(Partition* partition, hash_partitions_) {
+    for (Partition* partition: hash_partitions_) {
       const uint64_t partition_num_rows = partition->build_rows()->num_rows();
       num_build_rows += partition_num_rows;
     }
@@ -1091,7 +1091,7 @@ Status PartitionedHashJoinNode::BuildHashTables(RuntimeState* state) {
 
   // First loop over the partitions and build hash tables for the partitions that did
   // not already spill.
-  BOOST_FOREACH(Partition* partition, hash_partitions_) {
+  for (Partition* partition: hash_partitions_) {
     if (partition->build_rows()->num_rows() == 0) {
       // This partition is empty, no need to do anything else.
       partition->Close(NULL);
@@ -1112,7 +1112,7 @@ Status PartitionedHashJoinNode::BuildHashTables(RuntimeState* state) {
   // an IO buffer for those partitions. Reserving an IO buffer can cause more partitions
   // to spill so this process is recursive.
   list<Partition*> spilled_partitions;
-  BOOST_FOREACH(Partition* partition, hash_partitions_) {
+  for (Partition* partition: hash_partitions_) {
     if (partition->is_closed()) continue;
     if (partition->is_spilled() && partition->probe_rows()->using_small_buffers()) {
       spilled_partitions.push_back(partition);
@@ -1143,7 +1143,7 @@ Status PartitionedHashJoinNode::BuildHashTables(RuntimeState* state) {
   // 2. in_mem. The build side is pinned and has a hash table built.
   // 3. spilled. The build side is fully unpinned and the probe side has an io
   //    sized buffer.
-  BOOST_FOREACH(Partition* partition, hash_partitions_) {
+  for (Partition* partition: hash_partitions_) {
     if (partition->hash_tbl() != NULL) partition->probe_rows()->Close();
   }
 

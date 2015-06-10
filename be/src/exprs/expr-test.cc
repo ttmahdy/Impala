@@ -550,7 +550,7 @@ class ExprTest : public testing::Test {
   // Test comparison operators with a left or right NULL operand on all types.
   void TestNullComparisons() {
     unordered_map<int, string>::iterator def_iter;
-    for(def_iter = default_type_strs_.begin(); def_iter != default_type_strs_.end();
+    for (def_iter = default_type_strs_.begin(); def_iter != default_type_strs_.end();
         ++def_iter) {
       TestNullComparison(def_iter->second);
     }
@@ -1025,7 +1025,7 @@ TEST_F(ExprTest, ArithmeticExprs) {
 
   // Test behavior of INT_DIVIDE and MOD with zero as second argument.
   IntValMap::iterator int_iter;
-  for(int_iter = min_int_values_.begin(); int_iter != min_int_values_.end();
+  for (int_iter = min_int_values_.begin(); int_iter != min_int_values_.end();
       ++int_iter) {
     string& val = default_type_strs_[int_iter->first];
     TestIsNull(val + " DIV 0", static_cast<PrimitiveType>(int_iter->first));
@@ -1451,7 +1451,7 @@ TEST_F(ExprTest, BetweenPredicate) {
 TEST_F(ExprTest, InPredicate) {
   // Test integers.
   IntValMap::iterator int_iter;
-  for(int_iter = min_int_values_.begin(); int_iter != min_int_values_.end();
+  for (int_iter = min_int_values_.begin(); int_iter != min_int_values_.end();
       ++int_iter) {
     string& val = default_type_strs_[int_iter->first];
     TestValue(val + " in (2, 3, " + val + ")", TYPE_BOOLEAN, true);
@@ -1462,7 +1462,7 @@ TEST_F(ExprTest, InPredicate) {
 
   // Test floats.
   unordered_map<int, double>::iterator float_iter;
-  for(float_iter = min_float_values_.begin(); float_iter != min_float_values_.end();
+  for (float_iter = min_float_values_.begin(); float_iter != min_float_values_.end();
       ++float_iter) {
     string& val = default_type_strs_[float_iter->first];
     TestValue(val + " in (2, 3, " + val + ")", TYPE_BOOLEAN, true);
@@ -1514,7 +1514,7 @@ TEST_F(ExprTest, InPredicate) {
   dec_strs.push_back("cast(-1.23 as decimal(18,2))");
   dec_strs.push_back("cast(-1.23 as decimal(19,2))");
   dec_strs.push_back("cast(-1.23 as decimal(32,2))");
-  BOOST_FOREACH(const string& dec_str, dec_strs) {
+  for (const string& dec_str: dec_strs) {
     TestValue(dec_str + "in (0)", TYPE_BOOLEAN, false);
     TestValue(dec_str + "in (-1.23)", TYPE_BOOLEAN, true);
     TestValue(dec_str + "in (-1.230)", TYPE_BOOLEAN, true);
@@ -2254,7 +2254,7 @@ TEST_F(ExprTest, UtilityFunctions) {
   TestValue("fnv_hash('')", TYPE_BIGINT, expected);
 
   IntValMap::iterator int_iter;
-  for(int_iter = min_int_values_.begin(); int_iter != min_int_values_.end();
+  for (int_iter = min_int_values_.begin(); int_iter != min_int_values_.end();
       ++int_iter) {
     ColumnType t = ColumnType(static_cast<PrimitiveType>(int_iter->first));
     expected = HashUtil::FnvHash64(
@@ -2637,7 +2637,7 @@ TEST_F(ExprTest, MathFunctions) {
   // Test all int types.
   string val_list;
   val_list = "0";
-  BOOST_FOREACH(IntValMap::value_type& entry, min_int_values_) {
+  for (IntValMap::value_type& entry: min_int_values_) {
     string val_str = lexical_cast<string>(entry.second);
     val_list.append(", " + val_str);
     PrimitiveType t = static_cast<PrimitiveType>(entry.first);
@@ -2693,7 +2693,7 @@ TEST_F(ExprTest, MathFunctions) {
   // Test all int types. A list of values will be built, each iteration adds a bigger
   // value. This requires min_int_values_ to be an ordered map.
   val_list = "0";
-  BOOST_FOREACH(IntValMap::value_type& entry, min_int_values_) {
+  for (IntValMap::value_type& entry: min_int_values_) {
     string val_str = lexical_cast<string>(entry.second);
     val_list.append(", " + val_str);
     PrimitiveType t = static_cast<PrimitiveType>(entry.first);
@@ -3784,7 +3784,7 @@ TEST_F(ExprTest, ConditionalFunctions) {
 
   // Test all types in case/when exprs, without casts.
   unordered_map<int, string>::iterator def_iter;
-  for(def_iter = default_type_strs_.begin(); def_iter != default_type_strs_.end();
+  for (def_iter = default_type_strs_.begin(); def_iter != default_type_strs_.end();
       ++def_iter) {
     TestValue("case " + def_iter->second + " when " + def_iter->second +
         " then true else true end", TYPE_BOOLEAN, true);

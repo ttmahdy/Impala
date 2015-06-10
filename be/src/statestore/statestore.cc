@@ -14,7 +14,6 @@
 
 #include "statestore/statestore.h"
 
-#include <boost/foreach.hpp>
 #include <boost/thread.hpp>
 #include <thrift/Thrift.h>
 #include <gutil/strings/substitute.h>
@@ -178,7 +177,7 @@ Statestore::Subscriber::Subscriber(const SubscriberId& subscriber_id,
     : subscriber_id_(subscriber_id),
       registration_id_(registration_id),
       network_address_(network_address) {
-  BOOST_FOREACH(const TTopicRegistration& topic, subscribed_topics) {
+  for (const TTopicRegistration& topic: subscribed_topics) {
     TopicState topic_state;
     topic_state.is_transient = topic.is_transient;
     topic_state.last_version = TOPIC_INITIAL_VERSION;
@@ -268,7 +267,7 @@ void Statestore::TopicsHandler(const Webserver::ArgumentMap& args,
 
   Value topics(kArrayType);
 
-  BOOST_FOREACH(const TopicMap::value_type& topic, topics_) {
+  for (const TopicMap::value_type& topic: topics_) {
     Value topic_json(kObjectType);
 
     Value topic_id(topic.second.id().c_str(), document->GetAllocator());
@@ -307,7 +306,7 @@ void Statestore::SubscribersHandler(const Webserver::ArgumentMap& args,
     Document* document) {
   lock_guard<mutex> l(subscribers_lock_);
   Value subscribers(kArrayType);
-  BOOST_FOREACH(const SubscriberMap::value_type& subscriber, subscribers_) {
+  for (const SubscriberMap::value_type& subscriber: subscribers_) {
     Value sub_json(kObjectType);
 
     Value subscriber_id(subscriber.second->id().c_str(), document->GetAllocator());
@@ -357,7 +356,7 @@ Status Statestore::RegisterSubscriber(const SubscriberId& subscriber_id,
   // by the worker threads its topics are guaranteed to exist.
   {
     lock_guard<mutex> l(topic_lock_);
-    BOOST_FOREACH(const TTopicRegistration& topic, topic_registrations) {
+    for (const TTopicRegistration& topic: topic_registrations) {
       TopicMap::iterator topic_it = topics_.find(topic.topic_name);
       if (topic_it == topics_.end()) {
         LOG(INFO) << "Creating new topic: ''" << topic.topic_name
@@ -446,7 +445,7 @@ Status Statestore::SendTopicUpdate(Subscriber* subscriber, bool* update_skipped)
   // Thirdly: perform any / all updates returned by the subscriber
   {
     lock_guard<mutex> l(topic_lock_);
-    BOOST_FOREACH(const TTopicDelta& update, response.topic_updates) {
+    for (const TTopicDelta& update: response.topic_updates) {
       TopicMap::iterator topic_it = topics_.find(update.topic_name);
       if (topic_it == topics_.end()) {
         VLOG(1) << "Received update for unexpected topic:" << update.topic_name;
@@ -464,12 +463,12 @@ Status Statestore::SendTopicUpdate(Subscriber* subscriber, bool* update_skipped)
       }
 
       Topic* topic = &topic_it->second;
-      BOOST_FOREACH(const TTopicItem& item, update.topic_entries) {
+      for (const TTopicItem& item: update.topic_entries) {
         TopicEntry::Version version = topic->Put(item.key, item.value);
         subscriber->AddTransientUpdate(update.topic_name, item.key, version);
       }
 
-      BOOST_FOREACH(const string& key, update.topic_deletions) {
+      for (const string& key: update.topic_deletions) {
         TopicEntry::Version version =
             topic->Put(key, Statestore::TopicEntry::NULL_VALUE);
         subscriber->AddTransientUpdate(update.topic_name, key, version);
@@ -484,7 +483,7 @@ void Statestore::GatherTopicUpdates(const Subscriber& subscriber,
     TUpdateStateRequest* update_state_request) {
   {
     lock_guard<mutex> l(topic_lock_);
-    BOOST_FOREACH(const Subscriber::Topics::value_type& subscribed_topic,
+    for (const Subscriber::Topics::value_type& subscribed_topic:
         subscriber.subscribed_topics()) {
       TopicMap::const_iterator topic_it = topics_.find(subscribed_topic.first);
       DCHECK(topic_it != topics_.end());
@@ -545,7 +544,7 @@ void Statestore::GatherTopicUpdates(const Subscriber& subscriber,
   // topic_lock_.
   lock_guard<mutex> l(subscribers_lock_);
   typedef map<TopicId, TTopicDelta> TopicDeltaMap;
-  BOOST_FOREACH(TopicDeltaMap::value_type& topic_delta,
+  for (TopicDeltaMap::value_type& topic_delta:
       update_state_request->topic_deltas) {
     topic_delta.second.__set_min_subscriber_topic_version(
         GetMinSubscriberTopicVersion(topic_delta.first));
@@ -557,7 +556,7 @@ const Statestore::TopicEntry::Version Statestore::GetMinSubscriberTopicVersion(
   TopicEntry::Version min_topic_version = numeric_limits<int64_t>::max();
   bool found = false;
   // Find the minimum version processed for this topic across all topic subscribers.
-  BOOST_FOREACH(const SubscriberMap::value_type& subscriber, subscribers_) {
+  for (const SubscriberMap::value_type& subscriber: subscribers_) {
     if (subscriber.second->subscribed_topics().find(topic_id) !=
         subscriber.second->subscribed_topics().end()) {
       found = true;
@@ -727,7 +726,7 @@ void Statestore::UnregisterSubscriber(Subscriber* subscriber) {
 
   // Delete all transient entries
   lock_guard<mutex> topic_lock(topic_lock_);
-  BOOST_FOREACH(Statestore::Subscriber::TransientEntryMap::value_type entry,
+  for (Statestore::Subscriber::TransientEntryMap::value_type entry:
       subscriber->transient_entries()) {
     Statestore::TopicMap::iterator topic_it = topics_.find(entry.first.first);
     DCHECK(topic_it != topics_.end());

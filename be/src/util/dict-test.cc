@@ -16,7 +16,6 @@
 #include <stdio.h>
 #include <iostream>
 
-#include <boost/foreach.hpp>
 #include <gtest/gtest.h>
 
 #include "common/init.h"
@@ -36,7 +35,7 @@ void ValidateDict(const vector<T>& values, int fixed_buffer_byte_size) {
   MemTracker tracker;
   MemPool pool(&tracker);
   DictEncoder<T> encoder(&pool, fixed_buffer_byte_size);
-  BOOST_FOREACH(T i, values) {
+  for (T i: values) {
     encoder.Put(i);
   }
   EXPECT_EQ(encoder.num_entries(), values_set.size());
@@ -53,7 +52,7 @@ void ValidateDict(const vector<T>& values, int fixed_buffer_byte_size) {
   DictDecoder<T> decoder(
       dict_buffer, encoder.dict_encoded_size(), fixed_buffer_byte_size);
   decoder.SetData(data_buffer, data_len);
-  BOOST_FOREACH(T i, values) {
+  for (T i: values) {
     T j;
     decoder.GetValue(&j);
     EXPECT_EQ(i, j);

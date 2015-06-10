@@ -17,7 +17,6 @@
 
 #include <boost/assign/list_of.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/foreach.hpp>
 #include <unordered_map>
 #include "common/status.h"
 #include "runtime/string-value.inline.h"
@@ -359,7 +358,7 @@ class TimestampParser {
     if (dt_ctx.has_date_toks && d.is_special()) return -1;
     if (dt_ctx.has_time_toks && t.is_special()) return -1;
     char* str = buff;
-    BOOST_FOREACH(const DateTimeFormatToken& tok, dt_ctx.toks) {
+    for (const DateTimeFormatToken& tok: dt_ctx.toks) {
       int32_t num_val = -1;
       const char* str_val = NULL;
       int str_val_len = 0;
@@ -411,7 +410,7 @@ class TimestampParser {
     DCHECK(dt_result != NULL);
     if (str_len <= 0 || str_len < dt_ctx.fmt_len || str == NULL) return false;
     StringParser::ParseResult status;
-    BOOST_FOREACH(const DateTimeFormatToken& tok, dt_ctx.toks) {
+    for (const DateTimeFormatToken& tok: dt_ctx.toks) {
       const char* tok_val = str + tok.pos;
       if (tok.type == SEPARATOR) {
         if (UNLIKELY(*tok_val != *tok.val)) return false;

@@ -132,7 +132,7 @@ Status ThriftServer::ThriftServerEventProcessor::StartAndWaitForServer() {
   // visibility.
   while (!signal_fired_) {
     // Yields lock and allows supervision thread to continue and signal
-    if (signal_cond_.wait_for(lock, wait_time) == std::cv_status::timeout) {
+    if (signal_cond_.wait_for (lock, wait_time) == std::cv_status::timeout) {
       stringstream ss;
       ss << "ThriftServer '" << thrift_server_->name_ << "' (on port: "
          << thrift_server_->port_ << ") did not start within "

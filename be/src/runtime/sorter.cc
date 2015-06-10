@@ -466,10 +466,10 @@ Status Sorter::Run::AddBatch(RowBatch* batch, int start_index, int* num_processe
 }
 
 void Sorter::Run::DeleteAllBlocks() {
-  BOOST_FOREACH(BufferedBlockMgr::Block* block, fixed_len_blocks_) {
+  for (BufferedBlockMgr::Block* block: fixed_len_blocks_) {
     if (block != NULL) block->Delete();
   }
-  BOOST_FOREACH(BufferedBlockMgr::Block* block, var_len_blocks_) {
+  for (BufferedBlockMgr::Block* block: var_len_blocks_) {
     if (block != NULL) block->Delete();
   }
   if (var_len_copy_block_ != NULL) var_len_copy_block_->Delete();
@@ -520,7 +520,7 @@ Status Sorter::Run::UnpinAllBlocks() {
   }
 
   // Clear var_len_blocks_ and replace with it with the contents of sorted_var_len_blocks
-  BOOST_FOREACH(BufferedBlockMgr::Block* var_block, var_len_blocks_) {
+  for (BufferedBlockMgr::Block* var_block: var_len_blocks_) {
     RETURN_IF_ERROR(var_block->Delete());
   }
   var_len_blocks_.clear();
@@ -703,7 +703,7 @@ void Sorter::Run::CollectNonNullVarSlots(Tuple* src,
     vector<StringValue*>* var_len_values, int* total_var_len) {
   var_len_values->clear();
   *total_var_len = 0;
-  BOOST_FOREACH(const SlotDescriptor* var_slot, sort_tuple_desc_->string_slots()) {
+  for (const SlotDescriptor* var_slot: sort_tuple_desc_->string_slots()) {
     if (!src->IsNull(var_slot->null_indicator_offset())) {
       StringValue* string_val =
           reinterpret_cast<StringValue*>(src->GetSlot(var_slot->tuple_offset()));
@@ -737,7 +737,7 @@ Status Sorter::Run::TryAddBlock(vector<BufferedBlockMgr::Block*>* block_sequence
 }
 
 void Sorter::Run::CopyVarLenData(char* dest, const vector<StringValue*>& var_values) {
-  BOOST_FOREACH(StringValue* var_val, var_values) {
+  for (StringValue* var_val: var_values) {
     memcpy(dest, var_val->ptr, var_val->len);
     var_val->ptr = dest;
     dest += var_val->len;
@@ -746,7 +746,7 @@ void Sorter::Run::CopyVarLenData(char* dest, const vector<StringValue*>& var_val
 
 void Sorter::Run::CopyVarLenDataConvertOffset(char* dest, int64_t offset,
     const vector<StringValue*>& var_values) {
-  BOOST_FOREACH(StringValue* var_val, var_values) {
+  for (StringValue* var_val: var_values) {
     memcpy(dest, var_val->ptr, var_val->len);
     var_val->ptr = reinterpret_cast<char*>(offset);
     dest += var_val->len;

@@ -16,7 +16,6 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/bind.hpp>
-#include <boost/foreach.hpp>
 #include <boost/mem_fn.hpp>
 #include <gutil/strings/substitute.h>
 
@@ -430,7 +429,7 @@ void AdmissionController::UpdatePoolStats(
     vector<TTopicDelta>* subscriber_topic_updates) {
   {
     lock_guard<mutex> lock(admission_ctrl_lock_);
-    BOOST_FOREACH(PoolStatsMap::value_type& entry, local_pool_stats_) {
+    for (PoolStatsMap::value_type& entry: local_pool_stats_) {
       UpdateLocalMemUsage(entry.first);
     }
     AddPoolUpdates(subscriber_topic_updates);
@@ -449,7 +448,7 @@ void AdmissionController::UpdatePoolStats(
       HandleTopicUpdates(delta.topic_entries);
       HandleTopicDeletions(delta.topic_deletions);
     }
-    BOOST_FOREACH(PoolStatsMap::value_type& entry, local_pool_stats_) {
+    for (PoolStatsMap::value_type& entry: local_pool_stats_) {
       UpdateClusterAggregates(entry.first);
     }
   }
@@ -457,7 +456,7 @@ void AdmissionController::UpdatePoolStats(
 }
 
 void AdmissionController::HandleTopicUpdates(const vector<TTopicItem>& topic_updates) {
-  BOOST_FOREACH(const TTopicItem& item, topic_updates) {
+  for (const TTopicItem& item: topic_updates) {
     string pool_name;
     string topic_backend_id;
     if (!ParsePoolTopicKey(item.key, &pool_name, &topic_backend_id)) continue;
@@ -492,7 +491,7 @@ void AdmissionController::HandleTopicUpdates(const vector<TTopicItem>& topic_upd
 }
 
 void AdmissionController::HandleTopicDeletions(const vector<string>& topic_deletions) {
-  BOOST_FOREACH(const string& topic_key, topic_deletions) {
+  for (const string& topic_key: topic_deletions) {
     string pool_name;
     string topic_backend_id;
     if (!ParsePoolTopicKey(topic_key, &pool_name, &topic_backend_id)) continue;
@@ -509,7 +508,7 @@ void AdmissionController::UpdateClusterAggregates(const string& pool_name) {
   const TPoolStats& local_stats = local_pool_stats_[pool_name];
   const PoolStatsMap& pool_map = per_backend_pool_stats_map_[pool_name];
   TPoolStats total_stats;
-  BOOST_FOREACH(const PoolStatsMap::value_type& entry, pool_map) {
+  for (const PoolStatsMap::value_type& entry: pool_map) {
     // Skip an update from this subscriber as the information may be outdated.
     // The current local_stats will be added below.
     if (entry.first == backend_id_) continue;
@@ -570,7 +569,7 @@ void AdmissionController::AddPoolUpdates(vector<TTopicDelta>* topic_updates) {
   topic_updates->push_back(TTopicDelta());
   TTopicDelta& topic_delta = topic_updates->back();
   topic_delta.topic_name = IMPALA_REQUEST_QUEUE_TOPIC;
-  BOOST_FOREACH(const string& pool_name, pools_for_updates_) {
+  for (const string& pool_name: pools_for_updates_) {
     DCHECK(local_pool_stats_.find(pool_name) != local_pool_stats_.end());
     TPoolStats& pool_stats = local_pool_stats_[pool_name];
     VLOG_ROW << "Sending topic update " << DebugPoolStats(pool_name, NULL, &pool_stats);
@@ -597,7 +596,7 @@ void AdmissionController::DequeueLoop() {
     unique_lock<mutex> lock(admission_ctrl_lock_);
     if (done_) break;
     dequeue_cv_.wait(lock);
-    BOOST_FOREACH(PoolStatsMap::value_type& entry, local_pool_stats_) {
+    for (PoolStatsMap::value_type& entry: local_pool_stats_) {
       const string& pool_name = entry.first;
       TPoolStats* local_stats = &entry.second;
 

@@ -20,7 +20,6 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/bind.hpp>
 #include <boost/mem_fn.hpp>
-#include <boost/foreach.hpp>
 #include <gutil/strings/substitute.h>
 
 #include "common/logging.h"
@@ -254,7 +253,7 @@ void SimpleScheduler::BackendsUrlCallback(const Webserver::ArgumentMap& args,
   BackendList backends;
   GetAllKnownBackends(&backends);
   Value backends_list(kArrayType);
-  BOOST_FOREACH(const BackendList::value_type& backend, backends) {
+  for (const BackendList::value_type& backend: backends) {
     Value str(TNetworkAddressToString(backend.address).c_str(), document->GetAllocator());
     backends_list.PushBack(str, document->GetAllocator());
   }
@@ -288,7 +287,7 @@ void SimpleScheduler::UpdateMembership(
       }
 
       // Process new entries to the topic
-      BOOST_FOREACH(const TTopicItem& item, delta.topic_entries) {
+      for (const TTopicItem& item: delta.topic_entries) {
         TBackendDescriptor be_desc;
         // Benchmarks have suggested that this method can deserialize
         // ~10m messages per second, so no immediate need to consider optimisation.
@@ -316,7 +315,7 @@ void SimpleScheduler::UpdateMembership(
         current_membership_.insert(make_pair(item.key, be_desc));
       }
       // Process deletions from the topic
-      BOOST_FOREACH(const string& backend_id, delta.topic_deletions) {
+      for (const string& backend_id: delta.topic_deletions) {
         if (current_membership_.find(backend_id) != current_membership_.end()) {
           const TBackendDescriptor& be_desc = current_membership_[backend_id];
           backend_ip_map_.erase(be_desc.address.hostname);
@@ -429,7 +428,7 @@ Status SimpleScheduler::GetBackend(const TNetworkAddress& data_location,
 void SimpleScheduler::GetAllKnownBackends(BackendList* backends) {
   lock_guard<mutex> lock(backend_map_lock_);
   backends->clear();
-  BOOST_FOREACH(const BackendMap::value_type& backend_list, backend_map_) {
+  for (const BackendMap::value_type& backend_list: backend_map_) {
     backends->insert(backends->end(), backend_list.second.begin(),
                      backend_list.second.end());
   }
@@ -476,7 +475,7 @@ Status SimpleScheduler::ComputeScanRangeAssignment(
   int64_t local_bytes = 0L;
   int64_t cached_bytes = 0L;
 
-  BOOST_FOREACH(const TScanRangeLocations& scan_range_locations, locations) {
+  for (const TScanRangeLocations& scan_range_locations: locations) {
     // assign this scan range to the host w/ the fewest assigned bytes
     uint64_t min_assigned_bytes = numeric_limits<uint64_t>::max();
     const TNetworkAddress* data_host = NULL;  // data server; not necessarily backend
@@ -486,7 +485,7 @@ Status SimpleScheduler::ComputeScanRangeAssignment(
     // Separate cached replicas from non-cached replicas
     vector<const TScanRangeLocation*> cached_locations;
     if (schedule_with_caching) {
-      BOOST_FOREACH(const TScanRangeLocation& location, scan_range_locations.locations) {
+      for (const TScanRangeLocation& location: scan_range_locations.locations) {
         // Adjust whether or not this replica should count as being cached based on
         // the query option and whether it is collocated. If the DN is not collocated
         // treat the replica as not cached (network transfer dominates anyway in this
@@ -499,7 +498,7 @@ Status SimpleScheduler::ComputeScanRangeAssignment(
     }
     // If no replicas are cached find the ones based on assigned bytes
     if (cached_locations.size() == 0) {
-      BOOST_FOREACH(const TScanRangeLocation& location, scan_range_locations.locations) {
+      for (const TScanRangeLocation& location: scan_range_locations.locations) {
         DCHECK_LT(location.host_idx, host_list.size());
         const TNetworkAddress& replica_host = host_list[location.host_idx];
         // Deprioritize non-collocated datanodes by assigning a very high initial bytes
@@ -576,16 +575,16 @@ Status SimpleScheduler::ComputeScanRangeAssignment(
     if (remote_hosts.size() > 0) {
       stringstream remote_node_log;
       remote_node_log << "Remote data node list: ";
-      BOOST_FOREACH(const TNetworkAddress& remote_host, remote_hosts) {
+      for (const TNetworkAddress& remote_host: remote_hosts) {
         remote_node_log << remote_host << " ";
       }
     }
 
-    BOOST_FOREACH(FragmentScanRangeAssignment::value_type& entry, *assignment) {
+    for (FragmentScanRangeAssignment::value_type& entry: *assignment) {
       VLOG_FILE << "ScanRangeAssignment: server=" << ThriftDebugString(entry.first);
-      BOOST_FOREACH(PerNodeScanRanges::value_type& per_node_scan_ranges, entry.second) {
+      for (PerNodeScanRanges::value_type& per_node_scan_ranges: entry.second) {
         stringstream str;
-        BOOST_FOREACH(TScanRangeParams& params, per_node_scan_ranges.second) {
+        for (TScanRangeParams& params: per_node_scan_ranges.second) {
           str << ThriftDebugString(params) << " ";
         }
         VLOG_FILE << "node_id=" << per_node_scan_ranges.first << " ranges=" << str.str();
@@ -601,7 +600,7 @@ void SimpleScheduler::ComputeFragmentExecParams(const TQueryExecRequest& exec_re
   vector<FragmentExecParams>* fragment_exec_params = schedule->exec_params();
   // assign instance ids
   int64_t num_backends = 0;
-  BOOST_FOREACH(FragmentExecParams& params, *fragment_exec_params) {
+  for (FragmentExecParams& params: *fragment_exec_params) {
     for (int j = 0; j < params.hosts.size(); ++j) {
       int instance_num = num_backends + j;
       // we add instance_num to query_id.lo to create a globally-unique instance id
@@ -730,7 +729,7 @@ void SimpleScheduler::ComputeFragmentHosts(const TQueryExecRequest& exec_request
   }
 
   unordered_set<TNetworkAddress> unique_hosts;
-  BOOST_FOREACH(const FragmentExecParams& exec_params, *fragment_exec_params) {
+  for (const FragmentExecParams& exec_params: *fragment_exec_params) {
     unique_hosts.insert(exec_params.hosts.begin(), exec_params.hosts.end());
   }
 
@@ -789,7 +788,7 @@ void SimpleScheduler::GetScanHosts(TPlanNodeId scan_id,
   }
 
   // Get the list of impalad host from scan_range_assignment_
-  BOOST_FOREACH(const FragmentScanRangeAssignment::value_type& scan_range_assignment,
+  for (const FragmentScanRangeAssignment::value_type& scan_range_assignment:
       params.scan_range_assignment) {
     scan_hosts->push_back(scan_range_assignment.first);
   }

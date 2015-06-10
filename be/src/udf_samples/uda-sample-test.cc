@@ -78,7 +78,7 @@ bool TestStringConcat() {
   values.push_back("World");
 
   vector<StringVal> separators;
-  for(int i = 0; i < values.size(); ++i) {
+  for (int i = 0; i < values.size(); ++i) {
     separators.push_back(",");
   }
   if (!test.Execute(values, separators, StringVal("Hello,World"))) {

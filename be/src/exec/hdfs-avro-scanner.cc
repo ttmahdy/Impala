@@ -17,7 +17,6 @@
 #include <avro/errors.h>
 #include <avro/legacy.h>
 #include <avro/schema.h>
-#include <boost/foreach.hpp>
 
 #include "codegen/llvm-codegen.h"
 #include "exec/hdfs-scan-node.h"
@@ -308,7 +307,7 @@ Status HdfsAvroScanner::ResolveSchemas(const avro_schema_t& table_schema,
 
   // Check that all materialized fields either appear in the file schema or have a default
   // value in the table schema
-  BOOST_FOREACH(SlotDescriptor* slot_desc, scan_node_->materialized_slots()) {
+  for (SlotDescriptor* slot_desc: scan_node_->materialized_slots()) {
     int col_idx = slot_desc->col_pos() - scan_node_->num_partition_keys();
     if (file_field_found[col_idx]) continue;
 
@@ -583,7 +582,7 @@ Status HdfsAvroScanner::ProcessRange() {
 }
 
 void HdfsAvroScanner::MaterializeTuple(MemPool* pool, uint8_t** data, Tuple* tuple) {
-  BOOST_FOREACH(const SchemaElement& element, avro_header_->schema) {
+  for (const SchemaElement& element: avro_header_->schema) {
     const SlotDescriptor* slot_desc = element.slot_desc;
     bool write_slot = false;
     void* slot = NULL;

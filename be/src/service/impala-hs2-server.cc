@@ -21,7 +21,6 @@
 #include <jni.h>
 #include <thrift/protocol/TDebugProtocol.h>
 #include <gtest/gtest.h>
-#include <boost/foreach.hpp>
 #include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
 #include <google/heap-profiler.h>
@@ -81,7 +80,7 @@ int64_t ByteSize(const thrift::TColumnValue& val) {
 
 static int64_t ByteSize(const thrift::TRow& row) {
   int64_t bytes = sizeof(row);
-  BOOST_FOREACH(const thrift::TColumnValue& c, row.colVals) {
+  for (const thrift::TColumnValue& c: row.colVals) {
     bytes += ByteSize(c);
   }
   return bytes;
@@ -241,7 +240,7 @@ class ImpalaServer::HS2ColumnarResultSet : public ImpalaServer::QueryResultSet {
   virtual int64_t ByteSize(int start_idx, int num_rows) {
     const int end = min(start_idx + num_rows, (int)size());
     int64_t bytes = 0L;
-    BOOST_FOREACH(const thrift::TColumn& c, result_set_->columns) {
+    for (const thrift::TColumn& c: result_set_->columns) {
       bytes += TColumnByteSize(c, start_idx, end);
     }
     return bytes;
@@ -264,7 +263,7 @@ class ImpalaServer::HS2ColumnarResultSet : public ImpalaServer::QueryResultSet {
 
   void InitColumns() {
     result_set_->__isset.columns = true;
-    BOOST_FOREACH(const TColumn& col, metadata_.columns) {
+    for (const TColumn& col: metadata_.columns) {
       DCHECK(col.columnType.types.size() == 1) <<
           "Structured columns unsupported in HS2 interface";
       thrift::TColumn column;

@@ -128,7 +128,7 @@ class ErrorMsg {
   std::string GetFullMessageDetails() const {
     std::stringstream ss;
     ss << message_ << "\n";
-    for(size_t i=0, end=details_.size(); i < end; ++i) {
+    for (size_t i=0, end=details_.size(); i < end; ++i) {
       ss << details_[i] << "\n";
     }
     return ss.str();
