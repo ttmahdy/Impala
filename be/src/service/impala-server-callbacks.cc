@@ -166,7 +166,7 @@ void ImpalaServer::QueryMetricsUrlCallback(const Webserver::ArgumentMap& args,
   TUniqueId unique_id;
   Status parse_status = ParseQueryId(args, &unique_id);
   if (!parse_status.ok()) {
-    Value error(parse_status.GetErrorMsg().c_str(), document->GetAllocator());
+    Value error(parse_status.GetDetail().c_str(), document->GetAllocator());
     document->AddMember("error", error, document->GetAllocator());
     return;
   }

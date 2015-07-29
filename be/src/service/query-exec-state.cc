@@ -82,7 +82,9 @@ ImpalaServer::QueryExecState::QueryExecState(
 
   row_materialization_timer_ = ADD_TIMER(&server_profile_, "RowMaterializationTimer");
   client_wait_timer_ = ADD_TIMER(&server_profile_, "ClientFetchWaitTimer");
-  client_wait_metric_ = metrics_->AddCounter("ClientFetchWaitTimer", 0L, TUnit::TIME_NS);
+  client_wait_metric_ = metrics_->RegisterMetric(new IntCounter(
+          MakeMetricDef("ClientFetchWaitTimer", TMetricKind::COUNTER, TUnit::TIME_NS),
+          0L));
   query_events_ = summary_profile_.AddEventSequence("Query Timeline");
   query_events_->Start();
   profile_.AddChild(&summary_profile_);
