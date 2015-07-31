@@ -96,7 +96,8 @@ class Coordinator {
   /// Populates and prepares output_expr_ctxs from the coordinator's fragment if there is
   /// one, and LLVM optimizes them together with the fragment's other exprs.
   /// A call to Exec() must precede all other member function calls.
-  Status Exec(QuerySchedule& schedule, std::vector<ExprContext*>* output_expr_ctxs);
+  Status Exec(QuerySchedule& schedule, std::vector<ExprContext*>* output_expr_ctxs,
+      MetricGroup* metrics);
 
   /// Blocks until result rows are ready to be retrieved via GetNext(), or, if the
   /// query doesn't return rows, until the query finishes or is cancelled.
@@ -304,6 +305,8 @@ class Coordinator {
 
   /// Aggregate counters for the entire query.
   boost::scoped_ptr<RuntimeProfile> query_profile_;
+  MetricGroup* query_profile2_;
+
 
   /// Event timeline for this query. Unowned.
   RuntimeProfile::EventSequence* query_events_;

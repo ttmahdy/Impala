@@ -218,3 +218,7 @@ TMetricDef impala::MakeMetricDef(const std::string& key, TMetricKind::type kind,
   ret.__set_units(units);
   return ret;
 }
+
+TMetricDef impala::MakePropertyDef(const string& key) {
+  return MakeMetricDef(key, TMetricKind::PROPERTY, TUnit::NONE);
+}

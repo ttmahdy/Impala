@@ -78,19 +78,21 @@ ImpalaServer::QueryExecState::QueryExecState(
     frontend_(frontend),
     parent_server_(server),
     start_time_(TimestampValue::LocalTime()) {
-  metrics_.reset(new MetricGroup("Query (id=" + PrintId(query_id()) + ")"));
+  //metrics_.reset(new MetricGroup("Query (id=" + PrintId(query_id()) + ")"));
 
   row_materialization_timer_ = ADD_TIMER(&server_profile_, "RowMaterializationTimer");
   client_wait_timer_ = ADD_TIMER(&server_profile_, "ClientFetchWaitTimer");
-  client_wait_metric_ = metrics_->RegisterMetric(new IntCounter(
-          MakeMetricDef("ClientFetchWaitTimer", TMetricKind::COUNTER, TUnit::TIME_NS),
-          0L));
   query_events_ = summary_profile_.AddEventSequence("Query Timeline");
   query_events_->Start();
   profile_.AddChild(&summary_profile_);
 
   profile_.set_name("Query (id=" + PrintId(query_id()) + ")");
-  MetricGroup* summary_metrics = metrics_->GetChildGroup("Summary");
+
+  profile2_.reset(new RuntimeProfile2(query_id()));
+  MetricGroup* summary_metrics = profile2_->query_metrics_->GetChildGroup("Summary");
+  client_wait_metric_ = profile2_->query_metrics_->RegisterMetric(new IntCounter(
+          MakeMetricDef("ClientFetchWaitTimer", TMetricKind::COUNTER, TUnit::TIME_NS),
+          0L));
 
   summary_profile_.AddInfoString("Session ID", PrintId(session_id()));
   summary_profile_.AddInfoString("Session Type", PrintTSessionType(session_type()));
@@ -114,22 +116,22 @@ ImpalaServer::QueryExecState::QueryExecState(
   summary_profile_.AddInfoString("Coordinator",
       TNetworkAddressToString(exec_env->backend_address()));
 
-  summary_metrics->AddProperty("Start Time", start_time().DebugString());
-  summary_metrics->AddProperty<string>("End Time", "");
-  summary_metrics->AddProperty<string>("Query Type", "N/A");
-  summary_metrics->AddProperty("Query State", PrintQueryState(query_state_));
-  summary_metrics->AddProperty<string>("Query Status", "OK");
-  summary_metrics->AddProperty<string>("Impala Version", GetVersionString(/* compact */ true));
-  summary_metrics->AddProperty("User", effective_user());
-  summary_metrics->AddProperty("Connected User", connected_user());
-  summary_metrics->AddProperty("Delegated User", do_as_user());
-  summary_metrics->AddProperty("Network Address",
-      lexical_cast<string>(session_->network_address));
-  summary_metrics->AddProperty("Default Db", default_db());
-  summary_metrics->AddProperty("Sql Statement", query_ctx_.request.stmt);
-  summary_metrics->AddProperty("Coordinator",
-      TNetworkAddressToString(exec_env->backend_address()));
-
+  summary_metrics->RegisterMetric(new StringProperty(MakePropertyDef("Start Time"),
+          start_time().DebugString()));
+  summary_metrics->RegisterMetric(new StringProperty(MakePropertyDef("End Time"), ""));
+  summary_metrics->RegisterMetric(new StringProperty(MakePropertyDef("Query Type"), "N/A"));
+  summary_metrics->RegisterMetric(new StringProperty(MakePropertyDef("Query State"), PrintQueryState(query_state_)));
+  summary_metrics->RegisterMetric(new StringProperty(MakePropertyDef("Query Status"), "OK"));
+  summary_metrics->RegisterMetric(new StringProperty(MakePropertyDef("Impala Version"), GetVersionString(/* compact */ true)));
+  summary_metrics->RegisterMetric(new StringProperty(MakePropertyDef("User"), effective_user()));
+  summary_metrics->RegisterMetric(new StringProperty(MakePropertyDef("Connected User"), connected_user()));
+  summary_metrics->RegisterMetric(new StringProperty(MakePropertyDef("Delegated User"), do_as_user()));
+  summary_metrics->RegisterMetric(new StringProperty(MakePropertyDef("Network Address"),
+          lexical_cast<string>(session_->network_address)));
+  summary_metrics->RegisterMetric(new StringProperty(MakePropertyDef("Default Db"), default_db()));
+  summary_metrics->RegisterMetric(new StringProperty(MakePropertyDef("Sql Statement"), query_ctx_.request.stmt));
+  summary_metrics->RegisterMetric(new StringProperty(MakePropertyDef("Coordinator"),
+          TNetworkAddressToString(exec_env->backend_address())));
 }
 
 ImpalaServer::QueryExecState::~QueryExecState() {
@@ -153,6 +155,8 @@ Status ImpalaServer::QueryExecState::SetResultCache(QueryResultSet* cache,
 Status ImpalaServer::QueryExecState::Exec(TExecRequest* exec_request) {
   MarkActive();
   exec_request_ = *exec_request;
+  profile2_->InitFromPlan(exec_request_.query_exec_request.fragments);
+
 
   profile_.AddChild(&server_profile_);
   summary_profile_.AddInfoString("Query Type", PrintTStmtType(stmt_type()));
@@ -456,7 +460,8 @@ Status ImpalaServer::QueryExecState::ExecQueryOrDmlRequest(
     summary_profile_.AddInfoString("Granted resource reservation", reservation_ss.str());
     query_events_->MarkEvent("Resources reserved");
   }
-  status = coord_->Exec(*schedule_, &output_expr_ctxs_);
+  status = coord_->Exec(*schedule_, &output_expr_ctxs_,
+      profile2_->query_metrics_->GetChildGroup("Coordinator"));
   {
     lock_guard<mutex> l(lock_);
     RETURN_IF_ERROR(UpdateQueryStatus(status));

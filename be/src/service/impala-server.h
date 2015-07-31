@@ -65,6 +65,7 @@ class TSessionState;
 class TQueryOptions;
 class TGetExecSummaryResp;
 class TGetExecSummaryReq;
+class RuntimeProfile2;
 
 /// An ImpalaServer contains both frontend and backend functionality;
 /// it implements ImpalaService (Beeswax), ImpalaHiveServer2Service (HiveServer2)
@@ -620,7 +621,7 @@ class ImpalaServer : public ImpalaServiceIf, public ImpalaHiveServer2ServiceIf,
     /// Comparator that sorts by start time.
     bool operator() (const QueryStateRecord& lhs, const QueryStateRecord& rhs) const;
 
-    boost::shared_ptr<MetricGroup> metrics;
+    boost::shared_ptr<RuntimeProfile2> profile;
   };
 
   /// Helper method to render a single QueryStateRecord as a Json object

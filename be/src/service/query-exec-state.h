@@ -18,6 +18,7 @@
 #include "common/status.h"
 #include "exec/catalog-op-executor.h"
 #include "util/runtime-profile.h"
+#include "util/runtime-profile2.h"
 #include "runtime/timestamp-value.h"
 #include "service/child-query.h"
 #include "statestore/query-schedule.h"
@@ -193,7 +194,7 @@ class ImpalaServer::QueryExecState {
   RuntimeProfile::EventSequence* query_events() const { return query_events_; }
   RuntimeProfile* summary_profile() { return &summary_profile_; }
 
-  boost::shared_ptr<MetricGroup> metrics() { return metrics_; }
+  boost::shared_ptr<RuntimeProfile2> profile2() { return profile2_; }
 
  private:
   const TQueryCtx query_ctx_;
@@ -268,7 +269,9 @@ class ImpalaServer::QueryExecState {
   RuntimeProfile summary_profile_;
   RuntimeProfile::Counter* row_materialization_timer_;
 
-  boost::shared_ptr<MetricGroup> metrics_;
+  boost::shared_ptr<RuntimeProfile2> profile2_;
+
+  //boost::shared_ptr<MetricGroup> metrics_;
   IntCounter* client_wait_metric_;
 
   // Tracks how long we are idle waiting for a client to fetch rows.

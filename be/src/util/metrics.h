@@ -345,7 +345,7 @@ typedef class SimpleMetric<bool, TMetricKind::PROPERTY> BooleanProperty;
 typedef class SimpleMetric<std::string, TMetricKind::PROPERTY> StringProperty;
 
 TMetricDef MakeMetricDef(const std::string& key, TMetricKind::type kind, TUnit::type units);
-
+TMetricDef MakePropertyDef(const std::string& key);
 }
 
 #endif // IMPALA_UTIL_METRICS_H

@@ -304,7 +304,7 @@ static void ProcessQueryOptions(
 }
 
 Status Coordinator::Exec(QuerySchedule& schedule,
-    vector<ExprContext*>* output_expr_ctxs) {
+    vector<ExprContext*>* output_expr_ctxs, MetricGroup* metrics) {
   const TQueryExecRequest& request = schedule.request();
   DCHECK_GT(request.fragments.size(), 0);
   needs_finalization_ = request.__isset.finalize_params;
@@ -320,9 +320,14 @@ Status Coordinator::Exec(QuerySchedule& schedule,
 
   query_profile_.reset(
       new RuntimeProfile(obj_pool(), "Execution Profile " + PrintId(query_id_)));
+  query_profile2_ = metrics;
   finalization_timer_ = ADD_TIMER(query_profile_, "FinalizationTimer");
 
+
   SCOPED_TIMER(query_profile_->total_time_counter());
+  IntCounter* total_time = query_profile2_->RegisterMetric(new IntCounter(
+          MakeMetricDef("TotalTime", TMetricKind::COUNTER, TUnit::TIME_NS),
+          0L));
 
   vector<FragmentExecParams>* fragment_exec_params = schedule.exec_params();
   TNetworkAddress coord = MakeNetworkAddress(FLAGS_hostname, FLAGS_be_port);
@@ -461,6 +466,8 @@ Status Coordinator::Exec(QuerySchedule& schedule,
   ss << "Query " << query_id_;
   progress_ = ProgressUpdater(ss.str(), schedule.num_scan_ranges());
 
+
+  total_time->set_value(query_profile_->total_time_counter()->value());
   return Status::OK();
 }
 

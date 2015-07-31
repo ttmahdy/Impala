@@ -176,7 +176,7 @@ void ImpalaServer::QueryMetricsUrlCallback(const Webserver::ArgumentMap& args,
     QueryExecStateMap::const_iterator exec_state = query_exec_state_map_.find(unique_id);
     if (exec_state != query_exec_state_map_.end()) {
       Value container;
-      exec_state->second->metrics()->ToJson(true, document, &container);
+      exec_state->second->profile2()->query_metrics_->ToJson(true, document, &container);
       document->AddMember("metric_group", container, document->GetAllocator());
       //      exec_state->second->metrics()->TemplateCallback(args, document);
       return;
@@ -191,7 +191,7 @@ void ImpalaServer::QueryMetricsUrlCallback(const Webserver::ArgumentMap& args,
       return;
     }
     Value container;
-    query_record->second->metrics->ToJson(true, document, &container);
+    query_record->second->profile->query_metrics_->ToJson(true, document, &container);
     document->AddMember("metric_group", container, document->GetAllocator());
     return;
   }
