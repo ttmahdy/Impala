@@ -58,6 +58,7 @@
 #include "util/network-util.h"
 #include "util/pretty-printer.h"
 #include "util/summary-util.h"
+#include "util/timer-metric.h"
 #include "gen-cpp/ImpalaInternalService.h"
 #include "gen-cpp/ImpalaInternalService_types.h"
 #include "gen-cpp/Frontend_types.h"
@@ -325,9 +326,10 @@ Status Coordinator::Exec(QuerySchedule& schedule,
 
 
   SCOPED_TIMER(query_profile_->total_time_counter());
-  IntCounter* total_time = query_profile2_->RegisterMetric(new IntCounter(
-          MakeMetricDef("TotalTime", TMetricKind::COUNTER, TUnit::TIME_NS),
-          0L));
+  TimerMetric* total_time = query_profile2_->RegisterMetric(
+      new TimerMetric(
+          MakeMetricDef("TotalTime", TMetricKind::COUNTER, TUnit::TIME_NS)));
+  total_time->Start();
 
   vector<FragmentExecParams>* fragment_exec_params = schedule.exec_params();
   TNetworkAddress coord = MakeNetworkAddress(FLAGS_hostname, FLAGS_be_port);
@@ -467,7 +469,7 @@ Status Coordinator::Exec(QuerySchedule& schedule,
   progress_ = ProgressUpdater(ss.str(), schedule.num_scan_ranges());
 
 
-  total_time->set_value(query_profile_->total_time_counter()->value());
+  total_time->Stop();
   return Status::OK();
 }
 
