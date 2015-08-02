@@ -326,10 +326,10 @@ Status Coordinator::Exec(QuerySchedule& schedule,
 
 
   SCOPED_TIMER(query_profile_->total_time_counter());
-  TimerMetric* total_time = query_profile2_->RegisterMetric(
+  TimerMetric* total_timer = query_profile2_->RegisterMetric(
       new TimerMetric(
           MakeMetricDef("TotalTime", TMetricKind::COUNTER, TUnit::TIME_NS)));
-  total_time->Start();
+  ScopedTimerMetric total_time(total_timer);
 
   vector<FragmentExecParams>* fragment_exec_params = schedule.exec_params();
   TNetworkAddress coord = MakeNetworkAddress(FLAGS_hostname, FLAGS_be_port);
@@ -468,8 +468,6 @@ Status Coordinator::Exec(QuerySchedule& schedule,
   ss << "Query " << query_id_;
   progress_ = ProgressUpdater(ss.str(), schedule.num_scan_ranges());
 
-
-  total_time->Stop();
   return Status::OK();
 }
 

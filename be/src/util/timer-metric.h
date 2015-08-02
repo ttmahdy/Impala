@@ -41,6 +41,12 @@ class TimerMetric : public Metric {
   MonotonicStopWatch stopwatch_;
 };
 
+struct ScopedTimerMetric {
+  ScopedTimerMetric(TimerMetric* m) : metric(m) { metric->Start(); }
+  ~ScopedTimerMetric() { metric->Stop(); }
+  TimerMetric* metric;
+};
+
 }
 
 #endif
