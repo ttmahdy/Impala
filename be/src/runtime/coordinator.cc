@@ -326,10 +326,10 @@ Status Coordinator::Exec(QuerySchedule& schedule,
 
 
   SCOPED_TIMER(query_profile_->total_time_counter());
-  TimerMetric* total_timer = query_profile2_->RegisterMetric(
+  TimerMetric* total_time_metric_ = query_profile2_->RegisterMetric(
       new TimerMetric(
           MakeMetricDef("TotalTime", TMetricKind::COUNTER, TUnit::TIME_NS)));
-  ScopedTimerMetric total_time(total_timer);
+  ScopedTimerMetric total_time(total_time_metric_);
 
   vector<FragmentExecParams>* fragment_exec_params = schedule.exec_params();
   TNetworkAddress coord = MakeNetworkAddress(FLAGS_hostname, FLAGS_be_port);
@@ -757,6 +757,8 @@ Status Coordinator::FinalizeQuery() {
 
   VLOG_QUERY << "Finalizing query: " << query_id_;
   SCOPED_TIMER(finalization_timer_);
+  ScopedTimerMetric finalization_time(query_profile2_->RegisterMetric(new TimerMetric(
+      MakeMetricDef("FinalizationTime", TMetricKind::COUNTER, TUnit::TIME_NS))));
   Status return_status = GetStatus();
   if (return_status.ok()) {
     return_status = FinalizeSuccessfulInsert();
@@ -792,7 +794,9 @@ Status Coordinator::WaitForAllBackends() {
 
 Status Coordinator::Wait() {
   lock_guard<mutex> l(wait_lock_);
+
   SCOPED_TIMER(query_profile_->total_time_counter());
+  ScopedTimerMetric total_time(total_time_metric_);
   if (has_called_wait_) return Status::OK();
   has_called_wait_ = true;
   Status return_status = Status::OK();
@@ -847,6 +851,7 @@ Status Coordinator::Wait() {
 Status Coordinator::GetNext(RowBatch** batch, RuntimeState* state) {
   VLOG_ROW << "GetNext() query_id=" << query_id_;
   DCHECK(has_called_wait_);
+  ScopedTimerMetric total_time(total_time_metric_);
   SCOPED_TIMER(query_profile_->total_time_counter());
 
   if (executor_.get() == NULL) {

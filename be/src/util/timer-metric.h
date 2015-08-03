@@ -35,8 +35,6 @@ class TimerMetric : public Metric {
   void Start() { stopwatch_.Start(); }
   void Stop() { stopwatch_.Stop(); }
 
-
-
  private:
   MonotonicStopWatch stopwatch_;
 };

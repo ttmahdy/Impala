@@ -35,6 +35,42 @@ using namespace strings;
 namespace impala {
 
 template <>
+TSimpleMetric ToTSimpleMetric(const double& val) {
+  TSimpleMetric ret;
+  ret.__set_dbl(val);
+  return ret;
+}
+
+template <>
+TSimpleMetric ToTSimpleMetric(const int64_t& val) {
+  TSimpleMetric ret;
+  ret.__set_int64(val);
+  return ret;
+}
+
+template <>
+TSimpleMetric ToTSimpleMetric(const std::string& val) {
+  TSimpleMetric ret;
+  ret.__set_str(val);
+  return ret;
+}
+
+template <>
+TSimpleMetric ToTSimpleMetric(const bool& val) {
+  TSimpleMetric ret;
+  ret.__set_boolean(val);
+  return ret;
+}
+
+template <>
+TSimpleMetric ToTSimpleMetric(const uint64_t& val) {
+  TSimpleMetric ret;
+  ret.__set_int64(val);
+  return ret;
+}
+
+
+template <>
 void ToJsonValue<string>(const string& value, const TUnit::type unit,
     Document* document, Value* out_val) {
   Value val(value.c_str(), document->GetAllocator());

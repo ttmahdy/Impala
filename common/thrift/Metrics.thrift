@@ -42,5 +42,41 @@ enum TMetricKind {
   PROPERTY,
   STATS,
   SET,
-  HISTOGRAM
+  HISTOGRAM,
+  TIMER
 }
+
+union TSimpleMetric {
+  1: i64 int64
+  2: double dbl
+  3: string str
+  4: bool boolean
+}
+
+union TMetricInstance {
+  1: TSimpleMetric simple
+  // 1: TGaugeMetric gauge;
+  // 2: TCounterMetric counter;
+  // 3: TPropertyMetric property;
+  // 4: TStatsMetric stats;
+  // //5: TSetMetric set;
+  // 6: THistogramMetric histogram;
+  // 7: TTimerMetric timer;
+}
+
+struct TMetric {
+  1: optional string key;
+  2: optional TMetricInstance metric;
+}
+
+struct TMetricGroup {
+  1: optional list<TMetric> metrics;
+  2: optional i32 num_children;
+  3: optional string name;
+}
+
+struct TMetricTree {
+  1: optional list<TMetricGroup> groups;
+}
+
+// TODO: Flattened metric groups

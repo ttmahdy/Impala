@@ -62,6 +62,7 @@ class TPlanExecRequest;
 class TRuntimeProfileTree;
 class RuntimeProfile;
 class TablePrinter;
+class TimerMetric;
 
 /// Query coordinator: handles execution of plan fragments on remote nodes, given
 /// a TQueryExecRequest. As part of that, it handles all interactions with the
@@ -349,6 +350,8 @@ class Coordinator {
 
   /// Total time spent in finalization (typically 0 except for INSERT into hdfs tables)
   RuntimeProfile::Counter* finalization_timer_;
+
+  TimerMetric* total_time_metric_;
 
   /// Fill in rpc_params based on parameters.
   void SetExecPlanFragmentParams(QuerySchedule& schedule,
