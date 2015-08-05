@@ -269,9 +269,50 @@ void MetricGroup::ToTMetricGroup(vector<TMetricGroup>* groups) {
   }
 }
 
+template <TMetricKind::type V>
+Metric* SimpleMetricFactory(const TMetricDef& def, const TSimpleMetric& metric) {
+  if (metric.__isset.int64) {
+    return new SimpleMetric<int64_t, V>(def, metric.int64);
+  } else if (metric.__isset.dbl) {
+    return new SimpleMetric<double, V>(def, metric.dbl);
+  } else if (metric.__isset.str) {
+    return new SimpleMetric<string, V>(def, metric.str);
+  } else if (metric.__isset.boolean) {
+    return new SimpleMetric<bool, V>(def, metric.boolean);
+  } else {
+    return NULL;
+  }
+}
+
+Metric* MetricFactory(const TMetric& metric) {
+  const TMetricDef& def =
+      metric.__isset.metric_def ? metric.metric_def : MetricDefs::Get(metric.key);
+
+  if (metric.metric.__isset.simple) {
+    switch (def.kind) {
+      case TMetricKind::GAUGE:
+        return SimpleMetricFactory<TMetricKind::GAUGE>(def, metric.metric.simple);
+      case TMetricKind::PROPERTY:
+        return SimpleMetricFactory<TMetricKind::PROPERTY>(def, metric.metric.simple);
+      case TMetricKind::COUNTER:
+        return SimpleMetricFactory<TMetricKind::COUNTER>(def, metric.metric.simple);
+      default:
+        return NULL;
+    }
+  } else {
+    // DCHECK(false);
+    return NULL;
+  }
+}
+
 void MetricGroup::FromThriftHelper(vector<TMetricGroup>::const_iterator it,
     MetricGroup* cur) {
   // cur is *it
+  BOOST_FOREACH(const TMetric& metric, it->metrics) {
+    Metric* m = MetricFactory(metric);
+    if (m == NULL) continue;
+    cur->RegisterMetric(m);
+  }
   // TODO: Add all metrics
   int32_t num_children = it->num_children;
   for (int32_t i = 0; i < num_children; ++i) {

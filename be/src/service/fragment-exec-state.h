@@ -33,7 +33,7 @@ class FragmentMgr::FragmentExecState {
     : fragment_instance_ctx_(fragment_instance_ctx),
       executor_(exec_env, boost::bind<void>(
           boost::mem_fn(&FragmentMgr::FragmentExecState::ReportStatusCb),
-              this, _1, _2, _3)),
+          this, _1, _2, _3, _4)),
       client_cache_(exec_env->impalad_client_cache()) {
   }
 
@@ -84,7 +84,8 @@ class FragmentMgr::FragmentExecState {
 
   /// Callback for executor; updates exec_status_ if 'status' indicates an error
   /// or if there was a thrift error.
-  void ReportStatusCb(const Status& status, RuntimeProfile* profile, bool done);
+  void ReportStatusCb(const Status& status, RuntimeProfile* profile, bool done,
+      MetricGroup* metrics);
 
   /// Update exec_status_ w/ status, if the former isn't already an error.
   /// Returns current exec_status_.

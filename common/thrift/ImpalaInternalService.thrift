@@ -376,6 +376,8 @@ struct TReportExecStatusParams {
 
   // New errors that have not been reported to the coordinator
   9: optional map<ErrorCodes.TErrorCode, TErrorLogEntry> error_log;
+
+  10: optional Metrics.TMetricTree metrics
 }
 
 struct TReportExecStatusResult {

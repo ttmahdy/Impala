@@ -70,7 +70,7 @@ class PlanFragmentExecutor {
   /// functions like PrettyPrint() or ToThrift(), neither of which is const
   /// because they take locks.
   typedef boost::function<
-      void (const Status& status, RuntimeProfile* profile, bool done)>
+   void (const Status& status, RuntimeProfile* profile, bool done, MetricGroup* metrics)>
       ReportStatusCallback;
 
   /// report_status_cb, if !empty(), is used to report the accumulated profile
