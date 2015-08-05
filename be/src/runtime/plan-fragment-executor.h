@@ -220,6 +220,8 @@ class PlanFragmentExecutor {
   /// typedef for TPlanFragmentExecParams.per_node_scan_ranges
   typedef std::map<TPlanNodeId, std::vector<TScanRangeParams> > PerNodeScanRanges;
 
+  boost::scoped_ptr<MetricGroup> metrics_;
+
   /// Main loop of profile reporting thread.
   /// Exits when notified on done_cv_.
   /// On exit, *no report is sent*, ie, this will not send the final report.

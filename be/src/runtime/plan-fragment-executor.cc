@@ -82,6 +82,9 @@ Status PlanFragmentExecutor::Prepare(const TExecPlanFragmentParams& request) {
   const TPlanFragmentExecParams& params = request.params;
   query_id_ = request.fragment_instance_ctx.query_ctx.query_id;
 
+  metrics_.reset(new MetricGroup(Substitute("PlanFragment-$0",
+      PrintId(request.fragment_instance_ctx.fragment_instance_id))));
+
   VLOG_QUERY << "Prepare(): query_id=" << PrintId(query_id_) << " instance_id="
              << PrintId(request.fragment_instance_ctx.fragment_instance_id);
   VLOG(2) << "params:\n" << ThriftDebugString(params);
@@ -435,7 +438,7 @@ void PlanFragmentExecutor::SendReport(bool done) {
   // This will send a report even if we are cancelled.  If the query completed correctly
   // but fragments still need to be cancelled (e.g. limit reached), the coordinator will
   // be waiting for a final report and profile.
-  report_status_cb_(status, profile(), done || !status.ok());
+  report_status_cb_(status, profile(), done || !status.ok(), metrics_.get());
 }
 
 void PlanFragmentExecutor::StopReportThread() {

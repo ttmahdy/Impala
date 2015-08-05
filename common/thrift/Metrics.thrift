@@ -75,8 +75,8 @@ union TMetricInstance {
 }
 
 struct TMetric {
-  1: optional string key;
-  2: optional TMetricInstance metric;
+  1: optional string key
+  2: optional TMetricInstance metric
   3: optional TMetricDef metric_def
 }
 

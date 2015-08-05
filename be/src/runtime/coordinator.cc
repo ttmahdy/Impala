@@ -1249,6 +1249,9 @@ Status Coordinator::UpdateFragmentExecStatus(const TReportExecStatusParams& para
   }
   BackendExecState* exec_state = backend_exec_states_[params.backend_num];
 
+  MetricGroup::FromThrift(params.metrics,
+      query_profile2_->GetChildGroup("params-instances-1"));
+
   const TRuntimeProfileTree& cumulative_profile = params.profile;
   Status status(params.status);
   {

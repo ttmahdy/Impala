@@ -56,7 +56,7 @@ void FragmentMgr::FragmentExecState::Exec() {
 // Also, the reported status will always reflect the most recent execution status,
 // including the final status when execution finishes.
 void FragmentMgr::FragmentExecState::ReportStatusCb(
-    const Status& status, RuntimeProfile* profile, bool done) {
+    const Status& status, RuntimeProfile* profile, bool done, MetricGroup* metrics) {
   DCHECK(status.ok() || done);  // if !status.ok() => done
   Status exec_status = UpdateStatus(status);
 
@@ -78,6 +78,7 @@ void FragmentMgr::FragmentExecState::ReportStatusCb(
   params.__set_done(done);
   profile->ToThrift(&params.profile);
   params.__isset.profile = true;
+  params.__set_metrics(metrics->ToThrift());
 
   RuntimeState* runtime_state = executor_.runtime_state();
   DCHECK(runtime_state != NULL);

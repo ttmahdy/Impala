@@ -31,6 +31,7 @@ include "Results.thrift"
 include "RuntimeProfile.thrift"
 include "ImpalaService.thrift"
 include "Llama.thrift"
+include "Metrics.thrift"
 
 // constants for TQueryOptions.num_nodes
 const i32 NUM_NODES_ALL = 0
