@@ -41,15 +41,6 @@ namespace impala {
 template <typename T>
 TSimpleMetric ToTSimpleMetric(const T& val);
 
-template <>
-TSimpleMetric ToTSimpleMetric(const double& val);
-
-template <>
-TSimpleMetric ToTSimpleMetric(const int64_t& val);
-
-template <>
-TSimpleMetric ToTSimpleMetric(const std::string& val);
-
 /// Singleton that provides metric definitions. Metrics are defined in metrics.json
 /// and generate_metrics.py produces MetricDefs.thrift. This singleton wraps an instance
 /// of the thrift definitions.
@@ -205,25 +196,10 @@ class SimpleMetric : public Metric {
 
   const TMetric ToThrift() {
     TMetric ret;
+    ret.__set_key(key());
     ret.__set_metric(TMetricInstance());
     ret.metric.__set_simple(ToTSimpleMetric(value()));
     return ret;
-    // switch (kind()) {
-    //   case TMetricKind::PROPERTY: {
-    //     TPropertyMetric p;
-    //     p.__set_value(value());
-    //     ret.__set_property(p);
-    //     return ret;
-    //   }
-    //   case TMetricKind::COUNTER: {
-    //     TCounterMetric c;
-    //     c.__set_value(value());
-    //     ret.__set_counter(c);
-    //     return ret;
-    //   }
-    //   case TMetricKind::GAUGE: {
-    //   }
-    // }
   }
 
  protected:
@@ -331,6 +307,9 @@ class MetricGroup {
   void ToJson(bool include_children, rapidjson::Document* document,
       rapidjson::Value* out_val);
 
+  TMetricTree ToThrift();
+  static void FromThrift(const TMetricTree& tree, MetricGroup* root);
+
   /// Creates or returns an already existing child metric group.
   MetricGroup* GetChildGroup(const std::string& name);
 
@@ -368,21 +347,12 @@ class MetricGroup {
   /// If args contains a paramater 'metric', only the json for that metric is returned.
   void CMCompatibleCallback(const Webserver::ArgumentMap& args,
       rapidjson::Document* document);
+
+  void ToTMetricGroup(std::vector<TMetricGroup>* groups);
+
+  static void FromThriftHelper(std::vector<TMetricGroup>::const_iterator it,
+      MetricGroup* cur);
 };
-
-
-// template <typename T, TMetricKind::type k>
-// template <>
-// const TMetric& SimpleMetric<T, k>::ToThriftHelper<TMetricKind::GAUGE>() {
-//   TMetric ret;
-//   ret.__set_key(key());
-//   ret.__set_metric(TMetricInstance());
-//   TGaugeMetric g;
-//   g.__set_value(value());
-//   ret.__set_counter(g);
-//   return ret;
-// }
-
 
 /// We write 'Int' as a placeholder for all integer types.
 typedef class SimpleMetric<int64_t, TMetricKind::GAUGE> IntGauge;

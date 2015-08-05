@@ -85,16 +85,6 @@ namespace java com.cloudera.impala.thrift
 
 include "Metrics.thrift"
 
-// All metadata associated with a metric. Used to instanciate metrics.
-struct TMetricDef {
-  1: optional string key
-  2: optional Metrics.TMetricKind kind
-  3: optional Metrics.TUnit units
-  4: optional list<string> contexts
-  5: optional string label
-  6: optional string description
-}
-
 """
 
 def generate_thrift():
@@ -112,7 +102,7 @@ def generate_thrift():
   fid = open(target_file, "w")
   try:
     fid.write(THRIFT_PREAMBLE)
-    fid.write("const map<string,TMetricDef> TMetricDefs =\n")
+    fid.write("const map<string,Metrics.TMetricDef> TMetricDefs =\n")
     fid.write(metrics_json)
   finally:
     fid.close()

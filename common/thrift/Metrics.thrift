@@ -46,6 +46,16 @@ enum TMetricKind {
   TIMER
 }
 
+// All metadata associated with a metric. Used to instanciate metrics.
+struct TMetricDef {
+  1: optional string key
+  2: optional TMetricKind kind
+  3: optional TUnit units
+  4: optional list<string> contexts
+  5: optional string label
+  6: optional string description
+}
+
 union TSimpleMetric {
   1: i64 int64
   2: double dbl
@@ -67,6 +77,7 @@ union TMetricInstance {
 struct TMetric {
   1: optional string key;
   2: optional TMetricInstance metric;
+  3: optional TMetricDef metric_def
 }
 
 struct TMetricGroup {

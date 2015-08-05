@@ -247,7 +247,46 @@ string MetricGroup::DebugString() {
   return strbuf.GetString();
 }
 
-TMetricDef impala::MakeMetricDef(const std::string& key, TMetricKind::type kind, TUnit::type units) {
+TMetricTree MetricGroup::ToThrift() {
+  TMetricTree ret;
+  ret.__set_groups(vector<TMetricGroup>());
+  ToTMetricGroup(&ret.groups);
+  return ret;
+}
+
+void MetricGroup::ToTMetricGroup(vector<TMetricGroup>* groups) {
+  TMetricGroup group;
+  lock_guard<SpinLock> l(lock_);
+  group.__set_num_children(children_.size());
+  group.__set_name(name_);
+  group.__set_metrics(vector<TMetric>());
+  BOOST_FOREACH(MetricMap::value_type& metric, metric_map_) {
+    group.metrics.push_back(metric.second->ToThrift());
+  }
+  groups->push_back(group);
+  BOOST_FOREACH(const ChildGroupMap::value_type& child, children_) {
+    child.second->ToTMetricGroup(groups);
+  }
+}
+
+void MetricGroup::FromThriftHelper(vector<TMetricGroup>::const_iterator it,
+    MetricGroup* cur) {
+  // cur is *it
+  // TODO: Add all metrics
+  int32_t num_children = it->num_children;
+  for (int32_t i = 0; i < num_children; ++i) {
+    ++it;
+    MetricGroup* child = cur->GetChildGroup(it->name);
+    FromThriftHelper(it, child);
+  }
+}
+
+void MetricGroup::FromThrift(const TMetricTree& thrift, MetricGroup* root) {
+  FromThriftHelper(thrift.groups.begin(), root);
+}
+
+TMetricDef impala::MakeMetricDef(const std::string& key, TMetricKind::type kind,
+    TUnit::type units) {
   TMetricDef ret;
   ret.__set_key(key);
   ret.__set_kind(kind);
