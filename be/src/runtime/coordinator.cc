@@ -326,7 +326,7 @@ Status Coordinator::Exec(QuerySchedule& schedule,
 
 
   SCOPED_TIMER(query_profile_->total_time_counter());
-  TimerMetric* total_time_metric_ = query_profile2_->RegisterMetric(
+  total_time_metric_ = query_profile2_->RegisterMetric(
       new TimerMetric(
           MakeMetricDef("TotalTime", TMetricKind::COUNTER, TUnit::TIME_NS)));
   ScopedTimerMetric total_time(total_time_metric_);

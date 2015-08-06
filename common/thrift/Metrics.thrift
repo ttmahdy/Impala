@@ -60,7 +60,7 @@ union TSimpleMetric {
   1: i64 int64
   2: double dbl
   3: string str
-  4: bool boolean
+  4: bool bool_val
 }
 
 union TMetricInstance {

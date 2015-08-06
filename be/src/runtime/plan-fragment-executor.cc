@@ -84,6 +84,12 @@ Status PlanFragmentExecutor::Prepare(const TExecPlanFragmentParams& request) {
 
   metrics_.reset(new MetricGroup(Substitute("PlanFragment-$0",
       PrintId(request.fragment_instance_ctx.fragment_instance_id))));
+  total_time_metric_ = metrics_->RegisterMetric(
+      new IntCounter(
+          MakeMetricDef("TotalTime", TMetricKind::COUNTER, TUnit::TIME_NS), 0L));
+  rows_produced_metric_ = metrics_->RegisterMetric(
+      new IntCounter(
+          MakeMetricDef("RowsProduced", TMetricKind::COUNTER, TUnit::TIME_NS), 0L));
 
   VLOG_QUERY << "Prepare(): query_id=" << PrintId(query_id_) << " instance_id="
              << PrintId(request.fragment_instance_ctx.fragment_instance_id);
@@ -485,6 +491,7 @@ Status PlanFragmentExecutor::GetNextInternal(RowBatch** batch) {
     *batch = row_batch_.get();
     if (row_batch_->num_rows() > 0) {
       COUNTER_ADD(rows_produced_counter_, row_batch_->num_rows());
+      rows_produced_metric_->set_value(rows_produced_counter_->value());
       break;
     }
   }

@@ -25,6 +25,7 @@
 #include "common/object-pool.h"
 #include "runtime/runtime-state.h"
 #include "util/thread.h"
+#include "util/timer-metric.h"
 
 namespace impala {
 
@@ -221,6 +222,9 @@ class PlanFragmentExecutor {
   typedef std::map<TPlanNodeId, std::vector<TScanRangeParams> > PerNodeScanRanges;
 
   boost::scoped_ptr<MetricGroup> metrics_;
+
+  IntCounter* total_time_metric_;
+  IntCounter* rows_produced_metric_;
 
   /// Main loop of profile reporting thread.
   /// Exits when notified on done_cv_.

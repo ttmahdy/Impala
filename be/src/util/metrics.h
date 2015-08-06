@@ -41,6 +41,9 @@ namespace impala {
 template <typename T>
 TSimpleMetric ToTSimpleMetric(const T& val);
 
+TMetricDef MakeMetricDef(const std::string& key, TMetricKind::type kind, TUnit::type units);
+TMetricDef MakePropertyDef(const std::string& key);
+
 /// Singleton that provides metric definitions. Metrics are defined in metrics.json
 /// and generate_metrics.py produces MetricDefs.thrift. This singleton wraps an instance
 /// of the thrift definitions.
@@ -198,6 +201,7 @@ class SimpleMetric : public Metric {
     TMetric ret;
     ret.__set_key(key());
     ret.__set_metric(TMetricInstance());
+    ret.__set_metric_def(MakeMetricDef(key(), kind(), unit()));
     ret.metric.__set_simple(ToTSimpleMetric(value()));
     return ret;
   }
@@ -363,8 +367,6 @@ typedef class SimpleMetric<int64_t, TMetricKind::COUNTER> IntCounter;
 typedef class SimpleMetric<bool, TMetricKind::PROPERTY> BooleanProperty;
 typedef class SimpleMetric<std::string, TMetricKind::PROPERTY> StringProperty;
 
-TMetricDef MakeMetricDef(const std::string& key, TMetricKind::type kind, TUnit::type units);
-TMetricDef MakePropertyDef(const std::string& key);
 }
 
 #endif // IMPALA_UTIL_METRICS_H

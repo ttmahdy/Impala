@@ -58,7 +58,7 @@ TSimpleMetric ToTSimpleMetric(const std::string& val) {
 template <>
 TSimpleMetric ToTSimpleMetric(const bool& val) {
   TSimpleMetric ret;
-  ret.__set_boolean(val);
+  ret.__set_bool_val(val);
   return ret;
 }
 
@@ -261,7 +261,8 @@ void MetricGroup::ToTMetricGroup(vector<TMetricGroup>* groups) {
   group.__set_name(name_);
   group.__set_metrics(vector<TMetric>());
   BOOST_FOREACH(MetricMap::value_type& metric, metric_map_) {
-    group.metrics.push_back(metric.second->ToThrift());
+    const TMetric& m = metric.second->ToThrift();
+    group.metrics.push_back(m);
   }
   groups->push_back(group);
   BOOST_FOREACH(const ChildGroupMap::value_type& child, children_) {
@@ -277,14 +278,15 @@ Metric* SimpleMetricFactory(const TMetricDef& def, const TSimpleMetric& metric) 
     return new SimpleMetric<double, V>(def, metric.dbl);
   } else if (metric.__isset.str) {
     return new SimpleMetric<string, V>(def, metric.str);
-  } else if (metric.__isset.boolean) {
-    return new SimpleMetric<bool, V>(def, metric.boolean);
+  } else if (metric.__isset.bool_val) {
+    return new SimpleMetric<bool, V>(def, metric.bool_val);
   } else {
     return NULL;
   }
 }
 
 Metric* MetricFactory(const TMetric& metric) {
+  if (!metric.__isset.metric_def) return NULL;
   const TMetricDef& def =
       metric.__isset.metric_def ? metric.metric_def : MetricDefs::Get(metric.key);
 
