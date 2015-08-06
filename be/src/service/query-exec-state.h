@@ -272,7 +272,7 @@ class ImpalaServer::QueryExecState {
   boost::shared_ptr<RuntimeProfile2> profile2_;
 
   //boost::shared_ptr<MetricGroup> metrics_;
-  IntCounter* client_wait_metric_;
+  TimerMetric* client_wait_metric_;
 
   // Tracks how long we are idle waiting for a client to fetch rows.
   RuntimeProfile::Counter* client_wait_timer_;

@@ -359,7 +359,8 @@ Status ExecNode::CreateNode(ObjectPool* pool, const TPlanNode& tnode,
       return Status(error_msg.str());
   }
   (*node)->SetMetricGroup(metrics->GetChildGroup(
-          Substitute("ExecNode-$0", (*node)->id())));
+          Substitute("ExecNode-$0: $1", (*node)->id(),
+              PrintPlanNodeType((*node)->type()))));
   return Status::OK();
 }
 

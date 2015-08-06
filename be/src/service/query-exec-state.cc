@@ -27,6 +27,7 @@
 #include "util/debug-util.h"
 #include "util/impalad-metrics.h"
 #include "util/time.h"
+#include "util/timer-metric.h"
 
 #include "gen-cpp/CatalogService.h"
 #include "gen-cpp/CatalogService_types.h"
@@ -90,9 +91,8 @@ ImpalaServer::QueryExecState::QueryExecState(
 
   profile2_.reset(new RuntimeProfile2(query_id()));
   MetricGroup* summary_metrics = profile2_->query_metrics_->GetChildGroup("Summary");
-  client_wait_metric_ = profile2_->query_metrics_->RegisterMetric(new IntCounter(
-          MakeMetricDef("ClientFetchWaitTimer", TMetricKind::COUNTER, TUnit::TIME_NS),
-          0L));
+  client_wait_metric_ = profile2_->query_metrics_->RegisterMetric(new TimerMetric(
+          MakeMetricDef("ClientFetchWaitTimer", TMetricKind::TIMER, TUnit::TIME_NS)));
 
   summary_profile_.AddInfoString("Session ID", PrintId(session_id()));
   summary_profile_.AddInfoString("Session Type", PrintTSessionType(session_type()));
@@ -980,6 +980,7 @@ void ImpalaServer::QueryExecState::SetCreateTableAsSelectResultSet() {
 
 void ImpalaServer::QueryExecState::MarkInactive() {
   client_wait_sw_.Start();
+  client_wait_metric_->Start();
   lock_guard<mutex> l(expiration_data_lock_);
   last_active_time_ = UnixMillis();
   DCHECK(ref_count_ > 0) << "Invalid MarkInactive()";
@@ -989,8 +990,9 @@ void ImpalaServer::QueryExecState::MarkInactive() {
 void ImpalaServer::QueryExecState::MarkActive() {
   client_wait_sw_.Stop();
   int64_t elapsed_time = client_wait_sw_.ElapsedTime();
+  client_wait_metric_->Stop();
   client_wait_timer_->Set(elapsed_time);
-  client_wait_metric_->set_value(elapsed_time);
+  //client_wait_metric_->set_value(elapsed_time);
   lock_guard<mutex> l(expiration_data_lock_);
   last_active_time_ = UnixMillis();
   ++ref_count_;

@@ -19,6 +19,7 @@
 #include "util/metrics.h"
 
 #include <vector>
+#include <gutil/strings/substitute.h>
 
 namespace impala {
 
@@ -35,7 +36,8 @@ class RuntimeProfile2 {
   boost::scoped_ptr<MetricGroup> query_metrics_;
 
   RuntimeProfile2(const TUniqueId& query_id) {
-    query_metrics_.reset(new MetricGroup("query_id="));
+    query_metrics_.reset(
+        new MetricGroup(strings::Substitute("query_id=$0", PrintId(query_id))));
   }
 
   void InitFromPlan(const std::vector<TPlanFragment>& fragments) { }

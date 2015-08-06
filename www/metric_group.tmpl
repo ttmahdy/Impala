@@ -1,5 +1,9 @@
 {{!Renders a metric group and all its children, one table each}}
-<a id="{{name}}"><h3>{{name}}</h3></a>
+<div class="panel panel-default">
+<div class="panel-heading">
+<a id="{{name}}"><h3 class="panel-title">{{name}}</h3></a>
+</div>
+<div class="panel-body">
 
 <table class='table table-bordered table-hover'>
   <tr>
@@ -32,3 +36,5 @@
 {{#child_groups}}
 {{>www/metric_group.tmpl}}
 {{/child_groups}}
+</div>
+</div>
