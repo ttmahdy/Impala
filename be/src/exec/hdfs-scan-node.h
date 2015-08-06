@@ -418,6 +418,8 @@ class HdfsScanNode : public ScanNode {
   /// Total number of bytes read remotely that were expected to be local
   RuntimeProfile::Counter* unexpected_remote_bytes_;
 
+  IntCounter* bytes_read_local_metric_;
+
   /// Lock protects access between scanner thread and main query thread (the one calling
   /// GetNext()) for all fields below.  If this lock and any other locks needs to be taken
   /// together, this lock must be taken first.

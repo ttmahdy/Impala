@@ -90,6 +90,9 @@ Status PlanFragmentExecutor::Prepare(const TExecPlanFragmentParams& request) {
   rows_produced_metric_ = metrics_->RegisterMetric(
       new IntCounter(
           MakeMetricDef("RowsProduced", TMetricKind::COUNTER, TUnit::UNIT), 0L));
+  total_cpu_time_metric_ = metrics_->RegisterMetric(
+      new IntCounter(
+          MakeMetricDef("CpuTime", TMetricKind::COUNTER, TUnit::TIME_NS), 0L));
 
   VLOG_QUERY << "Prepare(): query_id=" << PrintId(query_id_) << " instance_id="
              << PrintId(request.fragment_instance_ctx.fragment_instance_id);
@@ -207,7 +210,8 @@ Status PlanFragmentExecutor::Prepare(const TExecPlanFragmentParams& request) {
   // set up plan
   DCHECK(request.__isset.fragment);
   RETURN_IF_ERROR(
-      ExecNode::CreateTree(obj_pool(), request.fragment.plan, *desc_tbl, &plan_));
+      ExecNode::CreateTree(obj_pool(), request.fragment.plan, *desc_tbl, metrics_.get(),
+          &plan_));
   runtime_state_->set_fragment_root_id(plan_->id());
 
   if (request.params.__isset.debug_node_id) {
@@ -517,9 +521,9 @@ void PlanFragmentExecutor::FragmentComplete() {
       - runtime_state_->total_network_send_timer()->value()
       - runtime_state_->total_network_receive_timer()->value();
   // Timing is not perfect.
-  if (cpu_time < 0)
-    cpu_time = 0;
+  if (cpu_time < 0) cpu_time = 0;
   runtime_state_->total_cpu_timer()->Add(cpu_time);
+  total_cpu_time_metric_->Increment(cpu_time);
 
   ReleaseThreadToken();
   StopReportThread();

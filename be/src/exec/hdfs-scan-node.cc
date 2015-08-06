@@ -636,6 +636,8 @@ Status HdfsScanNode::Open(RuntimeState* state) {
 
   bytes_read_local_ = ADD_COUNTER(runtime_profile(), "BytesReadLocal",
       TUnit::BYTES);
+  bytes_read_local_metric_ = metrics_->RegisterMetric(
+      new IntCounter(MakeMetricDef("bytes-read-local", TMetricKind::COUNTER, TUnit::BYTES), 0L));
   bytes_read_short_circuit_ = ADD_COUNTER(runtime_profile(), "BytesReadShortCircuit",
       TUnit::BYTES);
   bytes_read_dn_cache_ = ADD_COUNTER(runtime_profile(), "BytesReadDataNodeCache",
@@ -1117,6 +1119,7 @@ void HdfsScanNode::StopAndFinalizeCounters() {
 
   if (reader_context_ != NULL) {
     bytes_read_local_->Set(runtime_state_->io_mgr()->bytes_read_local(reader_context_));
+    bytes_read_local_metric_->set_value(bytes_read_local_->value());
     bytes_read_short_circuit_->Set(
         runtime_state_->io_mgr()->bytes_read_short_circuit(reader_context_));
     bytes_read_dn_cache_->Set(

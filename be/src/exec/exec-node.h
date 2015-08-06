@@ -123,7 +123,7 @@ class ExecNode {
   /// traversal. All nodes are placed in pool and have Init() called on them.
   /// Returns error if 'plan' is corrupted, otherwise success.
   static Status CreateTree(ObjectPool* pool, const TPlan& plan,
-                           const DescriptorTbl& descs, ExecNode** root);
+      const DescriptorTbl& descs, MetricGroup* metrics, ExecNode** root);
 
   /// Set debug action for node with given id in 'tree'
   static void SetDebugOptions(int node_id, TExecNodePhase::type phase,
@@ -176,6 +176,8 @@ class ExecNode {
   RuntimeProfile* runtime_profile() { return runtime_profile_.get(); }
   MemTracker* mem_tracker() { return mem_tracker_.get(); }
   MemTracker* expr_mem_tracker() { return expr_mem_tracker_.get(); }
+
+  MetricGroup* metrics() { return metrics_; }
 
   /// Extract node id from p->name().
   static int GetNodeIdFromProfile(RuntimeProfile* p);
@@ -265,12 +267,15 @@ class ExecNode {
   /// Valid to call in or after Prepare().
   bool IsInSubplan() const { return containing_subplan_ != NULL; }
 
+  MetricGroup* metrics_;
+
   /// Create a single exec node derived from thrift node; place exec node in 'pool'.
   static Status CreateNode(ObjectPool* pool, const TPlanNode& tnode,
-                           const DescriptorTbl& descs, ExecNode** node);
+      const DescriptorTbl& descs, MetricGroup* metrics, ExecNode** node);
 
   static Status CreateTreeHelper(ObjectPool* pool, const std::vector<TPlanNode>& tnodes,
-      const DescriptorTbl& descs, ExecNode* parent, int* node_idx, ExecNode** root);
+      const DescriptorTbl& descs, ExecNode* parent, MetricGroup* metrics, int* node_idx,
+      ExecNode** root);
 
   virtual bool IsScanNode() const { return false; }
 
@@ -301,6 +306,10 @@ class ExecNode {
   void AddExprCtxsToFree(const std::vector<ExprContext*>& ctxs);
   void AddExprCtxsToFree(const SortExecExprs& sort_exec_exprs);
 
+  void SetMetricGroup(MetricGroup* metrics) {
+    metrics_ = metrics;
+  }
+
  private:
   /// Set in ExecNode::Close(). Used to make Close() idempotent. This is not protected
   /// by a lock, it assumes all calls to Close() are made by the same thread.
@@ -312,4 +321,3 @@ class ExecNode {
 
 }
 #endif
-

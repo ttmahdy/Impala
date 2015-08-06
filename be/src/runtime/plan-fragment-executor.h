@@ -225,6 +225,7 @@ class PlanFragmentExecutor {
 
   TimerMetric* total_time_metric_;
   IntCounter* rows_produced_metric_;
+  IntCounter* total_cpu_time_metric_;
 
   /// Main loop of profile reporting thread.
   /// Exits when notified on done_cv_.

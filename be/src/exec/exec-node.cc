@@ -49,10 +49,12 @@
 #include "runtime/runtime-state.h"
 #include "util/debug-util.h"
 #include "util/runtime-profile.h"
+#include "gutil/strings/substitute.h"
 
 #include "common/names.h"
 
 using namespace llvm;
+using namespace strings;
 
 // TODO: remove when we remove hash-join-node.cc and aggregation-node.cc
 DEFINE_bool(enable_partitioned_hash_join, true, "Enable partitioned hash join");
@@ -118,7 +120,8 @@ ExecNode::ExecNode(ObjectPool* pool, const TPlanNode& tnode, const DescriptorTbl
     rows_returned_counter_(NULL),
     rows_returned_rate_(NULL),
     containing_subplan_(NULL),
-    is_closed_(false) {
+    is_closed_(false),
+    metrics_(NULL) {
   InitRuntimeProfile(PrintPlanNodeType(tnode.node_type));
 }
 
@@ -205,13 +208,14 @@ void ExecNode::AddRuntimeExecOption(const string& str) {
 }
 
 Status ExecNode::CreateTree(ObjectPool* pool, const TPlan& plan,
-                            const DescriptorTbl& descs, ExecNode** root) {
+    const DescriptorTbl& descs, MetricGroup* metrics, ExecNode** root) {
   if (plan.nodes.size() == 0) {
     *root = NULL;
     return Status::OK();
   }
   int node_idx = 0;
-  Status status = CreateTreeHelper(pool, plan.nodes, descs, NULL, &node_idx, root);
+  Status status = CreateTreeHelper(pool, plan.nodes, descs, NULL, metrics, &node_idx,
+      root);
   if (status.ok() && node_idx + 1 != plan.nodes.size()) {
     status = Status(
         "Plan tree only partially reconstructed. Not all thrift nodes were used.");
@@ -227,7 +231,7 @@ Status ExecNode::CreateTreeHelper(
     ObjectPool* pool,
     const vector<TPlanNode>& tnodes,
     const DescriptorTbl& descs,
-    ExecNode* parent,
+    ExecNode* parent, MetricGroup* metrics,
     int* node_idx,
     ExecNode** root) {
   // propagate error case
@@ -238,7 +242,7 @@ Status ExecNode::CreateTreeHelper(
 
   int num_children = tnode.num_children;
   ExecNode* node = NULL;
-  RETURN_IF_ERROR(CreateNode(pool, tnode, descs, &node));
+  RETURN_IF_ERROR(CreateNode(pool, tnode, descs, metrics, &node));
   if (parent != NULL) {
     parent->children_.push_back(node);
   } else {
@@ -246,7 +250,8 @@ Status ExecNode::CreateTreeHelper(
   }
   for (int i = 0; i < num_children; ++i) {
     ++*node_idx;
-    RETURN_IF_ERROR(CreateTreeHelper(pool, tnodes, descs, node, node_idx, NULL));
+    RETURN_IF_ERROR(CreateTreeHelper(pool, tnodes, descs, node, node->metrics(),
+        node_idx, NULL));
     // we are expecting a child, but have used all nodes
     // this means we have been given a bad tree and must fail
     if (*node_idx >= tnodes.size()) {
@@ -270,7 +275,7 @@ Status ExecNode::CreateTreeHelper(
 }
 
 Status ExecNode::CreateNode(ObjectPool* pool, const TPlanNode& tnode,
-                            const DescriptorTbl& descs, ExecNode** node) {
+    const DescriptorTbl& descs, MetricGroup* metrics, ExecNode** node) {
   stringstream error_msg;
   switch (tnode.node_type) {
     case TPlanNodeType::HDFS_SCAN_NODE:
@@ -353,6 +358,8 @@ Status ExecNode::CreateNode(ObjectPool* pool, const TPlanNode& tnode,
       error_msg << str << " not implemented";
       return Status(error_msg.str());
   }
+  (*node)->SetMetricGroup(metrics->GetChildGroup(
+          Substitute("ExecNode-$0", (*node)->id())));
   return Status::OK();
 }
 
