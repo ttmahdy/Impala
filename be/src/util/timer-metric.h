@@ -30,6 +30,15 @@ class TimerMetric : public Metric {
     return PrettyPrinter::Print(stopwatch_.ElapsedTime(), TUnit::TIME_NS);
   }
 
+  virtual const TMetric ToThrift() {
+    TMetric ret;
+    ret.__set_key(key());
+    ret.__set_metric(TMetricInstance());
+    ret.__set_metric_def(MakeMetricDef(key(), TMetricKind::COUNTER, TUnit::TIME_NS));
+    ret.metric.__set_simple(ToTSimpleMetric(stopwatch_.ElapsedTime()));
+    return ret;
+  }
+
   TimerMetric(const TMetricDef& def) : Metric(def) { }
 
   void Start() { stopwatch_.Start(); }

@@ -223,7 +223,7 @@ class PlanFragmentExecutor {
 
   boost::scoped_ptr<MetricGroup> metrics_;
 
-  IntCounter* total_time_metric_;
+  TimerMetric* total_time_metric_;
   IntCounter* rows_produced_metric_;
 
   /// Main loop of profile reporting thread.

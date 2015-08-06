@@ -85,11 +85,11 @@ Status PlanFragmentExecutor::Prepare(const TExecPlanFragmentParams& request) {
   metrics_.reset(new MetricGroup(Substitute("PlanFragment-$0",
       PrintId(request.fragment_instance_ctx.fragment_instance_id))));
   total_time_metric_ = metrics_->RegisterMetric(
-      new IntCounter(
-          MakeMetricDef("TotalTime", TMetricKind::COUNTER, TUnit::TIME_NS), 0L));
+      new TimerMetric(
+          MakeMetricDef("TotalTime", TMetricKind::TIMER, TUnit::TIME_NS)));
   rows_produced_metric_ = metrics_->RegisterMetric(
       new IntCounter(
-          MakeMetricDef("RowsProduced", TMetricKind::COUNTER, TUnit::TIME_NS), 0L));
+          MakeMetricDef("RowsProduced", TMetricKind::COUNTER, TUnit::UNIT), 0L));
 
   VLOG_QUERY << "Prepare(): query_id=" << PrintId(query_id_) << " instance_id="
              << PrintId(request.fragment_instance_ctx.fragment_instance_id);
@@ -110,6 +110,7 @@ Status PlanFragmentExecutor::Prepare(const TExecPlanFragmentParams& request) {
 
   // total_time_counter() is in the runtime_state_ so start it up now.
   SCOPED_TIMER(profile()->total_time_counter());
+  ScopedTimerMetric total_time(total_time_metric_);
 
   // Register after setting runtime_state_ to ensure proper cleanup.
   if (FLAGS_enable_rm && !cgroup.empty() && request.__isset.reserved_resource) {
@@ -340,6 +341,7 @@ Status PlanFragmentExecutor::Open() {
 Status PlanFragmentExecutor::OpenInternal() {
   {
     SCOPED_TIMER(profile()->total_time_counter());
+    ScopedTimerMetric total_time(total_time_metric_);
     RETURN_IF_ERROR(plan_->Open(runtime_state_.get()));
   }
 
@@ -361,6 +363,7 @@ Status PlanFragmentExecutor::OpenInternal() {
     }
 
     SCOPED_TIMER(profile()->total_time_counter());
+    ScopedTimerMetric total_time(total_time_metric_);
     RETURN_IF_ERROR(sink_->Send(runtime_state(), batch, done_));
   }
 
@@ -373,6 +376,7 @@ Status PlanFragmentExecutor::OpenInternal() {
   // true, so tearing down any data stream state (a separate
   // channel) in Close is safe.
   SCOPED_TIMER(profile()->total_time_counter());
+  ScopedTimerMetric total_time(total_time_metric_);
   sink_->Close(runtime_state());
   done_ = true;
 
@@ -486,6 +490,7 @@ Status PlanFragmentExecutor::GetNextInternal(RowBatch** batch) {
   while (!done_) {
     row_batch_->Reset();
     SCOPED_TIMER(profile()->total_time_counter());
+    ScopedTimerMetric total_time(total_time_metric_);
     RETURN_IF_ERROR(
         plan_->GetNext(runtime_state_.get(), row_batch_.get(), &done_));
     *batch = row_batch_.get();

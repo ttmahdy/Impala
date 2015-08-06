@@ -41,6 +41,9 @@ namespace impala {
 template <typename T>
 TSimpleMetric ToTSimpleMetric(const T& val);
 
+template <typename T>
+T TSimpleMetricToValue(const TSimpleMetric& simple);
+
 TMetricDef MakeMetricDef(const std::string& key, TMetricKind::type kind, TUnit::type units);
 TMetricDef MakePropertyDef(const std::string& key);
 
@@ -103,6 +106,8 @@ class Metric {
   const std::string& description() const { return description_; }
 
   virtual const TMetric ToThrift() { TMetric ret; return ret; }
+
+  virtual void MergeFromThrift(const TMetric& r) { }
 
  protected:
   /// Unique key identifying this metric
@@ -204,6 +209,10 @@ class SimpleMetric : public Metric {
     ret.__set_metric_def(MakeMetricDef(key(), kind(), unit()));
     ret.metric.__set_simple(ToTSimpleMetric(value()));
     return ret;
+  }
+
+  virtual void MergeFromThrift(const TMetric& metric) {
+    set_value(TSimpleMetricToValue<T>(metric.metric.simple));
   }
 
  protected:

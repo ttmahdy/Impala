@@ -69,6 +69,30 @@ TSimpleMetric ToTSimpleMetric(const uint64_t& val) {
   return ret;
 }
 
+template <>
+int64_t TSimpleMetricToValue<int64_t>(const TSimpleMetric& simple) {
+  return simple.int64;
+}
+
+template <>
+double TSimpleMetricToValue<double>(const TSimpleMetric& simple) {
+  return simple.dbl;
+}
+
+template <>
+uint64_t TSimpleMetricToValue<uint64_t>(const TSimpleMetric& simple) {
+  return simple.int64;
+}
+
+template <>
+string TSimpleMetricToValue<string>(const TSimpleMetric& simple) {
+  return simple.str;
+}
+
+template <>
+bool TSimpleMetricToValue<bool>(const TSimpleMetric& simple) {
+  return simple.bool_val;
+}
 
 template <>
 void ToJsonValue<string>(const string& value, const TUnit::type unit,
@@ -311,11 +335,15 @@ void MetricGroup::FromThriftHelper(vector<TMetricGroup>::const_iterator it,
     MetricGroup* cur) {
   // cur is *it
   BOOST_FOREACH(const TMetric& metric, it->metrics) {
-    Metric* m = MetricFactory(metric);
-    if (m == NULL) continue;
-    cur->RegisterMetric(m);
+    MetricMap::const_iterator it = cur->metric_map_.find(metric.key);
+    if (it == cur->metric_map_.end()) {
+      Metric* m = MetricFactory(metric);
+      if (m == NULL) continue;
+      cur->RegisterMetric(m);
+    } else {
+      it->second->MergeFromThrift(metric);
+    }
   }
-  // TODO: Add all metrics
   int32_t num_children = it->num_children;
   for (int32_t i = 0; i < num_children; ++i) {
     ++it;
