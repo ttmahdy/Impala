@@ -36,6 +36,7 @@
 #include "common/global-types.h"
 #include "util/progress-updater.h"
 #include "util/runtime-profile.h"
+#include "util/runtime-profile2.h"
 #include "runtime/runtime-state.h"
 #include "statestore/simple-scheduler.h"
 #include "gen-cpp/Types_types.h"
@@ -98,7 +99,7 @@ class Coordinator {
   /// one, and LLVM optimizes them together with the fragment's other exprs.
   /// A call to Exec() must precede all other member function calls.
   Status Exec(QuerySchedule& schedule, std::vector<ExprContext*>* output_expr_ctxs,
-      MetricGroup* metrics);
+      RuntimeProfile2* rp2);
 
   /// Blocks until result rows are ready to be retrieved via GetNext(), or, if the
   /// query doesn't return rows, until the query finishes or is cancelled.
@@ -306,8 +307,9 @@ class Coordinator {
 
   /// Aggregate counters for the entire query.
   boost::scoped_ptr<RuntimeProfile> query_profile_;
-  MetricGroup* query_profile2_;
 
+  MetricGroup* coordinator_metrics_;
+  RuntimeProfile2* rp2_;
 
   /// Event timeline for this query. Unowned.
   RuntimeProfile::EventSequence* query_events_;

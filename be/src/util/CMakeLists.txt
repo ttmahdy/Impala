@@ -62,6 +62,7 @@ add_library(Util
   process-state-info.cc
   redactor.cc
   runtime-profile.cc
+  runtime-profile2.cc
   simple-logger.cc
   spinlock.cc
   symbols-util.cc

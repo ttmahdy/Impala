@@ -305,7 +305,7 @@ static void ProcessQueryOptions(
 }
 
 Status Coordinator::Exec(QuerySchedule& schedule,
-    vector<ExprContext*>* output_expr_ctxs, MetricGroup* metrics) {
+    vector<ExprContext*>* output_expr_ctxs, RuntimeProfile2* rp2) {
   const TQueryExecRequest& request = schedule.request();
   DCHECK_GT(request.fragments.size(), 0);
   needs_finalization_ = request.__isset.finalize_params;
@@ -321,12 +321,14 @@ Status Coordinator::Exec(QuerySchedule& schedule,
 
   query_profile_.reset(
       new RuntimeProfile(obj_pool(), "Execution Profile " + PrintId(query_id_)));
-  query_profile2_ = metrics;
+  rp2_ = rp2;
+  coordinator_metrics_ = rp2->query_metrics_->GetChildGroup("summary")->GetChildGroup(
+      "coordinator");
   finalization_timer_ = ADD_TIMER(query_profile_, "FinalizationTimer");
 
 
   SCOPED_TIMER(query_profile_->total_time_counter());
-  total_time_metric_ = query_profile2_->RegisterMetric(
+  total_time_metric_ = coordinator_metrics_->RegisterMetric(
       new TimerMetric(
           MakeMetricDef("TotalTime", TMetricKind::COUNTER, TUnit::TIME_NS)));
   ScopedTimerMetric total_time(total_time_metric_);
@@ -757,7 +759,7 @@ Status Coordinator::FinalizeQuery() {
 
   VLOG_QUERY << "Finalizing query: " << query_id_;
   SCOPED_TIMER(finalization_timer_);
-  ScopedTimerMetric finalization_time(query_profile2_->RegisterMetric(new TimerMetric(
+  ScopedTimerMetric finalization_time(coordinator_metrics_->RegisterMetric(new TimerMetric(
       MakeMetricDef("FinalizationTime", TMetricKind::COUNTER, TUnit::TIME_NS))));
   Status return_status = GetStatus();
   if (return_status.ok()) {
@@ -1250,8 +1252,13 @@ Status Coordinator::UpdateFragmentExecStatus(const TReportExecStatusParams& para
   BackendExecState* exec_state = backend_exec_states_[params.backend_num];
 
   if (params.__isset.metrics && params.metrics.groups.size() > 0) {
-    MetricGroup::FromThrift(params.metrics,
-        query_profile2_->GetChildGroup(params.metrics.groups[0].name));
+    MetricGroup* group = rp2_->query_metrics_->GetChildGroup("instances")->GetChildGroup(
+        params.metrics.groups[0].name);
+    MetricGroup::FromThrift(params.metrics, group);
+    StringProperty* fid = group->FindMetricForTesting<StringProperty>("display-name");
+    StringProperty* instance_id =
+        group->FindMetricForTesting<StringProperty>("fragment-id");
+    rp2_->fragment_profiles_[rp2_->fragment_id_to_idx_[fid->value()]].instances_[instance_id->value()] = group;
   }
 
   const TRuntimeProfileTree& cumulative_profile = params.profile;

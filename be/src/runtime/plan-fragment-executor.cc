@@ -82,9 +82,13 @@ Status PlanFragmentExecutor::Prepare(const TExecPlanFragmentParams& request) {
   const TPlanFragmentExecParams& params = request.params;
   query_id_ = request.fragment_instance_ctx.query_ctx.query_id;
 
+  const string& fragment_id = PrintId(request.fragment_instance_ctx.fragment_instance_id);
   metrics_.reset(new MetricGroup(Substitute("PlanFragment: $0 (id: $1)",
-      request.fragment.display_name,
-      PrintId(request.fragment_instance_ctx.fragment_instance_id))));
+              request.fragment.display_name, fragment_id)));
+  metrics_->RegisterMetric(
+      new StringProperty(MakePropertyDef("fragment-id"), fragment_id));
+  metrics_->RegisterMetric(
+      new StringProperty(MakePropertyDef("display-name"), request.fragment.display_name));
   total_time_metric_ = metrics_->RegisterMetric(
       new TimerMetric(
           MakeMetricDef("TotalTime", TMetricKind::TIMER, TUnit::TIME_NS)));

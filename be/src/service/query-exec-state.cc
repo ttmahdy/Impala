@@ -155,7 +155,7 @@ Status ImpalaServer::QueryExecState::SetResultCache(QueryResultSet* cache,
 Status ImpalaServer::QueryExecState::Exec(TExecRequest* exec_request) {
   MarkActive();
   exec_request_ = *exec_request;
-  profile2_->InitFromPlan(exec_request_.query_exec_request.fragments);
+  profile2_->InitFromPlan(exec_request_.query_exec_request);
 
 
   profile_.AddChild(&server_profile_);
@@ -460,8 +460,7 @@ Status ImpalaServer::QueryExecState::ExecQueryOrDmlRequest(
     summary_profile_.AddInfoString("Granted resource reservation", reservation_ss.str());
     query_events_->MarkEvent("Resources reserved");
   }
-  status = coord_->Exec(*schedule_, &output_expr_ctxs_,
-      profile2_->query_metrics_->GetChildGroup("Coordinator"));
+  status = coord_->Exec(*schedule_, &output_expr_ctxs_, profile2_.get());
   {
     lock_guard<mutex> l(lock_);
     RETURN_IF_ERROR(UpdateQueryStatus(status));

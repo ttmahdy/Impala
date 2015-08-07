@@ -19,6 +19,7 @@
 #include "util/metrics.h"
 
 #include <vector>
+#include <map>
 #include <gutil/strings/substitute.h>
 
 namespace impala {
@@ -27,11 +28,13 @@ class RuntimeProfile2 {
  public:
   struct PlanFragmentProfile {
     MetricGroup* summary_;
-    std::vector<MetricGroup*> instances_;
+    std::map<std::string, MetricGroup*> instances_;
     TPlanFragment fragment_;
+    int32_t num_children_;
   };
 
-  PlanFragmentProfile* root_;
+  std::vector<PlanFragmentProfile> fragment_profiles_;
+  std::map<std::string, int32_t> fragment_id_to_idx_;
 
   boost::scoped_ptr<MetricGroup> query_metrics_;
 
@@ -40,8 +43,12 @@ class RuntimeProfile2 {
         new MetricGroup(strings::Substitute("query_id=$0", PrintId(query_id))));
   }
 
-  void InitFromPlan(const std::vector<TPlanFragment>& fragments) { }
+  void InitFromPlan(const TQueryExecRequest& request);
 
+  typedef std::map<int32_t, std::vector<int32_t> > SenderMap;
+
+  void InitFromPlanHelper(const TQueryExecRequest& request,
+      const SenderMap& sender_map, int idx);
 
   // ToJson(Document*, Value*);
 };
