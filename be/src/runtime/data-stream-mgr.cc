@@ -48,6 +48,8 @@ DataStreamMgr::DataStreamMgr(MetricGroup* metrics) {
       metrics_->AddCounter<int64_t>("total-senders-blocked-on-recvr-creation", 0L);
   num_senders_timedout_ = metrics_->AddCounter<int64_t>(
       "total-senders-timedout-waiting-for-recvr-creation", 0L);
+  closed_stream_cache_reaper_.reset(new Thread("data-stream-mgr", "cache-reaper",
+      &DataStreamMgr::ClosedStreamReaper, this));
 }
 
 inline uint32_t DataStreamMgr::GetHashValue(
@@ -70,7 +72,7 @@ shared_ptr<DataStreamRecvr> DataStreamMgr::CreateRecvr(RuntimeState* state,
           fragment_instance_id, dest_node_id, num_senders, is_merging, buffer_size,
           profile));
   size_t hash_value = GetHashValue(fragment_instance_id, dest_node_id);
-  lock_guard<mutex> l(lock_);
+  lock_guard<SpinLock> l(lock_);
   fragment_stream_set_.insert(make_pair(fragment_instance_id, dest_node_id));
   receiver_map_.insert(make_pair(hash_value, recvr));
 
@@ -84,12 +86,14 @@ shared_ptr<DataStreamRecvr> DataStreamMgr::CreateRecvr(RuntimeState* state,
 shared_ptr<DataStreamRecvr> DataStreamMgr::FindRecvrOrWait(
     const TUniqueId& fragment_instance_id, PlanNodeId node_id) {
   RefCountedPromise* promise = NULL;
-  shared_ptr<DataStreamRecvr> ret;
   const StreamId& promise_key = make_pair(fragment_instance_id, node_id);
   {
-    lock_guard<mutex> l(lock_);
-    ret = FindRecvr(fragment_instance_id, node_id, false);
-    if (ret.get() != NULL) return ret;
+    lock_guard<SpinLock> l(lock_);
+    if (closed_stream_cache_.find(promise_key) != closed_stream_cache_.end()) {
+      return shared_ptr<DataStreamRecvr>();
+    }
+    shared_ptr<DataStreamRecvr> rcvr = FindRecvr(fragment_instance_id, node_id, false);
+    if (rcvr.get() != NULL) return rcvr;
     // Find the rendezvous, creating a new one if one does not already exist.
     promise = &pending_rendezvous_[promise_key];
     promise->IncRefCount();
@@ -99,7 +103,8 @@ shared_ptr<DataStreamRecvr> DataStreamMgr::FindRecvrOrWait(
   sw.Start();
   num_senders_waiting_->Increment(1L);
   total_senders_waiting_->Increment(1L);
-  ret = promise->promise->Get(FLAGS_datastream_timeout_ms, &timed_out);
+  shared_ptr<DataStreamRecvr> ret =
+      promise->promise->Get(FLAGS_datastream_timeout_ms, &timed_out);
   num_senders_waiting_->Increment(-1L);
   const string& time_taken = PrettyPrinter::Print(sw.ElapsedTime(), TUnit::TIME_NS);
   if (timed_out) {
@@ -114,7 +119,7 @@ shared_ptr<DataStreamRecvr> DataStreamMgr::FindRecvrOrWait(
 
   DCHECK(promise != NULL);
   {
-    lock_guard<mutex> l(lock_);
+    lock_guard<SpinLock> l(lock_);
     // If we are the last to leave, remove the rendezvous from the pending map. Any new
     // incoming senders will add a new entry to the map themselves.
     if (promise->DecRefCount() == 0) pending_rendezvous_.erase(promise_key);
@@ -143,14 +148,12 @@ shared_ptr<DataStreamRecvr> DataStreamMgr::FindRecvr(
   return shared_ptr<DataStreamRecvr>();
 }
 
-Status DataStreamMgr::AddData(
-    const TUniqueId& fragment_instance_id, PlanNodeId dest_node_id,
-    const TRowBatch& thrift_batch, int sender_id) {
+Status DataStreamMgr::AddData(const TUniqueId& fragment_instance_id,
+    PlanNodeId dest_node_id, const TRowBatch& thrift_batch, int sender_id) {
   VLOG_ROW << "AddData(): fragment_instance_id=" << fragment_instance_id
            << " node=" << dest_node_id
            << " size=" << RowBatch::GetBatchSize(thrift_batch);
-  shared_ptr<DataStreamRecvr> recvr =
-      FindRecvrOrWait(fragment_instance_id, dest_node_id);
+  shared_ptr<DataStreamRecvr> recvr = FindRecvrOrWait(fragment_instance_id, dest_node_id);
   if (recvr.get() == NULL) {
     // The receiver may remove itself from the receiver map via DeregisterRecvr()
     // at any time without considering the remaining number of senders.
@@ -184,12 +187,42 @@ Status DataStreamMgr::CloseSender(const TUniqueId& fragment_instance_id,
   return Status::OK();
 }
 
+void DataStreamMgr::ClosedStreamReaper() {
+  static int32_t SLEEP_PERIOD_MS = 30 * 1000;
+  while (true) {
+    SleepForMs(SLEEP_PERIOD_MS);
+    int64_t now = MonotonicMillis();
+    int32_t before = 0;
+    int32_t after = 0;
+    {
+      lock_guard<SpinLock> l(lock_);
+      before = closed_stream_cache_.size();
+      int64_t expiration = now - SLEEP_PERIOD_MS;
+      ClosedStreamMap::iterator it = closed_stream_cache_.begin();
+      while (it != closed_stream_cache_.end()) {
+        if (it->second < expiration) {
+          closed_stream_cache_.erase(it++);
+        } else {
+          ++it;
+        }
+      }
+      after = closed_stream_cache_.size();
+    }
+
+    if (before != 0) {
+      VLOG_QUERY << "ClosedStreamReaper(): reduced stream ID cache from " << before
+                 << " items, to " << after << ", eviction took: "
+                 << PrettyPrinter::Print(MonotonicMillis() - now, TUnit::TIME_MS);
+    }
+  }
+}
+
 Status DataStreamMgr::DeregisterRecvr(
     const TUniqueId& fragment_instance_id, PlanNodeId node_id) {
   VLOG_QUERY << "DeregisterRecvr(): fragment_instance_id=" << fragment_instance_id
              << ", node=" << node_id;
   size_t hash_value = GetHashValue(fragment_instance_id, node_id);
-  lock_guard<mutex> l(lock_);
+  lock_guard<SpinLock> l(lock_);
   pair<StreamMap::iterator, StreamMap::iterator> range =
       receiver_map_.equal_range(hash_value);
   while (range.first != range.second) {
@@ -198,9 +231,11 @@ Status DataStreamMgr::DeregisterRecvr(
         && recvr->dest_node_id() == node_id) {
       // Notify concurrent AddData() requests that the stream has been terminated.
       recvr->CancelStream();
-      fragment_stream_set_.erase(make_pair(recvr->fragment_instance_id(),
-          recvr->dest_node_id()));
+      const StreamId& stream_id =
+          make_pair(recvr->fragment_instance_id(), recvr->dest_node_id());
+      fragment_stream_set_.erase(stream_id);
       receiver_map_.erase(range.first);
+      closed_stream_cache_.insert(make_pair(stream_id, MonotonicMillis()));
       return Status::OK();
     }
     ++range.first;
@@ -215,7 +250,7 @@ Status DataStreamMgr::DeregisterRecvr(
 
 void DataStreamMgr::Cancel(const TUniqueId& fragment_instance_id) {
   VLOG_QUERY << "cancelling all streams for fragment=" << fragment_instance_id;
-  lock_guard<mutex> l(lock_);
+  lock_guard<SpinLock> l(lock_);
   FragmentStreamSet::iterator i =
       fragment_stream_set_.lower_bound(make_pair(fragment_instance_id, 0));
   while (i != fragment_stream_set_.end() && i->first == fragment_instance_id) {

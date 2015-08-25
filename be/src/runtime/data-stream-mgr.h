@@ -106,7 +106,7 @@ class DataStreamMgr {
   IntCounter* num_senders_timedout_;
 
   /// protects all fields below
-  boost::mutex lock_;
+  SpinLock lock_;
 
   /// map from hash value of fragment instance id/node id pair to stream receivers;
   /// Ownership of the stream revcr is shared between this instance and the caller of
@@ -117,6 +117,7 @@ class DataStreamMgr {
       boost::shared_ptr<DataStreamRecvr> > StreamMap;
   StreamMap receiver_map_;
 
+  /// Uniquely identifies a single stream to a particular node in a particular fragment.
   typedef std::pair<impala::TUniqueId, PlanNodeId> StreamId;
 
   /// less-than ordering for pair<TUniqueId, PlanNodeId>
@@ -192,6 +193,17 @@ class DataStreamMgr {
   typedef boost::unordered_map<StreamId, RefCountedPromise> RendezvousMap;
   RendezvousMap pending_rendezvous_;
 
+  /// Map from StreamId to the time, in ms, that it was closed. Used to allow straggling
+  /// senders to fail fast rather than waiting for the missed-receiver timeout to elapse.
+  typedef boost::unordered_map<StreamId, int64_t> ClosedStreamMap;
+  ClosedStreamMap closed_stream_cache_;
+
+  /// Thread in which CancelledStreamReaper() runs.
+  boost::scoped_ptr<Thread> closed_stream_cache_reaper_;
+
+  /// Periodically (every 30s) wakes up and removes all entries in closed_stream_cache_
+  /// older than 30s.
+  void ClosedStreamReaper();
 };
 
 }
