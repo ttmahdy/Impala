@@ -244,9 +244,10 @@ struct TPlanFragmentExecParams {
   3: list<TPlanFragmentDestination> destinations
 
   // Debug options: perform some action in a particular phase of a particular node
-  4: optional Types.TPlanNodeId debug_node_id
-  5: optional PlanNodes.TExecNodePhase debug_phase
-  6: optional PlanNodes.TDebugAction debug_action
+  4: optional PlanNodes.TDebugCmd debug_cmd
+  // 4: optional Types.TPlanNodeId debug_node_id
+  // 5: optional PlanNodes.TExecNodePhase debug_phase
+  // 6: optional PlanNodes.TDebugAction debug_action
 
   // The pool to which this request has been submitted. Used to update pool statistics
   // for admission control.

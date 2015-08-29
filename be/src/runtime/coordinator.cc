@@ -41,6 +41,7 @@
 #include "runtime/client-cache.h"
 #include "runtime/data-stream-sender.h"
 #include "runtime/data-stream-mgr.h"
+#include "runtime/debug-options.h"
 #include "runtime/exec-env.h"
 #include "runtime/hdfs-fs-cache.h"
 #include "runtime/plan-fragment-executor.h"
@@ -85,29 +86,6 @@ DEFINE_bool(insert_inherit_permissions, false, "If true, new directories created
 
 namespace impala {
 
-// container for debug options in TPlanFragmentExecParams (debug_node, debug_action,
-// debug_phase)
-struct DebugOptions {
-  int backend_num;
-  int node_id;
-  TDebugAction::type action;
-  TExecNodePhase::type phase;  // INVALID: debug options invalid
-
-  DebugOptions()
-    : backend_num(-1), node_id(-1), action(TDebugAction::WAIT),
-      phase(TExecNodePhase::INVALID) {}
-
-  // Returns 'this' if these debug options apply to the candidate backend, otherwise
-  // returns NULL.
-  DebugOptions* GetIfApplicable(int candidate_backend_num) {
-    if (phase != TExecNodePhase::INVALID &&
-        (backend_num == -1 || backend_num == candidate_backend_num)) {
-      return this;
-    }
-    return NULL;
-  }
-};
-
 /// Execution state of a particular fragment instance. Most of the access is struct-like
 /// from a Coordinator instance. Construction of a BackendExecState happens in two phases
 /// where the second stage is more expensive (thanks to the call to
@@ -149,9 +127,7 @@ class Coordinator::BackendExecState {
         fragment_idx_, *fragment_exec_params_, instance_idx_,
         MakeNetworkAddress(FLAGS_hostname, FLAGS_be_port), &rpc_params_);
     if (debug_options_ != NULL) {
-      rpc_params_.params.__set_debug_node_id(debug_options_->node_id);
-      rpc_params_.params.__set_debug_action(debug_options_->action);
-      rpc_params_.params.__set_debug_phase(debug_options_->phase);
+      rpc_params_.params.__set_debug_cmd(debug_options_->cmd());
     }
 
     ComputeTotalSplitSize();
@@ -354,56 +330,6 @@ Coordinator::~Coordinator() {
   query_mem_tracker_.reset();
 }
 
-TExecNodePhase::type GetExecNodePhase(const string& key) {
-  map<int, const char*>::const_iterator entry =
-      _TExecNodePhase_VALUES_TO_NAMES.begin();
-  for (; entry != _TExecNodePhase_VALUES_TO_NAMES.end(); ++entry) {
-    if (iequals(key, (*entry).second)) {
-      return static_cast<TExecNodePhase::type>(entry->first);
-    }
-  }
-  return TExecNodePhase::INVALID;
-}
-
-// TODO: templatize this
-TDebugAction::type GetDebugAction(const string& key) {
-  map<int, const char*>::const_iterator entry =
-      _TDebugAction_VALUES_TO_NAMES.begin();
-  for (; entry != _TDebugAction_VALUES_TO_NAMES.end(); ++entry) {
-    if (iequals(key, (*entry).second)) {
-      return static_cast<TDebugAction::type>(entry->first);
-    }
-  }
-  return TDebugAction::WAIT;
-}
-
-static void ProcessQueryOptions(
-    const TQueryOptions& query_options, DebugOptions* debug_options) {
-  DCHECK(debug_options != NULL);
-  if (!query_options.__isset.debug_action || query_options.debug_action.empty()) {
-    debug_options->phase = TExecNodePhase::INVALID;  // signal not set
-    return;
-  }
-  vector<string> components;
-  split(components, query_options.debug_action, is_any_of(":"), token_compress_on);
-  if (components.size() < 3 || components.size() > 4) return;
-  if (components.size() == 3) {
-    debug_options->backend_num = -1;
-    debug_options->node_id = atoi(components[0].c_str());
-    debug_options->phase = GetExecNodePhase(components[1]);
-    debug_options->action = GetDebugAction(components[2]);
-  } else {
-    debug_options->backend_num = atoi(components[0].c_str());
-    debug_options->node_id = atoi(components[1].c_str());
-    debug_options->phase = GetExecNodePhase(components[2]);
-    debug_options->action = GetDebugAction(components[3]);
-  }
-  DCHECK(!(debug_options->phase == TExecNodePhase::CLOSE &&
-           debug_options->action == TDebugAction::WAIT))
-      << "Do not use CLOSE:WAIT debug actions "
-      << "because nodes cannot be cancelled in Close()";
-}
-
 Status Coordinator::Exec(QuerySchedule& schedule,
     vector<ExprContext*>* output_expr_ctxs) {
   const TQueryExecRequest& request = schedule.request();
@@ -501,8 +427,6 @@ Status Coordinator::Exec(QuerySchedule& schedule,
 Status Coordinator::StartRemoteFragments(QuerySchedule* schedule) {
   int32_t num_backends = schedule->num_backends();
   DCHECK_GT(num_backends , 0);
-  DebugOptions debug_options;
-  ProcessQueryOptions(schedule->query_options(), &debug_options);
   const TQueryExecRequest& request = schedule->request();
 
   // start fragment instances from left to right, so that receivers have Prepare()'d
@@ -519,6 +443,20 @@ Status Coordinator::StartRemoteFragments(QuerySchedule* schedule) {
   int backend_num = 0;
   bool has_coordinator_fragment =
       request.fragments[0].partition.type == TPartitionType::UNPARTITIONED;
+
+  DebugOptions debug_options;
+  bool have_debug_options = !schedule->query_options().debug_action.empty();
+  set<int32_t> debug_backends;
+  if (have_debug_options) {
+    RETURN_IF_ERROR(debug_options.Parse(schedule->query_options().debug_action));
+    debug_options.ComputeApplicableBackends(request.fragments, *fragment_exec_params,
+        &debug_backends);
+    query_profile_->AddInfoString("Debug options",
+        Substitute("$0, applies to $1 of $2 fragment instances",
+            schedule->query_options().debug_action, debug_backends.size(), num_backends));
+    VLOG_QUERY << "Found " << debug_backends.size() << " applicable backends out of "
+               << num_backends << " for " << schedule->query_options().debug_action;
+  }
   for (int fragment_idx = (has_coordinator_fragment ? 1 : 0);
        fragment_idx < request.fragments.size(); ++fragment_idx) {
     const FragmentExecParams* params = &(*fragment_exec_params)[fragment_idx];
@@ -528,7 +466,11 @@ Status Coordinator::StartRemoteFragments(QuerySchedule* schedule) {
     DCHECK_GT(num_hosts, 0);
     fragment_profiles_[fragment_idx].num_instances = num_hosts;
     for (int instance_idx = 0; instance_idx < num_hosts; ++instance_idx) {
-      DebugOptions* backend_debug_options = debug_options.GetIfApplicable(backend_num);
+      DebugOptions* backend_debug_options = NULL;
+      if (have_debug_options &&
+          debug_backends.find(backend_num) != debug_backends.end()) {
+        backend_debug_options = &debug_options;
+      }
       BackendExecState* exec_state = obj_pool()->Add(
           new BackendExecState(schedule, backend_num, &request.fragments[fragment_idx],
               fragment_idx, params, instance_idx, backend_debug_options, obj_pool()));

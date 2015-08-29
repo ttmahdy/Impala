@@ -30,6 +30,7 @@
 #include "exec/hdfs-scan-node.h"
 #include "exec/hbase-table-scanner.h"
 #include "exprs/expr.h"
+#include "runtime/debug-options.h"
 #include "runtime/descriptors.h"
 #include "runtime/data-stream-mgr.h"
 #include "runtime/row-batch.h"
@@ -64,7 +65,7 @@ PlanFragmentExecutor::PlanFragmentExecutor(ExecEnv* exec_env,
     const ReportStatusCallback& report_status_cb) :
     exec_env_(exec_env), plan_(NULL), report_status_cb_(report_status_cb),
     report_thread_active_(false), done_(false), prepared_(false), closed_(false),
-    has_thread_token_(false), average_thread_tokens_(NULL),
+    has_thread_token_(false), has_debug_cmd_(false), average_thread_tokens_(NULL),
     mem_usage_sampled_counter_(NULL), thread_usage_sampled_counter_(NULL) {
 }
 
@@ -85,6 +86,16 @@ Status PlanFragmentExecutor::Prepare(const TExecPlanFragmentParams& request) {
   VLOG_QUERY << "Prepare(): query_id=" << PrintId(query_id_) << " instance_id="
              << PrintId(request.fragment_instance_ctx.fragment_instance_id);
   VLOG(2) << "params:\n" << ThriftDebugString(params);
+
+  if (request.params.__isset.debug_cmd) {
+    if (request.params.debug_cmd.debug_phase == TExecNodePhase::FRAGMENT_PREPARE ||
+        request.params.debug_cmd.debug_phase == TExecNodePhase::FRAGMENT_OPEN ||
+        request.params.debug_cmd.debug_phase == TExecNodePhase::FRAGMENT_GETNEXT ||
+        request.params.debug_cmd.debug_phase == TExecNodePhase::FRAGMENT_CLOSE) {
+      debug_cmd_ = request.params.debug_cmd;
+      has_debug_cmd_ = true;
+    }
+  }
 
   if (request.__isset.reserved_resource) {
     VLOG_QUERY << "Executing fragment in reserved resource:\n"
@@ -109,6 +120,11 @@ Status PlanFragmentExecutor::Prepare(const TExecPlanFragmentParams& request) {
   // promise is set, i.e. when the method has completed.
   ScopeExitPromise<RuntimeState*> scoped_promise(
       &runtime_state_promise_, runtime_state_.get());
+
+  if (has_debug_cmd_) {
+    RETURN_IF_ERROR(DebugOptions::ExecDebugAction(debug_cmd_,
+            TExecNodePhase::FRAGMENT_PREPARE, runtime_state_.get()));
+  }
 
   // total_time_counter() is in the runtime_state_ so start it up now.
   SCOPED_TIMER(profile()->total_time_counter());
@@ -211,11 +227,8 @@ Status PlanFragmentExecutor::Prepare(const TExecPlanFragmentParams& request) {
       ExecNode::CreateTree(obj_pool(), request.fragment.plan, *desc_tbl, &plan_));
   runtime_state_->set_fragment_root_id(plan_->id());
 
-  if (request.params.__isset.debug_node_id) {
-    DCHECK(request.params.__isset.debug_action);
-    DCHECK(request.params.__isset.debug_phase);
-    ExecNode::SetDebugOptions(request.params.debug_node_id,
-        request.params.debug_phase, request.params.debug_action, plan_);
+  if (!has_debug_cmd_ && request.params.__isset.debug_cmd) {
+      ExecNode::SetDebugOptions(request.params.debug_cmd, plan_);
   }
 
   // set #senders of exchange nodes before calling Prepare()
@@ -313,6 +326,11 @@ void PlanFragmentExecutor::PrintVolumeIds(
 Status PlanFragmentExecutor::Open() {
   VLOG_QUERY << "Open(): instance_id="
       << runtime_state_->fragment_instance_id();
+  if (has_debug_cmd_) {
+    RETURN_IF_ERROR(DebugOptions::ExecDebugAction(debug_cmd_, TExecNodePhase::FRAGMENT_OPEN,
+        runtime_state_.get()));
+  }
+
   // we need to start the profile-reporting thread before calling Open(), since it
   // may block
   if (!report_status_cb_.empty() && FLAGS_status_report_interval > 0) {
@@ -476,6 +494,11 @@ Status PlanFragmentExecutor::GetNext(RowBatch** batch) {
 }
 
 Status PlanFragmentExecutor::GetNextInternal(RowBatch** batch) {
+  if (has_debug_cmd_) {
+    RETURN_IF_ERROR(DebugOptions::ExecDebugAction(debug_cmd_,
+            TExecNodePhase::FRAGMENT_GETNEXT, runtime_state_.get()));
+  }
+
   if (done_) {
     *batch = NULL;
     return Status::OK();
@@ -571,6 +594,11 @@ void PlanFragmentExecutor::ReleaseThreadToken() {
 
 void PlanFragmentExecutor::Close() {
   if (closed_) return;
+  if (has_debug_cmd_) {
+    DebugOptions::ExecDebugAction(debug_cmd_, TExecNodePhase::FRAGMENT_CLOSE,
+        runtime_state_.get());
+  }
+
   row_batch_.reset();
   // Prepare may not have been called, which sets runtime_state_
   if (runtime_state_.get() != NULL) {
