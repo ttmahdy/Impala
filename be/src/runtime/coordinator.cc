@@ -377,13 +377,12 @@ Status Coordinator::Exec(QuerySchedule& schedule,
     // Prepare output_expr_ctxs before optimizing the LLVM module. The other exprs of this
     // coordinator fragment have been prepared in executor_->Prepare().
     DCHECK(output_expr_ctxs != NULL);
-    RETURN_IF_ERROR(Expr::CreateExprTrees(
-        runtime_state()->obj_pool(), request.fragments[0].output_exprs,
-        output_expr_ctxs));
+    RETURN_IF_ERROR(Expr::CreateExprTrees(runtime_state()->obj_pool(),
+        request.fragments[0].output_exprs, output_expr_ctxs));
     MemTracker* output_expr_tracker = runtime_state()->obj_pool()->Add(new MemTracker(
         -1, -1, "Output exprs", runtime_state()->instance_mem_tracker(), false));
-    RETURN_IF_ERROR(Expr::Prepare(
-        *output_expr_ctxs, runtime_state(), row_desc(), output_expr_tracker));
+    RETURN_IF_ERROR(Expr::Prepare(*output_expr_ctxs, runtime_state(), row_desc(),
+        output_expr_tracker));
   } else {
     // The coordinator instance may require a query mem tracker even if there is no
     // coordinator fragment. For example, result-caching tracks memory via the query mem
