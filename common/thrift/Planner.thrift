@@ -54,6 +54,8 @@ struct TPlanFragment {
   // This is distinct from the partitioning of each plan fragment's
   // output, which is specified by output_sink.output_partitioning.
   6: required Partitions.TDataPartition partition
+
+  7: required Types.TPlanFragmentId id
 }
 
 // location information for a single scan range

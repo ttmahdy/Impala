@@ -20,6 +20,7 @@ typedef i32 TPlanNodeId
 typedef i32 TTupleId
 typedef i32 TSlotId
 typedef i32 TTableId
+typedef i32 TPlanFragmentId
 
 enum TPrimitiveType {
   INVALID_TYPE,
@@ -199,4 +200,3 @@ struct TFunction {
   9: optional TScalarFunction scalar_fn
   10: optional TAggregateFunction aggregate_fn
 }
-
