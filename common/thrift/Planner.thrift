@@ -24,6 +24,21 @@ include "DataSinks.thrift"
 include "PlanNodes.thrift"
 include "Partitions.thrift"
 
+struct TSlotFilter {
+  1: required num_hash_fns
+  2: required string filter
+  // The slot to apply the filter to
+  3: Exprs.TSlotRef filtered_slot_ref
+}
+
+struct TFilterSpec {
+  1: required i64 filter_id
+  2: required Types.TPlanNodeId src_node
+  3: required Types.TPlanNodeId dest_node
+  4: required Types.TPlanFragmentId src_fragment
+  5: required Types.TPlanFragmentId dest_fragment
+}
+
 // TPlanFragment encapsulates info needed to execute a particular
 // plan fragment, including how to produce and how to partition its output.
 // It leaves out node-specific parameters neede for the actual execution.
@@ -56,6 +71,8 @@ struct TPlanFragment {
   6: required Partitions.TDataPartition partition
 
   7: required Types.TPlanFragmentId id
+
+  8: optional list<TFilterSpec> filters
 }
 
 // location information for a single scan range
