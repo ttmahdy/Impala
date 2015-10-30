@@ -274,7 +274,7 @@ public class PlanFragment {
 
   public TPlanFragment toThrift() {
     TPlanFragment result = new TPlanFragment();
-    result.setId(fragmentId_.asInt());
+    //result.setId(fragmentId_.asInt());
     result.setDisplay_name(fragmentId_.toString());
     if (planRoot_ != null) result.setPlan(planRoot_.treeToThrift());
     if (outputExprs_ != null) {
