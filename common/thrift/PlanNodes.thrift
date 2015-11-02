@@ -22,6 +22,7 @@ namespace cpp impala
 namespace java com.cloudera.impala.thrift
 
 include "CatalogObjects.thrift"
+include "DebugOptions.thrift"
 include "ExecStats.thrift"
 include "Exprs.thrift"
 include "Types.thrift"
@@ -43,74 +44,6 @@ enum TPlanNodeType {
   SINGULAR_ROW_SRC_NODE,
   UNNEST_NODE,
   SUBPLAN_NODE,
-}
-
-enum TBackendSelectorFn {
-  // Select all backends
-  ALL,
-
-  // Select only the instance with a given backend ID
-  ID,
-
-  // RAND(N) selects at most N
-  RAND,
-  NONE
-}
-
-struct TBackendSelector {
-  1: optional TBackendSelectorFn fn,
-  2: optional i32 int_arg
-}
-
-enum TExecNodeSelectorFn {
-  NODE_ID,
-  REGEX,
-  ALL
-}
-
-struct TExecNodeSelector {
-  1: optional TExecNodeSelectorFn choice_fn,
-  2: optional i32 int_arg // For LITERAL
-  3: optional string str_arg // For REGEX
-}
-
-// phases of an execution node
-enum TExecNodePhase {
-  PREPARE,
-  OPEN,
-  GETNEXT,
-  CLOSE,
-  INVALID,
-  FRAGMENT_PREPARE,
-  FRAGMENT_OPEN,
-  FRAGMENT_CLOSE,
-  FRAGMENT_GETNEXT
-}
-
-// what to do when hitting a debug point (TImpalaQueryOptions.DEBUG_ACTION)
-enum TDebugActionCmd {
-  WAIT,
-  FAIL,
-  // Delays a fixed amount
-  DELAY,
-  // Delays a random ms each time
-  DELAY_RAND,
-  // Delays exactly once, then fails
-  DELAY_THEN_FAIL,
-  // Delays for a random amount of time, then fails
-  DELAY_RAND_THEN_FAIL
-}
-
-struct TDebugAction {
-  1: optional TDebugActionCmd cmd
-  2: optional i32 int_arg
-}
-
-struct TDebugCmd {
-  // Note that backend spec is not included, as will be determined at coordinator
-  1: optional TExecNodeSelector node_selector
-  2: optional TExecNodePhase debug_phase
-  3: optional TDebugAction action
 }
 
 // The information contained in subclasses of ScanNode captured in two separate
