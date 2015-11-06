@@ -704,14 +704,14 @@ void Statestore::DoSubscriberUpdate(bool is_heartbeat, int thread_id,
                   << ")";
         UnregisterSubscriber(subscriber.get());
       }
-    } else {
-      // Schedule the next message.
-      VLOG(3) << "Next " << (is_heartbeat ? "heartbeat" : "update") << " deadline for: "
-              << subscriber->id() << " is in " << deadline_ms << "ms";
-      OfferUpdate(make_pair(deadline_ms, subscriber->id()), is_heartbeat ?
-          &subscriber_heartbeat_threadpool_ : &subscriber_topic_update_threadpool_);
+      return;
     }
   }
+  // Schedule the next message.
+  VLOG(3) << "Next " << (is_heartbeat ? "heartbeat" : "update") << " deadline for: "
+          << subscriber->id() << " is in " << deadline_ms << "ms";
+  OfferUpdate(make_pair(deadline_ms, subscriber->id()), is_heartbeat ?
+      &subscriber_heartbeat_threadpool_ : &subscriber_topic_update_threadpool_);
 }
 
 void Statestore::UnregisterSubscriber(Subscriber* subscriber) {
