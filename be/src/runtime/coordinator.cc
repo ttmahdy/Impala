@@ -125,11 +125,7 @@ class Coordinator::BackendExecState {
   BackendExecState(QuerySchedule* schedule, int backend_num,
       const TPlanFragment* fragment, int fragment_idx, const FragmentExecParams* params,
       int instance_idx, DebugOptions* debug_options, ObjectPool* obj_pool)
-    : fragment_exec_params_(params),
-      plan_fragment_(fragment),
-      debug_options_(debug_options),
-      schedule_(schedule),
-      backend_num_(backend_num),
+    : backend_num_(backend_num),
       fragment_instance_id_(params->instance_ids[instance_idx]),
       backend_address_(params->hosts[instance_idx]),
       total_split_size_(0),
@@ -1215,8 +1211,13 @@ int64_t Coordinator::ComputeTotalScanRangesComplete(int node_id) {
   return value;
 }
 
-void Coordinator::ExecRemoteFragment(BackendExecState* exec_state) {
-  exec_state->Init(this);
+void Coordinator::ExecRemoteFragment(FragmentExecParams* fragment_exec_params,
+    TPlanFragment* plan_fragment, DebugOptions* debug_options, QuerySchedule* schedule,
+    int backend_num, int fragment_idx, int intance_idx) {
+  BackendExecState* exec_state = obj_pool()->Add(
+      new BackendExecState(schedule, backend_num, plan_fragment, fragment_idx,
+          fragment_exec_params, instance_idx, debug_options, obj_pool()));
+  backend_exec_states_[backend_num] = exec_state;
   VLOG_FILE << "making rpc: ExecPlanFragment query_id=" << query_id_
             << " instance_id=" << exec_state->fragment_instance_id()
             << " host=" << exec_state->backend_address();
