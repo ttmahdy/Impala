@@ -15,8 +15,10 @@
 package com.cloudera.impala.planner;
 
 import java.util.List;
+import java.util.Map;
 
 import com.cloudera.impala.analysis.SlotDescriptor;
+import com.cloudera.impala.analysis.SlotRef;
 import com.cloudera.impala.analysis.TupleDescriptor;
 import com.cloudera.impala.catalog.HdfsFileFormat;
 import com.cloudera.impala.catalog.Type;
@@ -28,6 +30,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * Representation of the common elements of all scan nodes.
@@ -48,6 +51,9 @@ abstract public class ScanNode extends PlanNode {
     super(id, desc.getId().asList(), displayName);
     desc_ = desc;
   }
+
+  // Runtime filters applied at this node
+  protected Map<DynamicFilterId, SlotRef> runtimeFilters_ = Maps.newHashMap();
 
   public TupleDescriptor getTupleDesc() { return desc_; }
 
@@ -74,6 +80,10 @@ abstract public class ScanNode extends PlanNode {
             Joiner.on(", ").join(HdfsFileFormat.complexTypesFormats())));
       }
     }
+  }
+
+  public void addFilter(DynamicFilterId filterId, SlotRef applySlot) {
+    runtimeFilters_.put(filterId, applySlot);
   }
 
   /**

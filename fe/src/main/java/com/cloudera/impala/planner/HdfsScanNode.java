@@ -62,6 +62,7 @@ import com.cloudera.impala.thrift.TNetworkAddress;
 import com.cloudera.impala.thrift.TPlanNode;
 import com.cloudera.impala.thrift.TPlanNodeType;
 import com.cloudera.impala.thrift.TQueryOptions;
+import com.cloudera.impala.thrift.TRuntimeFilter;
 import com.cloudera.impala.thrift.TScanRange;
 import com.cloudera.impala.thrift.TScanRangeLocation;
 import com.cloudera.impala.thrift.TScanRangeLocations;
@@ -211,6 +212,10 @@ public class HdfsScanNode extends ScanNode {
           firstComplexTypedCol.getName(), firstComplexTypedCol.getType().toSql(),
           errSuffix));
     }
+  }
+
+  public boolean isPartitionedTable() {
+    return desc_.getTable().getNumClusteringCols() != 0;
   }
 
   /**
@@ -821,6 +826,10 @@ public class HdfsScanNode extends ScanNode {
       }
       msg.hdfs_scan_node.setCollection_conjuncts(tcollectionConjuncts);
     }
+    for (Map.Entry<DynamicFilterId, SlotRef> entry: runtimeFilters_.entrySet()) {
+      msg.hdfs_scan_node.addToRuntime_filters(
+          new TRuntimeFilter(entry.getKey().asInt(), entry.getValue().treeToThrift()));
+    }
   }
 
   @Override
@@ -867,6 +876,14 @@ public class HdfsScanNode extends ScanNode {
           output.append(String.format("%spredicates on %s: %s\n",
               detailPrefix, alias, getExplainString(entry.getValue())));
         }
+      }
+      if (!runtimeFilters_.isEmpty()) {
+        output.append(detailPrefix + "dynamic filters: ");
+        List<String> filtersStr = Lists.newArrayList();
+        for (Map.Entry<DynamicFilterId, SlotRef> entry: runtimeFilters_.entrySet()) {
+          filtersStr.add(entry.getKey() + ":" + entry.getValue().toSql());
+        }
+        output.append(Joiner.on(", ").join(filtersStr) + "\n");
       }
     }
     if (detailLevel.ordinal() >= TExplainLevel.EXTENDED.ordinal()) {

@@ -161,6 +161,9 @@ void impala::TQueryOptionsToMap(const TQueryOptions& query_options,
       case TImpalaQueryOptions::EXEC_SINGLE_NODE_ROWS_THRESHOLD:
         val << query_options.exec_single_node_rows_threshold;
         break;
+      case TImpalaQueryOptions::ENABLE_DYNAMIC_PARTITION_PRUNING:
+        val << query_options.enable_dynamic_partition_pruning;
+        break;
       default:
         // We hit this DCHECK(false) if we forgot to add the corresponding entry here
         // when we add a new query option.
@@ -340,6 +343,10 @@ Status impala::SetQueryOption(const string& key, const string& value,
       }
       case TImpalaQueryOptions::EXEC_SINGLE_NODE_ROWS_THRESHOLD:
         query_options->__set_exec_single_node_rows_threshold(atoi(value.c_str()));
+        break;
+      case TImpalaQueryOptions::ENABLE_DYNAMIC_PARTITION_PRUNING:
+        query_options->__set_enable_dynamic_partition_pruning(
+            iequals(value, "true") || iequals(value, "1"));
         break;
       default:
         // We hit this DCHECK(false) if we forgot to add the corresponding entry here

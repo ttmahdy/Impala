@@ -15,6 +15,7 @@
 package com.cloudera.impala.planner;
 
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +29,10 @@ import com.cloudera.impala.analysis.SlotRef;
 import com.cloudera.impala.catalog.ColumnStats;
 import com.cloudera.impala.catalog.Table;
 import com.cloudera.impala.common.ImpalaException;
+import com.cloudera.impala.planner.DynamicFilterId;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * Logical join operator. Subclasses correspond to implementations of the join operator
@@ -57,6 +61,9 @@ public abstract class JoinNode extends PlanNode {
   // and semi joins) these include only conjuncts from the ON and USING clauses.
   protected List<BinaryPredicate> eqJoinConjuncts_;
   protected List<Expr> otherJoinConjuncts_;
+
+  // Runtime filters constructed at this node
+  protected Map<DynamicFilterId, Expr> runtimeFilters_ = Maps.newHashMap();
 
   public enum DistributionMode {
     NONE("NONE"),
@@ -128,6 +135,10 @@ public abstract class JoinNode extends PlanNode {
   public DistributionMode getDistributionModeHint() { return distrModeHint_; }
   public DistributionMode getDistributionMode() { return distrMode_; }
   public void setDistributionMode(DistributionMode distrMode) { distrMode_ = distrMode; }
+
+  public void addFilter(DynamicFilterId filterId, Expr buildFilterExpr) {
+    runtimeFilters_.put(filterId, buildFilterExpr);
+  }
 
   @Override
   public void init(Analyzer analyzer) throws ImpalaException {

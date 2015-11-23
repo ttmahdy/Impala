@@ -111,6 +111,9 @@ struct TQueryOptions {
   // If the number of rows that are processed for a single query is below the
   // threshold, it will be executed on the coordinator only with codegen disabled
   31: optional i32 exec_single_node_rows_threshold = 100
+
+  // If true, dynamic partition pruning is enabled
+  32: optional bool enable_dynamic_partition_pruning = 0
 }
 
 // Impala currently has two types of sessions: Beeswax and HiveServer2

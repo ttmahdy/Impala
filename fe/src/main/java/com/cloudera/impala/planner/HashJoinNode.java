@@ -15,6 +15,7 @@
 package com.cloudera.impala.planner;
 
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +35,8 @@ import com.cloudera.impala.thrift.THashJoinNode;
 import com.cloudera.impala.thrift.TPlanNode;
 import com.cloudera.impala.thrift.TPlanNodeType;
 import com.cloudera.impala.thrift.TQueryOptions;
+import com.cloudera.impala.thrift.TRuntimeFilter;
+import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -136,6 +139,10 @@ public class HashJoinNode extends JoinNode {
       msg.hash_join_node.addToOther_join_conjuncts(e.treeToThrift());
     }
     msg.hash_join_node.setAdd_probe_filters(addProbeFilters_);
+    for (Map.Entry<DynamicFilterId, Expr> entry: runtimeFilters_.entrySet()) {
+      msg.hash_join_node.addToRuntime_filters(
+          new TRuntimeFilter(entry.getKey().asInt(), entry.getValue().treeToThrift()));
+    }
   }
 
   @Override
@@ -160,6 +167,14 @@ public class HashJoinNode extends JoinNode {
       if (!conjuncts_.isEmpty()) {
         output.append(detailPrefix + "other predicates: ")
         .append(getExplainString(conjuncts_) + "\n");
+      }
+      if (!runtimeFilters_.isEmpty()) {
+        output.append(detailPrefix + "dynamic filters: ");
+        List<String> filtersStr = Lists.newArrayList();
+        for (Map.Entry<DynamicFilterId, Expr> entry: runtimeFilters_.entrySet()) {
+          filtersStr.add(entry.getKey() + ":" + entry.getValue().toSql());
+        }
+        output.append(Joiner.on(", ").join(filtersStr) + "\n");
       }
     }
     return output.toString();

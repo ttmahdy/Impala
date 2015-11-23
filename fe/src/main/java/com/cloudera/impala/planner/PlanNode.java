@@ -578,4 +578,24 @@ abstract public class PlanNode extends TreeNode<PlanNode> {
     }
     return sum;
   }
+
+  /**
+   * Finds the lowest operator in a plan tree rooted at 'root', where the subtree rooted
+   * at that operator materializes a set of tuple ids. Returns null if no such operator
+   * is found.
+   */
+  public static PlanNode findOperatorMaterializingTids(PlanNode root,
+      List<TupleId> tids) {
+    if (tids.containsAll(root.tupleIds_)
+        && (!(root instanceof JoinNode)
+            || !((JoinNode) root).getJoinOp().isSemiJoin())) {
+      return root;
+    }
+
+    for (PlanNode child: root.getChildren()) {
+      if (!child.tupleIds_.containsAll(tids)) continue;
+      return findOperatorMaterializingTids(child, tids);
+    }
+    return null;
+  }
 }

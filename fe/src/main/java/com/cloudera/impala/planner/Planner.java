@@ -41,7 +41,8 @@ public class Planner {
 
   /**
    * Returns a list of plan fragments for executing an analyzed parse tree.
-   * May return a single-node or distributed executable plan.
+   * May return a single-node or distributed executable plan. If enabled (through a
+   * query option), computes runtime filters for dynamic partition pruning.
    *
    * Plan generation may fail and throw for the following reasons:
    * 1. Expr evaluation failed, e.g., during partition pruning.
@@ -57,6 +58,14 @@ public class Planner {
     DistributedPlanner distributedPlanner = new DistributedPlanner(ctx_);
     PlanNode singleNodePlan = singleNodePlanner.createSingleNodePlan();
     ctx_.getRootAnalyzer().getTimeline().markEvent("Single node plan created");
+
+    if (ctx_.getQueryOptions().isEnable_dynamic_partition_pruning()) {
+      DynamicPartitionPruner.computeRuntimeFilters(ctx_.getRootAnalyzer(),
+          singleNodePlan);
+      ctx_.getRootAnalyzer().getTimeline().markEvent(
+          "Dynamic partition pruning computed");
+    }
+
     ArrayList<PlanFragment> fragments = null;
 
     // Determine the maximum number of rows processed by any node in the plan tree

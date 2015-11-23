@@ -60,6 +60,14 @@ enum TDebugAction {
   FAIL
 }
 
+// Specification of a runtime filter
+struct TRuntimeFilter {
+  // Filter unique id
+  1: required i32 filter_id
+  // Expression on which the filter is built or applied
+  2: required Exprs.TExpr filter_expr
+}
+
 // The information contained in subclasses of ScanNode captured in two separate
 // Thrift structs:
 // - TScanRange: the data range that's covered by the scan (which varies with the
@@ -118,6 +126,9 @@ struct THdfsScanNode {
   // collection-typed slots. Maps from item tuple id to the list of conjuncts
   // to be evaluated.
   2: optional map<Types.TTupleId, list<Exprs.TExpr>> collection_conjuncts
+
+  // Runtime filters assigned to this scan node
+  3: optional list<TRuntimeFilter> runtime_filters
 }
 
 struct TDataSourceScanNode {
@@ -193,6 +204,9 @@ struct THashJoinNode {
   // If true, this join node can (but may choose not to) generate slot filters
   // after constructing the build side that can be applied to the probe side.
   4: optional bool add_probe_filters
+
+  // Runtime filters assigned to this join node
+  5: optional list<TRuntimeFilter> runtime_filters
 }
 
 struct TNestedLoopJoinNode {

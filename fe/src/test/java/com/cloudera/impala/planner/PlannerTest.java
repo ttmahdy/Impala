@@ -192,4 +192,11 @@ public class PlannerTest extends PlannerTestBase {
     options.setNum_nodes(1);
     runPlannerTestFile("nested-loop-join", options);
   }
+
+  @Test
+  public void testDynamicPartitionPruning() {
+    TQueryOptions options = new TQueryOptions();
+    options.setEnable_dynamic_partition_pruning(true);
+    runPlannerTestFile("dynamic-partition-pruning", options);
+  }
 }
