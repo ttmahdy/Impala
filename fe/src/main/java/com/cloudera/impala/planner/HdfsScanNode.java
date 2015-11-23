@@ -85,6 +85,11 @@ public class HdfsScanNode extends ScanNode {
   // scan ranges than would have been estimated assuming a uniform distribution.
   private final static double SCAN_RANGE_SKEW_FACTOR = 1.2;
 
+  // Partition batch size used during partition pruning
+  private final static int PARTITION_PRUNING_BATCH_SIZE = 1024;
+
+  private final static String RUNTIME_FILTER_FORMAT = "apply %s on %s";
+
   private final HdfsTable tbl_;
 
   // Partitions that are filtered in for scanning by the key ranges
@@ -190,6 +195,10 @@ public class HdfsScanNode extends ScanNode {
           firstComplexTypedCol.getName(), firstComplexTypedCol.getType().toSql(),
           errSuffix));
     }
+  }
+
+  public boolean isPartitionedTable() {
+    return desc_.getTable().getNumClusteringCols() > 0;
   }
 
   /**
@@ -487,6 +496,10 @@ public class HdfsScanNode extends ScanNode {
           output.append(String.format("%spredicates on %s: %s\n",
               detailPrefix, alias, getExplainString(entry.getValue())));
         }
+      }
+      if (!runtimeFilters_.isEmpty()) {
+        output.append(detailPrefix + "runtime filters: ");
+        output.append(getRuntimeFilterExplainString(RUNTIME_FILTER_FORMAT));
       }
     }
     if (detailLevel.ordinal() >= TExplainLevel.EXTENDED.ordinal()) {

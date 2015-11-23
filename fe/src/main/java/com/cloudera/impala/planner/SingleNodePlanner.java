@@ -1187,8 +1187,7 @@ public class SingleNodePlanner {
     Predicate<Expr> isIdentityPredicate = new Predicate<Expr>() {
       @Override
       public boolean apply(Expr expr) {
-        return (expr instanceof BinaryPredicate)
-            && ((BinaryPredicate) expr).getOp().isEquivalence()
+        return com.cloudera.impala.analysis.Predicate.isEqBinaryPredicate(expr)
             && ((BinaryPredicate) expr).isInferred()
             && expr.getChild(0).equals(expr.getChild(1));
       }

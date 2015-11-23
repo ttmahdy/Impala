@@ -16,6 +16,7 @@ package com.cloudera.impala.planner;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -36,8 +37,11 @@ import com.cloudera.impala.thrift.TExplainLevel;
 import com.cloudera.impala.thrift.TPlan;
 import com.cloudera.impala.thrift.TPlanNode;
 import com.cloudera.impala.thrift.TQueryOptions;
+import com.cloudera.impala.thrift.TRuntimeFilter;
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.math.LongMath;
 
@@ -113,6 +117,9 @@ abstract public class PlanNode extends TreeNode<PlanNode> {
   // estimated per-host memory requirement for this node;
   // set in computeCosts(); invalid: -1
   protected long perHostMemCost_ = -1;
+
+  // Runtime filters assigned at this node
+  protected Map<RuntimeFilterId, Expr> runtimeFilters_ = Maps.newHashMap();
 
   protected PlanNode(PlanNodeId id, ArrayList<TupleId> tupleIds, String displayName) {
     id_ = id;
@@ -368,6 +375,11 @@ abstract public class PlanNode extends TreeNode<PlanNode> {
     for (Expr e: conjuncts_) {
       msg.addToConjuncts(e.treeToThrift());
     }
+    // Serialize any runtime filters
+    for (Map.Entry<RuntimeFilterId, Expr> entry: runtimeFilters_.entrySet()) {
+      msg.addToRuntime_filters(new TRuntimeFilter(entry.getKey().asInt(),
+          entry.getValue().treeToThrift()));
+    }
     toThrift(msg);
     container.addToNodes(msg);
     // For the purpose of the BE consider ExchangeNodes to have no children.
@@ -566,5 +578,20 @@ abstract public class PlanNode extends TreeNode<PlanNode> {
       sum = addCardinalities(sum, tmp);
     }
     return sum;
+  }
+
+  public void addRuntimeFilter(RuntimeFilterId filterId, Expr filterExpr) {
+    runtimeFilters_.put(filterId, filterExpr);
+  }
+
+  protected String getRuntimeFilterExplainString(String format) {
+    if (runtimeFilters_.isEmpty()) return "";
+    StringBuilder output = new StringBuilder();
+    List<String> filtersStr = Lists.newArrayList();
+    for (Map.Entry<RuntimeFilterId, Expr> entry: runtimeFilters_.entrySet()) {
+      filtersStr.add(String.format(format, entry.getKey(), entry.getValue().toSql()));
+    }
+    output.append(Joiner.on(", ").join(filtersStr) + "\n");
+    return output.toString();
   }
 }

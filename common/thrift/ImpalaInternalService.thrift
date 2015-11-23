@@ -137,6 +137,9 @@ struct TQueryOptions {
   // metastore. This setting will not affect tie-breaking for cached replicas. Instead,
   // they will always break ties randomly.
   34: optional bool random_replica = 0
+
+  // If true, runtime filter propagation is enabled
+  35: optional bool enable_runtime_filter_propagation = 0
 }
 
 // Impala currently has two types of sessions: Beeswax and HiveServer2

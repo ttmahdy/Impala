@@ -199,4 +199,11 @@ public class PlannerTest extends PlannerTestBase {
     options.setNum_nodes(1);
     runPlannerTestFile("nested-loop-join", options);
   }
+
+  @Test
+  public void testRuntimeFilterPropagation() {
+    TQueryOptions options = new TQueryOptions();
+    options.setEnable_runtime_filter_propagation(true);
+    runPlannerTestFile("runtime-filter-propagation", options);
+  }
 }

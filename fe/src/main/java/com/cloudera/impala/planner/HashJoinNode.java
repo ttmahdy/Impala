@@ -46,6 +46,8 @@ import com.google.common.collect.Lists;
 public class HashJoinNode extends JoinNode {
   private final static Logger LOG = LoggerFactory.getLogger(HashJoinNode.class);
 
+  private final static String RUNTIME_FILTER_FORMAT = "%s <- %s";
+
   // If true, this node can add filters for the probe side that can be generated
   // after reading the build side. This can be very helpful if the join is selective and
   // there are few build rows.
@@ -162,6 +164,10 @@ public class HashJoinNode extends JoinNode {
       if (!conjuncts_.isEmpty()) {
         output.append(detailPrefix + "other predicates: ")
         .append(getExplainString(conjuncts_) + "\n");
+      }
+      if (!runtimeFilters_.isEmpty()) {
+        output.append(detailPrefix + "runtime filters: ");
+        output.append(getRuntimeFilterExplainString(RUNTIME_FILTER_FORMAT));
       }
     }
     return output.toString();

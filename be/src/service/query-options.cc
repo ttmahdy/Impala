@@ -169,6 +169,9 @@ void impala::TQueryOptionsToMap(const TQueryOptions& query_options,
       case TImpalaQueryOptions::RANDOM_REPLICA:
         val << query_options.random_replica;
         break;
+      case TImpalaQueryOptions::ENABLE_RUNTIME_FILTER_PROPAGATION:
+        val << query_options.enable_runtime_filter_propagation;
+        break;
       default:
         // We hit this DCHECK(false) if we forgot to add the corresponding entry here
         // when we add a new query option.
@@ -387,6 +390,10 @@ Status impala::SetQueryOption(const string& key, const string& value,
         break;
       case TImpalaQueryOptions::RANDOM_REPLICA:
         query_options->__set_random_replica(
+            iequals(value, "true") || iequals(value, "1"));
+        break;
+      case TImpalaQueryOptions::ENABLE_RUNTIME_FILTER_PROPAGATION:
+        query_options->__set_enable_runtime_filter_propagation(
             iequals(value, "true") || iequals(value, "1"));
         break;
       default:

@@ -156,6 +156,7 @@ void ChildQuery::SetQueryOptions(const TQueryOptions& parent_options,
   SET_QUERY_OPTION(optimize_partition_key_scans, OPTIMIZE_PARTITION_KEY_SCANS);
   SET_QUERY_OPTION(replica_preference, REPLICA_PREFERENCE);
   SET_QUERY_OPTION(random_replica, RANDOM_REPLICA);
+  SET_QUERY_OPTION(enable_runtime_filter_propagation, ENABLE_RUNTIME_FILTER_PROPAGATION);
 }
 
 void ChildQuery::Cancel() {
