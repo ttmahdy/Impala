@@ -37,6 +37,7 @@
 #include "exprs/expr-context.h"
 #include "runtime/descriptors.h"
 #include "runtime/hdfs-fs-cache.h"
+#include "runtime/runtime-filter.h"
 #include "runtime/runtime-state.h"
 #include "runtime/mem-pool.h"
 #include "runtime/raw-value.h"
@@ -114,6 +115,9 @@ HdfsScanNode::HdfsScanNode(ObjectPool* pool, const TPlanNode& tnode,
         10 * (DiskInfo::num_disks() + DiskIoMgr::REMOTE_NUM_DISKS);
   }
   materialized_row_batches_.reset(new RowBatchQueue(max_materialized_row_batches_));
+  for (int i = 0; i < tnode.runtime_filters.size(); ++i) {
+    filter_ids_.push_back(tnode.runtime_filters[i].filter_id);
+  }
 }
 
 HdfsScanNode::~HdfsScanNode() {
@@ -131,10 +135,31 @@ Status HdfsScanNode::Init(const TPlanNode& tnode) {
     RETURN_IF_ERROR(
         Expr::CreateExprTrees(pool_, iter->second, &conjuncts_map_[iter->first]));
   }
+
+  BOOST_FOREACH(const TRuntimeFilter& filter, tnode.runtime_filters) {
+    ExprContext* ctx;
+    RETURN_IF_ERROR(Expr::CreateExprTree(pool_, filter.filter_expr, &ctx));
+    filter_exprs_.push_back(ctx);
+  }
+
   // Add row batch conjuncts
   DCHECK(conjuncts_map_[tuple_id_].empty());
   conjuncts_map_[tuple_id_] = conjunct_ctxs_;
+
   return Status::OK();
+}
+
+bool HdfsScanNode::FilePassesFilters(HdfsFileDesc* file) {
+  ScanRangeMetadata* metadata =
+      reinterpret_cast<ScanRangeMetadata*>(file->splits[0]->meta_data());
+  if (!PartitionPassesFilters(metadata->partition_id, FilterStats::FILE, &filter_exprs_)) {
+    for (int j = 0; j < file->splits.size(); ++j) {
+      // Mark range as complete to ensure progress.
+      RangeComplete(THdfsFileFormat::TEXT, vector<THdfsCompression::type>());
+    }
+    return false;
+  }
+  return true;
 }
 
 Status HdfsScanNode::GetNext(RuntimeState* state, RowBatch* row_batch, bool* eos) {
@@ -143,19 +168,28 @@ Status HdfsScanNode::GetNext(RuntimeState* state, RowBatch* row_batch, bool* eos
   if (!initial_ranges_issued_) {
     // We do this in GetNext() to ensure that all execution time predicates have
     // been generated (e.g. probe side bitmap filters).
-    // TODO: we could do dynamic partition pruning here as well.
     initial_ranges_issued_ = true;
+
+    // Apply dynamic partition-pruning per-file.
+    FileFormatsMap non_filtered_per_type_files;
+    BOOST_FOREACH(const FileFormatsMap::value_type& v, per_type_files_) {
+      vector<HdfsFileDesc*>* non_filtered_files = &non_filtered_per_type_files[v.first];
+      BOOST_FOREACH(HdfsFileDesc* file, v.second) {
+        if (FilePassesFilters(file)) non_filtered_files->push_back(file);
+      }
+    }
+
     // Issue initial ranges for all file types.
     RETURN_IF_ERROR(HdfsTextScanner::IssueInitialRanges(this,
-        per_type_files_[THdfsFileFormat::TEXT]));
+        non_filtered_per_type_files[THdfsFileFormat::TEXT]));
     RETURN_IF_ERROR(BaseSequenceScanner::IssueInitialRanges(this,
-        per_type_files_[THdfsFileFormat::SEQUENCE_FILE]));
+        non_filtered_per_type_files[THdfsFileFormat::SEQUENCE_FILE]));
     RETURN_IF_ERROR(BaseSequenceScanner::IssueInitialRanges(this,
-        per_type_files_[THdfsFileFormat::RC_FILE]));
+        non_filtered_per_type_files[THdfsFileFormat::RC_FILE]));
     RETURN_IF_ERROR(BaseSequenceScanner::IssueInitialRanges(this,
-        per_type_files_[THdfsFileFormat::AVRO]));
+        non_filtered_per_type_files[THdfsFileFormat::AVRO]));
     RETURN_IF_ERROR(HdfsParquetScanner::IssueInitialRanges(this,
-        per_type_files_[THdfsFileFormat::PARQUET]));
+        non_filtered_per_type_files[THdfsFileFormat::PARQUET]));
     if (progress_.done()) SetDone();
   }
 
@@ -298,10 +332,10 @@ Status HdfsScanNode::CreateAndPrepareScanner(HdfsPartitionDescriptor* partition,
 }
 
 Tuple* HdfsScanNode::InitTemplateTuple(RuntimeState* state,
-                                       const vector<ExprContext*>& value_ctxs) {
+    const vector<ExprContext*>& value_ctxs) {
   if (partition_key_slots_.empty()) return NULL;
 
-  // Look to protect access to partition_key_pool_ and value_ctxs
+  // Lock to protect access to partition_key_pool_ and value_ctxs
   // TODO: we can push the lock to the mempool and exprs_values should not
   // use internal memory.
   Tuple* template_tuple = InitEmptyTemplateTuple(*tuple_desc_);
@@ -331,6 +365,72 @@ void HdfsScanNode::TransferToScanNodePool(MemPool* pool) {
   scan_node_pool_->AcquireData(pool, false);
 }
 
+HdfsScanNode::FilterStats::FilterStats(RuntimeProfile* runtime_profile,
+    bool is_partition_filter) {
+  profile.reset(runtime_profile);
+  rows_total = ADD_COUNTER(profile, "Rows total", TUnit::UNIT);
+  rows_processed = ADD_COUNTER(profile, "Rows processed", TUnit::UNIT);
+  rows_rejected = ADD_COUNTER(profile, "Rows rejected", TUnit::UNIT);
+
+  // TODO: Only valid for Parquet
+  row_groups_total = ADD_COUNTER(profile, "RowGroups total", TUnit::UNIT);
+  row_groups_processed = ADD_COUNTER(profile, "RowGroups processed", TUnit::UNIT);
+  row_groups_rejected = ADD_COUNTER(profile, "RowGroups rejected", TUnit::UNIT);
+
+  if (is_partition_filter) {
+    splits_total = ADD_COUNTER(profile, "Splits total", TUnit::UNIT);
+    splits_processed = ADD_COUNTER(profile, "Splits processed", TUnit::UNIT);
+    splits_rejected = ADD_COUNTER(profile, "Splits rejected", TUnit::UNIT);
+
+    files_total = ADD_COUNTER(profile, "Files total", TUnit::UNIT);
+    files_processed = ADD_COUNTER(profile, "Files processed", TUnit::UNIT);
+    files_rejected = ADD_COUNTER(profile, "Files rejected", TUnit::UNIT);
+  }
+}
+
+void HdfsScanNode::InitFilters(RuntimeState* state) {
+  if (filter_ids_.size() == 0) return;
+
+  // Build local cache of runtime filters here - can't do it in Init() because filters
+  // will not have been registered by PlanFragmentExecutor yet.
+  for (int i = 0; i < filter_ids_.size(); ++i) {
+    const RuntimeFilter* filter = state->filter_bank()->GetRuntimeFilter(filter_ids_[i]);
+    DCHECK(filter != NULL) << "Missing filter with id: " << filter_ids_[i];
+    filters_.push_back(filter);
+  }
+
+  // Find set of filters on partition columns
+  // TODO: might be helpful if FE can tell us this
+  set<SlotId> partition_column_slot_ids;
+  BOOST_FOREACH(const SlotDescriptor* slot_desc, tuple_desc_->slots()) {
+    if (slot_desc->col_pos() < num_partition_keys()) {
+      partition_column_slot_ids.insert(slot_desc->id());
+    }
+  }
+  for (int i = 0; i < filters_.size(); ++i) {
+    uint32_t filter_id = filters_[i]->filter_desc().filter_id;
+    bool is_partition_filter = true;
+    vector<SlotId> slot_ids;
+    filter_exprs()[i]->root()->GetSlotIds(&slot_ids);
+    BOOST_FOREACH(const SlotId& s, slot_ids) {
+      if (partition_column_slot_ids.find(s) == partition_column_slot_ids.end()) {
+        is_partition_filter = false;
+        break;
+      }
+    }
+
+    if (is_partition_filter) partition_col_filter_idxs_.push_back(i);
+
+    RuntimeProfile* profile = new RuntimeProfile(state->obj_pool(),
+        Substitute("Filter $0", filter_id));
+    runtime_profile_->AddChild(profile);
+    shared_ptr<FilterStats> stats(
+        new FilterStats(profile, is_partition_filter));
+    filter_stats_.push_back(stats);
+  }
+}
+
+
 Status HdfsScanNode::Prepare(RuntimeState* state) {
   SCOPED_TIMER(runtime_profile_->total_time_counter());
   runtime_state_ = state;
@@ -358,10 +458,14 @@ Status HdfsScanNode::Prepare(RuntimeState* state) {
     scanner_threads_.SetCgroup(state->cgroup());
   }
 
+  RETURN_IF_ERROR(Expr::Prepare(filter_exprs_, state, row_desc(), expr_mem_tracker()));
+
   // One-time initialisation of state that is constant across scan ranges
   DCHECK(tuple_desc_->table_desc() != NULL);
   hdfs_table_ = static_cast<const HdfsTableDescriptor*>(tuple_desc_->table_desc());
   scan_node_pool_.reset(new MemPool(mem_tracker()));
+
+  InitFilters(state);
 
   // Parse Avro table schema if applicable
   const string& avro_schema_str = hdfs_table_->avro_schema();
@@ -422,6 +526,13 @@ Status HdfsScanNode::Prepare(RuntimeState* state) {
       return Status("Query encountered invalid metadata, likely due to IMPALA-1702."
                     " Try rerunning the query.");
     }
+
+    if (partition_template_tuple_map_.find(split.partition_id) ==
+        partition_template_tuple_map_.end()) {
+      partition_template_tuple_map_[split.partition_id] = InitTemplateTuple(state,
+          partition_desc->partition_key_value_ctxs());
+    }
+
     filesystem::path file_path(partition_desc->location());
     file_path.append(split.file_name, filesystem::path::codecvt());
     const string& native_file_path = file_path.native();
@@ -574,6 +685,8 @@ Status HdfsScanNode::Open(RuntimeState* state) {
     RETURN_IF_ERROR(Expr::Open(iter->second, state));
   }
 
+  RETURN_IF_ERROR(Expr::Open(filter_exprs_, state));
+
   // We need at least one scanner thread to make progress. We need to make this
   // reservation before any ranges are issued.
   runtime_state_->resource_pool()->ReserveOptionalTokens(1);
@@ -672,7 +785,6 @@ Status HdfsScanNode::Open(RuntimeState* state) {
   stringstream ss;
   ss << "Splits complete (node=" << id() << "):";
   progress_ = ProgressUpdater(ss.str(), total_splits);
-
   return Status::OK();
 }
 
@@ -733,7 +845,7 @@ void HdfsScanNode::Close(RuntimeState* state) {
     if (iter->first == tuple_id_) continue;
     Expr::Close(iter->second, state);
   }
-
+  Expr::Close(filter_exprs_, state);
   ScanNode::Close(state);
 }
 
@@ -889,6 +1001,11 @@ void HdfsScanNode::ScannerThread() {
   SCOPED_THREAD_COUNTER_MEASUREMENT(scanner_thread_counters());
   SCOPED_TIMER(runtime_state_->total_cpu_timer());
 
+  // Make thread-local copy of filter expressions for partition pruning.
+  vector<ExprContext*> local_filter_exprs;
+  Status filter_status = Expr::CloneIfNotExists(filter_exprs_,
+      runtime_state(), &local_filter_exprs);
+
   while (!done_) {
     {
       // Check if we have enough resources (thread token and memory) to keep using
@@ -907,6 +1024,7 @@ void HdfsScanNode::ScannerThread() {
             runtime_state_->query_resource_mgr()->NotifyThreadUsageChange(-1);
           }
           runtime_state_->resource_pool()->ReleaseThreadToken(false);
+          if (filter_status.ok()) Expr::Close(local_filter_exprs, runtime_state_);
           return;
         }
       } else {
@@ -925,7 +1043,7 @@ void HdfsScanNode::ScannerThread() {
 
     if (status.ok() && scan_range != NULL) {
       // Got a scan range. Process the range end to end (in this thread).
-      status = ProcessSplit(scan_range);
+      status = ProcessSplit(scan_range, filter_status.ok() ? &local_filter_exprs : NULL);
     }
 
     if (!status.ok()) {
@@ -966,6 +1084,8 @@ void HdfsScanNode::ScannerThread() {
     }
   }
 
+  if (filter_status.ok()) Expr::Close(local_filter_exprs, runtime_state_);
+
   COUNTER_ADD(&active_scanner_thread_counter_, -1);
   if (runtime_state_->query_resource_mgr() != NULL) {
     runtime_state_->query_resource_mgr()->NotifyThreadUsageChange(-1);
@@ -973,7 +1093,41 @@ void HdfsScanNode::ScannerThread() {
   runtime_state_->resource_pool()->ReleaseThreadToken(false);
 }
 
-Status HdfsScanNode::ProcessSplit(DiskIoMgr::ScanRange* scan_range) {
+bool HdfsScanNode::PartitionPassesFilters(int32_t partition_id, int type,
+    vector<ExprContext*>* filter_exprs) {
+  Tuple* template_tuple = partition_template_tuple_map_[partition_id];
+  DCHECK(template_tuple != NULL);
+  TupleRow* tuple_row_mem = reinterpret_cast<TupleRow*>(&template_tuple);
+  if (filter_exprs != NULL) {
+    for (int i = 0; i < partition_col_filter_idxs_.size(); ++i) {
+      uint32_t filter_idx = partition_col_filter_idxs_[i];
+      const RuntimeFilter* filter = GetFilter(filter_idx);
+      void* e = (*filter_exprs)[filter_idx]->GetValue(tuple_row_mem);
+
+      FilterStats* stats = filter_stats(filter_idx);
+      // Not quite right because bitmap could arrive after Eval(), but we're ok with
+      // off-by-one errors.
+      bool processed = filter->GetBitmap();
+      bool passed_filter =
+          filter->Eval<void*>(e, (*filter_exprs)[filter_idx]->root()->type());
+      if (type == FilterStats::ROW_GROUP) {
+        stats->IncrRowGroup(processed, !passed_filter);
+      } else if (type == FilterStats::SPLIT) {
+        stats->IncrSplit(processed, !passed_filter);
+      } else if (type == FilterStats::FILE) {
+        stats->IncrFile(processed, !passed_filter);
+      } else {
+        DCHECK(false) << "Unknown row set type: " << type;
+      }
+      if (!passed_filter)  return false;
+    }
+  }
+
+  return true;
+}
+
+Status HdfsScanNode::ProcessSplit(DiskIoMgr::ScanRange* scan_range,
+    vector<ExprContext*>* filter_exprs) {
   DCHECK(scan_range != NULL);
 
   ScanRangeMetadata* metadata =
@@ -983,6 +1137,14 @@ Status HdfsScanNode::ProcessSplit(DiskIoMgr::ScanRange* scan_range) {
   DCHECK(partition != NULL) << "table_id=" << hdfs_table_->id()
                             << " partition_id=" << partition_id
                             << "\n" << PrintThrift(runtime_state_->fragment_params());
+
+  if (!PartitionPassesFilters(partition_id, FilterStats::SPLIT, filter_exprs)) {
+    // Mark scan range as done.
+    scan_ranges_complete_counter()->Add(1);
+    progress_.Update(1);
+    return Status::OK();
+  }
+
   ScannerContext context(runtime_state_, this, partition, scan_range);
   scoped_ptr<HdfsScanner> scanner;
   Status status = CreateAndPrepareScanner(partition, &context, &scanner);
@@ -1178,4 +1340,8 @@ void HdfsScanNode::PrintHdfsSplitStats(const PerVolumnStats& per_volume_stats,
      (*ss) << i->first << ":" << i->second.first << "/"
          << PrettyPrinter::Print(i->second.second, TUnit::BYTES) << " ";
   }
+}
+
+const RuntimeFilter* HdfsScanNode::GetFilter(uint32_t filter_idx) {
+  return filters_[filter_idx];
 }

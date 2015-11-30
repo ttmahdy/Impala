@@ -24,7 +24,7 @@ where
   and cd_education_status = 'Primary'
   and d_year = 1998
   and s_state in ('WI', 'CA', 'TX', 'FL', 'WA', 'TN')
-  and ss_sold_date_sk between 2450815 and 2451179  -- partition key filter
+  -- and ss_sold_date_sk between 2450815 and 2451179  -- partition key filter
 group by
   -- rollup (i_item_id, s_state)
   i_item_id,

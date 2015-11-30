@@ -36,6 +36,7 @@
 #include "runtime/string-value.h"
 #include "runtime/tuple-row.h"
 #include "runtime/tuple.h"
+#include "util/bitmap.h"
 #include "util/codec.h"
 #include "util/debug-util.h"
 #include "util/runtime-profile.h"
@@ -95,6 +96,10 @@ Status HdfsScanner::Prepare(ScannerContext* context) {
   template_tuple_map_[scan_node_->tuple_desc()] = template_tuple_;
   StartNewRowBatch();
   decompress_timer_ = ADD_TIMER(scan_node_->runtime_profile(), "DecompressionTime");
+
+  // Copy scan-node-wide filter expressions for use by this scanner.
+  RETURN_IF_ERROR(Expr::CloneIfNotExists(scan_node_->filter_exprs(),
+          scan_node_->runtime_state(), &filter_exprs_));
   return Status::OK();
 }
 
@@ -104,6 +109,8 @@ void HdfsScanner::Close() {
   for (; iter != scanner_conjuncts_map_.end(); ++iter) {
     Expr::Close(iter->second, state_);
   }
+
+  Expr::Close(filter_exprs_, state_);
 }
 
 Status HdfsScanner::InitializeWriteTuplesFn(HdfsPartitionDescriptor* partition,

@@ -266,6 +266,10 @@ class PlanFragmentExecutor {
   /// in level order).
   void OptimizeLlvmModule();
 
+  /// Registers all runtime filters either produced or consumed (or both) by plan nodes in
+  /// this fragment.
+  void RegisterRuntimeFilters(const TPlanFragment& fragment);
+
   /// Executes Open() logic and returns resulting status. Does not set status_.
   /// If this plan fragment has no sink, OpenInternal() does nothing.
   /// If this plan fragment has a sink and OpenInternal() returns without an

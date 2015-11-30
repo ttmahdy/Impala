@@ -61,6 +61,9 @@ class FragmentMgr {
   boost::shared_ptr<FragmentExecState> GetFragmentExecState(
       const TUniqueId& fragment_instance_id);
 
+  void DeliverFilter(TDeliverFilterResult& return_val,
+      const TDeliverFilterParams& params);
+
  private:
   /// protects fragment_exec_state_map_
   SpinLock fragment_exec_state_map_lock_;

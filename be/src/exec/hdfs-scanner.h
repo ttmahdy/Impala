@@ -218,6 +218,10 @@ class HdfsScanner {
   /// Time spent decompressing bytes.
   RuntimeProfile::Counter* decompress_timer_;
 
+  /// Copy of scan node's filter expressions, one for each filter to be applied by this
+  /// scanner. Owned by the local RuntimeState's object pool.
+  std::vector<ExprContext*> filter_exprs_;
+
   /// Matching typedef for WriteAlignedTuples for codegen.  Refer to comments for
   /// that function.
   typedef int (*WriteTuplesFn)(HdfsScanner*, MemPool*, TupleRow*, int, FieldLocation*,

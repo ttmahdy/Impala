@@ -60,6 +60,16 @@ class ImpalaInternalService : public ImpalaInternalServiceIf {
     impala_server_->TransmitData(return_val, params);
   }
 
+  virtual void PublishFilter(TPublishFilterResult& return_val,
+      const TPublishFilterParams& params) {
+      impala_server_->PublishFilter(return_val, params);
+  }
+
+  virtual void DeliverFilter(TDeliverFilterResult& return_val,
+      const TDeliverFilterParams& params) {
+    fragment_mgr_->DeliverFilter(return_val, params);
+  }
+
  private:
   /// Manages fragment reporting and data transmission
   boost::shared_ptr<ImpalaServer> impala_server_;

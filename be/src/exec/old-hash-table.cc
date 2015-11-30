@@ -138,7 +138,7 @@ void OldHashTable::AddBitmapFilters() {
     if (probe_expr_ctxs_[i]->root()->is_slotref()) {
       bitmaps[i].first =
           reinterpret_cast<SlotRef*>(probe_expr_ctxs_[i]->root())->slot_id();
-      bitmaps[i].second = new Bitmap(state_->slot_filter_bitmap_size());
+      bitmaps[i].second = new Bitmap(state_->filter_bank()->filter_bitmap_size());
     } else {
       bitmaps[i].second = NULL;
     }
@@ -162,8 +162,6 @@ void OldHashTable::AddBitmapFilters() {
   bool acquired_ownership = false;
   for (int i = 0; i < bitmaps.size(); ++i) {
     if (bitmaps[i].second == NULL) continue;
-    state_->AddBitmapFilter(bitmaps[i].first, bitmaps[i].second, &acquired_ownership);
-    VLOG(2) << "Bitmap filter added on slot: " << bitmaps[i].first;
     if (!acquired_ownership) delete bitmaps[i].second;
   }
 }

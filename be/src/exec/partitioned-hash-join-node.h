@@ -248,15 +248,13 @@ class PartitionedHashJoinNode : public BlockingJoinNode {
   /// Prepares for probing the next batch.
   void ResetForProbe();
 
-  /// For each 'probe_expr_' in 'ht_ctx' that is a slot ref, allocate a bitmap filter on
-  /// that slot. Returns false if it should not add probe filters.
-  bool AllocateProbeFilters(RuntimeState* state);
+  /// For each filter in filters_, allocate a bitmap from the fragment-local
+  /// RuntimeFilterBank and store it in runtime_filters_ to populate during the build
+  /// phase. Returns false if filter construction is disabled.
+  bool AllocateRuntimeFilters(RuntimeState* state);
 
-  /// Attach the probe filters to runtime state.
-  bool AttachProbeFilters(RuntimeState* state);
-
-  /// Cleanup and free memory for probe filters.
-  void CleanupProbeFilters();
+  /// Publish the runtime filters to the fragment-local RuntimeFilterBank.
+  bool PublishRuntimeFilters(RuntimeState* state);
 
   /// Codegen function to create output row. Assumes that the probe row is non-NULL.
   llvm::Function* CodegenCreateOutputRow(LlvmCodeGen* codegen);
@@ -295,6 +293,18 @@ class PartitionedHashJoinNode : public BlockingJoinNode {
   /// build_expr_ctxs_ (over child(1)) and probe_expr_ctxs_ (over child(0))
   std::vector<ExprContext*> probe_expr_ctxs_;
   std::vector<ExprContext*> build_expr_ctxs_;
+
+  /// Expression, one per filter in filters_, to evaluate per-build row which produces the
+  /// value to update the corersponding filter with.
+  std::vector<ExprContext*> filter_expr_ctxs_;
+
+  /// List of filters to build for each row during consumption of the build-side input.
+  std::vector<TRuntimeFilter> filters_;
+
+  /// List of Bitmap pointers, one for every entry in filters_, used to build
+  /// runtime filters. The bitmaps are owned by the fragment-local RuntimeFilterBank, and
+  /// are allocated during AllocateRuntimeFilters().
+  std::vector<Bitmap*> filter_bitmaps_;
 
   /// is_not_distinct_from_[i] is true if and only if the ith equi-join predicate is IS
   /// NOT DISTINCT FROM, rather than equality.
@@ -454,12 +464,13 @@ class PartitionedHashJoinNode : public BlockingJoinNode {
     /// Build rows cannot be added after calling this.
     /// If the partition could not be built due to memory pressure, *built is set to false
     /// and the caller is responsible for spilling this partition.
-    /// If 'AddProbeFilters' is set, it creates the probe filters.
-    template<bool const AddProbeFilters>
+    /// If 'BUILD_RUNTIME_FILTERS' is set, populates runtime filters.
+    template<bool const BUILD_RUNTIME_FILTERS>
     Status BuildHashTableInternal(RuntimeState* state, bool* built);
 
-    /// Wrapper for the template-based BuildHashTable() based on 'add_probe_filters'.
-    Status BuildHashTable(RuntimeState* state, bool* built, const bool add_probe_filters);
+    /// Wrapper for the template-based BuildHashTable() based on 'add_runtime_filters'.
+    Status BuildHashTable(RuntimeState* state, bool* built,
+        const bool add_runtime_filters);
 
     /// Spills this partition, cleaning up and unpinning blocks.
     /// If 'unpin_all_build' is true, the build stream is completely unpinned, otherwise,
@@ -513,10 +524,6 @@ class PartitionedHashJoinNode : public BlockingJoinNode {
   /// for subsequent levels.
   ProcessProbeBatchFn process_probe_batch_fn_;
   ProcessProbeBatchFn process_probe_batch_fn_level0_;
-
-  /// Used for concentrating the existence bits from all the partitions, used by the
-  /// probe-side filter optimization. The bitmaps are owned by this node.
-  std::vector<std::pair<SlotId, Bitmap*> > probe_filters_;
 };
 
 }

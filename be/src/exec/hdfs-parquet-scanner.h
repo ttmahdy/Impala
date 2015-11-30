@@ -420,13 +420,17 @@ class HdfsParquetScanner : public HdfsScanner {
   /// 'row_group_idx' is used for error checking when this is called on the table-level
   /// tuple. If reading into a collection, 'row_group_idx' doesn't matter.
   ///
+  /// If 'filter_row_group' is set to true by this method, all rows that are instances of
+  /// 'tuple_desc' can be filtered out.
+  ///
   /// IN_COLLECTION is true if the columns we are materializing are part of a Parquet
   /// collection. MATERIALIZING_COLLECTION is true if we are materializing tuples inside
   /// a nested collection.
   template <bool IN_COLLECTION, bool MATERIALIZING_COLLECTION>
   bool AssembleRows(const TupleDescriptor* tuple_desc,
       const std::vector<ColumnReader*>& column_readers, int new_collection_rep_level,
-      int row_group_idx, CollectionValueBuilder* coll_value_builder);
+      int row_group_idx, CollectionValueBuilder* coll_value_builder,
+      bool* filter_row_group);
 
   /// Function used by AssembleRows() to read a single row into 'tuple'. Returns false if
   /// execution should be aborted for some reason, otherwise returns true.

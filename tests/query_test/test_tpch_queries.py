@@ -21,7 +21,7 @@ class TestTpchQuery(ImpalaTestSuite):
     # TODO: the planner tests are based on text and need this.
     if cls.exploration_strategy() == 'core':
       cls.TestMatrix.add_constraint(lambda v:\
-          v.get_value('table_format').file_format in ['text'])
+          v.get_value('table_format').file_format in ['parquet'])
 
   def test_tpch_q1(self, vector):
     self.run_test_case('tpch-q1', vector)

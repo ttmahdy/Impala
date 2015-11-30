@@ -31,81 +31,107 @@ class TestTpcdsQuery(ImpalaTestSuite):
   @pytest.mark.execute_serially
   # Marked serially to make sure it runs first.
   def test_tpcds_count(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('count', vector)
 
   def test_tpcds_q3(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q3', vector)
 
   def test_tpcds_q7(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q7', vector)
 
   def test_tpcds_q8(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q8', vector)
 
   def test_tpcds_q19(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q19', vector)
 
   def test_tpcds_q27(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q27', vector)
 
   def test_tpcds_q34(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q34', vector)
 
   def test_tpcds_q42(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q42', vector)
 
   def test_tpcds_q43(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q43', vector)
 
   def test_tpcds_q46(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q46', vector)
 
   def test_tpcds_q52(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q52', vector)
 
   def test_tpcds_q53(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q53', vector)
 
   def test_tpcds_q55(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q55', vector)
 
   def test_tpcds_q59(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q59', vector)
 
   def test_tpcds_q61(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q61', vector)
 
   def test_tpcds_q63(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q63', vector)
 
   def test_tpcds_q65(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q65', vector)
 
   def test_tpcds_q68(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q68', vector)
 
   def test_tpcds_q73(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q73', vector)
 
   def test_tpcds_q79(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q79', vector)
 
   def test_tpcds_q88(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q88', vector)
 
   def test_tpcds_q89(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q89', vector)
 
   def test_tpcds_q96(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q96', vector)
 
   def test_tpcds_q98(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q98', vector)
 
   def test_tpcds_q47(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q47', vector)
 
   def test_tpcds_q6(self, vector):
+    vector.get_value('exec_option')['enable_runtime_filter_propagation'] = 1
     self.run_test_case('tpcds-q6', vector)
 
 

@@ -20,6 +20,7 @@
 #include "gen-cpp/ImpalaInternalService.h"
 #include "rpc/thrift-util.h"
 #include "gutil/strings/substitute.h"
+#include "util/bitmap.h"
 
 #include "common/names.h"
 
@@ -115,4 +116,14 @@ void FragmentMgr::FragmentExecState::ReportStatusCb(
     // TODO: Do we really need to cancel?
     executor_.Cancel();
   }
+}
+
+void FragmentMgr::FragmentExecState::DeliverFilter(int32_t filter_id,
+    const TBitmap& thrift_bitmap) {
+  Bitmap* bitmap = executor_.runtime_state()->filter_bank()->AllocateScratchBitmap(
+      thrift_bitmap.num_bits);
+  bitmap->SetFromBuffer(reinterpret_cast<const uint64_t*>(&thrift_bitmap.bitmap[0]),
+      thrift_bitmap.num_bits);
+  // TODO: Could be racy wrt Prepare(), after IMPALA-1599.
+  executor_.runtime_state()->filter_bank()->DeliverBitmap(filter_id, bitmap);
 }

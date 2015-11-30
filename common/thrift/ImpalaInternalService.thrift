@@ -499,6 +499,43 @@ struct TPoolConfigResult {
   3: required i64 mem_limit
 }
 
+struct TBitmap {
+  // Binary representation of the bitmap belonging to this filter.
+  1: required binary bitmap
+
+  // Number of bits in the bitmap, usually equal to bitmap.size() * 8.
+  2: required i64 num_bits
+}
+
+struct TPublishFilterResult {
+
+}
+
+struct TPublishFilterParams {
+  // Filter ID, unique within a query.
+  1: required i32 filter_id
+
+  // Query that this filter is for.
+  2: required Types.TUniqueId query_id
+
+  3: required TBitmap bitmap
+}
+
+struct TDeliverFilterResult {
+
+}
+
+struct TDeliverFilterParams {
+  // Filter ID to update
+  1: required i32 filter_id
+
+  // ID of fragment to receive this filter
+  2: required Types.TUniqueId dst_instance_id
+
+  // Actual bitmap payload
+  3: required TBitmap bitmap
+}
+
 service ImpalaInternalService {
   // Called by coord to start asynchronous execution of plan fragment in backend.
   // Returns as soon as all incoming data streams have been set up.
@@ -516,4 +553,12 @@ service ImpalaInternalService {
   // Called by sender to transmit single row batch. Returns error indication
   // if params.fragmentId or params.destNodeId are unknown or if data couldn't be read.
   TTransmitDataResult TransmitData(1:TTransmitDataParams params);
+
+  // Called by fragment instances that produce runtime filters to deliver them to the
+  // coordinator for aggregation and broadcast.
+  TPublishFilterResult PublishFilter(1:TPublishFilterParams params);
+
+  // Called by the coordinator to deliver filters to fragment instances for application at
+  // plan nodes.
+  TDeliverFilterResult DeliverFilter(1:TDeliverFilterParams params);
 }

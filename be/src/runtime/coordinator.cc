@@ -49,6 +49,7 @@
 #include "scheduling/scheduler.h"
 #include "exec/data-sink.h"
 #include "exec/scan-node.h"
+#include "util/bitmap.h"
 #include "util/container-util.h"
 #include "util/counting-barrier.h"
 #include "util/debug-util.h"
@@ -385,6 +386,7 @@ Status Coordinator::Exec(QuerySchedule& schedule,
   query_profile_.reset(
       new RuntimeProfile(obj_pool(), "Execution Profile " + PrintId(query_id_)));
   finalization_timer_ = ADD_TIMER(query_profile_, "FinalizationTimer");
+  filters_received_ = ADD_COUNTER(query_profile_, "FiltersReceived", TUnit::UNIT);
 
   SCOPED_TIMER(query_profile_->total_time_counter());
 
@@ -478,8 +480,7 @@ Status Coordinator::StartRemoteFragments(QuerySchedule* schedule) {
   query_events_->MarkEvent(
       Substitute("Ready to start $0 remote fragments", num_fragment_instances));
 
-  scoped_ptr<CountingBarrier> fragment_start_barrier(
-      new CountingBarrier(num_fragment_instances));
+  fragment_start_barrier_.reset(new CountingBarrier(num_fragment_instances));
   int fragment_instance_idx = 0;
   bool has_coordinator_fragment =
       request.fragments[0].partition.type == TPartitionType::UNPARTITIONED;
@@ -490,6 +491,31 @@ Status Coordinator::StartRemoteFragments(QuerySchedule* schedule) {
     const FragmentExecParams* params = &(*schedule->exec_params())[fragment_idx];
     int num_hosts = params->hosts.size();
     DCHECK_GT(num_hosts, 0);
+
+    // Build the filter routing table by iterating over all plan nodes in this fragment
+    // and collecting the filters that they either produce or consume.
+    BOOST_FOREACH(const TPlanNode& plan_node,
+        request.fragments[fragment_idx].plan.nodes) {
+      if (plan_node.__isset.hash_join_node && plan_node.__isset.runtime_filters) {
+        BOOST_FOREACH(const TRuntimeFilter& filter, plan_node.runtime_filters) {
+          Filter* f = &(filter_routing_table_[filter.filter_id]);
+          f->src = plan_node.node_id;
+          // TODO: Remove hack when FE provides this information.
+          bool is_broadcast = (plan_node.label_detail.find("BROADCAST") != string::npos);
+          f->pending_count = is_broadcast ? 1 : num_hosts;
+        }
+      } else if (plan_node.__isset.hdfs_scan_node && plan_node.__isset.runtime_filters) {
+        BOOST_FOREACH(const TRuntimeFilter& filter, plan_node.runtime_filters) {
+          Filter* f = &(filter_routing_table_[filter.filter_id]);
+          f->dst = plan_node.node_id;
+          for (int i = fragment_instance_idx; i < fragment_instance_idx + num_hosts;
+               ++i) {
+            f->fragment_instance_idxs.push_back(i);
+          }
+        }
+      }
+    }
+
     fragment_profiles_[fragment_idx].num_instances = num_hosts;
     // Start one fragment for every fragment_instance required by the schedule
     for (int per_fragment_instance_idx = 0; per_fragment_instance_idx < num_hosts;
@@ -504,14 +530,18 @@ Status Coordinator::StartRemoteFragments(QuerySchedule* schedule) {
               schedule,
               fragment_instance_idx++,
               fragment_idx,
-              per_fragment_instance_idx,
-              fragment_start_barrier.get()));
+              per_fragment_instance_idx));
     }
   }
 
-  fragment_start_barrier->Wait();
+  fragment_start_barrier_->Wait();
   query_events_->MarkEvent(
       Substitute("All $0 remote fragments started", fragment_instance_idx));
+  query_profile_->AddInfoString(
+      "Number of filters", Substitute("$0", filter_routing_table_.size()));
+  query_profile_->AddInfoString("Filter routing table", FilterDebugString());
+
+  if (VLOG_IS_ON(2)) VLOG_QUERY << FilterDebugString();
 
   Status status = Status::OK();
   const TMetricDef& def =
@@ -532,6 +562,20 @@ Status Coordinator::StartRemoteFragments(QuerySchedule* schedule) {
     CancelInternal();
   }
   return status;
+}
+
+string Coordinator::FilterDebugString() {
+  stringstream ss;
+  lock_guard<SpinLock> l(filter_lock_);
+  ss << endl << "------ Filter routing table ------ " << endl;
+  BOOST_FOREACH(const FilterRoutingTable::value_type& v, filter_routing_table_) {
+    ss << "id: " << v.first
+       << "\tsrc: " << v.second.src
+       << "\tdst: " << v.second.dst
+       << "\tnum. destinations: " << v.second.fragment_instance_idxs.size()
+       << "\tnum. pending: " << v.second.pending_count << endl;
+  }
+  return ss.str();
 }
 
 Status Coordinator::GetStatus() {
@@ -903,6 +947,8 @@ Status Coordinator::Wait() {
     ReportQuerySummary();
   }
 
+  query_profile_->AddInfoString("Final filter table", FilterDebugString());
+
   return return_status;
 }
 
@@ -1180,7 +1226,7 @@ int64_t Coordinator::ComputeTotalScanRangesComplete(int node_id) {
 void Coordinator::ExecRemoteFragment(const FragmentExecParams* fragment_exec_params,
     const TPlanFragment* plan_fragment, DebugOptions* debug_options,
     QuerySchedule* schedule, int fragment_instance_idx, int fragment_idx,
-    int per_fragment_instance_idx, CountingBarrier* fragment_start_barrier) {
+    int per_fragment_instance_idx) {
   TExecPlanFragmentParams rpc_params;
   SetExecPlanFragmentParams(*schedule, *plan_fragment, *fragment_exec_params,
       fragment_instance_idx, fragment_idx, per_fragment_instance_idx,
@@ -1216,7 +1262,7 @@ void Coordinator::ExecRemoteFragment(const FragmentExecParams* fragment_exec_par
       rpc_params, &thrift_result);
 
   exec_state->SetRpcLatency(MonotonicMillis() - start);
-  fragment_start_barrier->Notify();
+  fragment_start_barrier_->Notify();
 
   const string ERR_TEMPLATE = "ExecPlanRequest rpc query_id=$0 instance_id=$1 failed: $2";
 
@@ -1429,7 +1475,8 @@ Status Coordinator::UpdateFragmentExecStatus(const TReportExecStatusParams& para
     lock_guard<mutex> l(lock_);
     exec_state->stopwatch()->Stop();
     DCHECK_GT(num_remaining_fragment_instances_, 0);
-    VLOG_QUERY << "Backend " << params.fragment_instance_idx << " on host "
+    VLOG_QUERY << "Fragment instance " << params.fragment_instance_idx << "("
+               << exec_state->fragment_instance_id() << ") on host "
                << exec_state->impalad_address() << " completed, "
                << num_remaining_fragment_instances_ - 1 << " remaining: query_id="
                << query_id_;
@@ -1781,4 +1828,71 @@ void Coordinator::SetExecPlanDescriptorTable(const TPlanFragment& fragment,
 
   rpc_params->__set_desc_tbl(thrift_desc_tbl);
 }
+namespace {
+
+void DistributeFilters(shared_ptr<TDeliverFilterParams> params, TNetworkAddress impalad,
+    TUniqueId fragment_instance_id) {
+  Status status;
+  ImpalaInternalServiceConnection backend_client(
+      ExecEnv::GetInstance()->impalad_client_cache(), impalad, &status);
+  if (!status.ok()) return;
+  // Make a local copy of the shared 'master' set of parameters
+  TDeliverFilterParams local_params(*params);
+  local_params.dst_instance_id = fragment_instance_id;
+  local_params.__set_bitmap(params->bitmap);
+  TDeliverFilterResult res;
+  backend_client.DoRpc(&ImpalaInternalServiceClient::DeliverFilter, local_params, &res);
+};
+
+}
+
+void Coordinator::ReceiveFilters(const TPublishFilterParams& params) {
+  // Make a 'master' copy that will be shared by all concurrent delivery RPC attempts.
+  shared_ptr<TDeliverFilterParams> rpc_params(new TDeliverFilterParams());
+  vector<int32_t> fragment_instance_idxs;
+  {
+    lock_guard<SpinLock> l(filter_lock_);
+    FilterRoutingTable::iterator it = filter_routing_table_.find(params.filter_id);
+    if (it == filter_routing_table_.end()) {
+      LOG(INFO) << "Could not find filter with id: " << params.filter_id;
+      return;
+    }
+
+    // Receiving unnecessary updates for a broadcast.
+    if (it->second.pending_count == 0) return;
+    --it->second.pending_count;
+
+    if (filters_received_->value() == 0) {
+      query_events_->MarkEvent("First dynamic filter received");
+    }
+    filters_received_->Add(1);
+    if (it->second.bitmap == NULL) {
+      it->second.bitmap = obj_pool()->Add(new Bitmap(params.bitmap));
+    } else {
+      Bitmap bitmap(params.bitmap);
+      it->second.bitmap->Or(&bitmap);
+    }
+
+    if (it->second.pending_count > 0) return;
+    // No more filters are pending on this filter ID. Create a distribution payload and
+    // offer it to the queue.
+    fragment_instance_idxs = it->second.fragment_instance_idxs;
+    it->second.bitmap->ToThrift(&rpc_params->bitmap);
+  }
+
+  rpc_params->filter_id = params.filter_id;
+  DCHECK(fragment_start_barrier_.get() != NULL)
+      << "Filters received before fragments started!";
+  fragment_start_barrier_->Wait();
+
+  for (int i = 0; i < fragment_instance_idxs.size(); ++i) {
+    FragmentInstanceState* fragment_inst =
+        fragment_instance_states_[fragment_instance_idxs[i]];
+    DCHECK(fragment_inst != NULL) << "Missing fragment instance: " << i;
+
+    exec_env_->rpc_pool()->Offer(bind<void>(DistributeFilters, rpc_params,
+            fragment_inst->impalad_address(), fragment_inst->fragment_instance_id()));
+  }
+}
+
 }

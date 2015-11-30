@@ -78,6 +78,24 @@ PlanFragmentExecutor::~PlanFragmentExecutor() {
   DCHECK(!report_thread_active_);
 }
 
+void PlanFragmentExecutor::RegisterRuntimeFilters(const TPlanFragment& fragment) {
+  DCHECK(runtime_state_.get() != NULL)
+      << "Must call RegisterRuntimeFilters() after Prepare()";
+  BOOST_FOREACH(const TPlanNode& plan_node, fragment.plan.nodes) {
+    if (plan_node.__isset.hash_join_node && plan_node.__isset.runtime_filters) {
+      // Hash join nodes are producers of filters
+      BOOST_FOREACH(const TRuntimeFilter& filter, plan_node.runtime_filters) {
+        runtime_state_->filter_bank()->RegisterFilter(filter, true);
+      }
+    } else if (plan_node.__isset.hdfs_scan_node && plan_node.__isset.runtime_filters) {
+      // Scan nodes are consumers of filters.
+      BOOST_FOREACH(const TRuntimeFilter& filter, plan_node.runtime_filters) {
+        runtime_state_->filter_bank()->RegisterFilter(filter, false);
+      }
+    }
+  }
+}
+
 Status PlanFragmentExecutor::Prepare(const TExecPlanFragmentParams& request) {
   lock_guard<mutex> l(prepare_lock_);
   DCHECK(!is_prepared_);
@@ -107,6 +125,7 @@ Status PlanFragmentExecutor::Prepare(const TExecPlanFragmentParams& request) {
   // set. Having runtime_state_.get() != NULL is a postcondition of this method in that
   // case. Do not call RETURN_IF_ERROR or explicitly return before this line.
   runtime_state_.reset(new RuntimeState(request, cgroup, exec_env_));
+  RegisterRuntimeFilters(request.fragment);
 
   // total_time_counter() is in the runtime_state_ so start it up now.
   SCOPED_TIMER(profile()->total_time_counter());

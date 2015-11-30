@@ -18,6 +18,8 @@
 
 #include "util/bit-util.h"
 
+#include "gen-cpp/ImpalaInternalService_types.h"
+
 namespace impala {
 
 /// Bitmap vector utility class.
@@ -34,6 +36,15 @@ class Bitmap {
     num_bits_ = num_bits;
   }
 
+  Bitmap(const TBitmap& thrift_bitmap) {
+    SetFromBuffer(reinterpret_cast<const uint64_t*>(&thrift_bitmap.bitmap[0]),
+        thrift_bitmap.num_bits);
+  }
+
+  Bitmap(const uint64_t* from_buf, int64_t num_bits) {
+    SetFromBuffer(from_buf, num_bits);
+  }
+
   /// Resize bitmap and set all bits to zero.
   void Reset(int64_t num_bits) {
     DCHECK_GE(num_bits, 0);
@@ -42,11 +53,21 @@ class Bitmap {
     SetAllBits(false);
   }
 
+  void SetFromBuffer(const uint64_t* from_buf, int64_t num_bits) {
+    buffer_.resize(BitUtil::RoundUpNumi64(num_bits));
+    for (int i = 0; i < buffer_.size(); ++i) {
+      buffer_[i] = from_buf[i];
+    }
+    num_bits_ = num_bits;
+  }
+
   /// Compute memory usage of a bitmap, not including the Bitmap object itself.
   static int64_t MemUsage(int64_t num_bits) {
     DCHECK_GE(num_bits, 0);
     return BitUtil::RoundUpNumi64(num_bits) * sizeof(int64_t);
   }
+
+  static int64_t DefaultHashSeed() { return 1234; }
 
   /// Compute memory usage of this bitmap, not including the Bitmap object itself.
   int64_t MemUsage() const { return MemUsage(num_bits_); }
@@ -55,7 +76,7 @@ class Bitmap {
   /// function will first mod the bit_index by the bitmap size.
   template<bool mod>
   void Set(int64_t bit_index, bool v) {
-    if (mod) bit_index %= num_bits();
+    if (mod) bit_index &= (num_bits() - 1);
     int64_t word_index = bit_index >> NUM_OFFSET_BITS;
     bit_index &= BIT_INDEX_MASK;
     DCHECK_LT(word_index, buffer_.size());
@@ -70,7 +91,7 @@ class Bitmap {
   /// function will first mod the bit_index by the bitmap size.
   template<bool mod>
   bool Get(int64_t bit_index) const {
-    if (mod) bit_index %= num_bits();
+    if (mod) bit_index &= (num_bits() - 1);
     int64_t word_index = bit_index >> NUM_OFFSET_BITS;
     bit_index &= BIT_INDEX_MASK;
     DCHECK_LT(word_index, buffer_.size());
@@ -98,6 +119,15 @@ class Bitmap {
   }
 
   int64_t num_bits() const { return num_bits_; }
+
+  void ToThrift(TBitmap* thrift) const {
+    thrift->bitmap.resize(buffer_.size() * 8);
+    uint64_t* outbuf = reinterpret_cast<uint64_t*>(&thrift->bitmap[0]);
+    for (int i = 0; i < buffer_.size(); ++i) {
+      outbuf[i] = buffer_[i];
+    }
+    thrift->__set_num_bits(num_bits());
+  }
 
   /// If 'print_bits' prints 0/1 per bit, otherwise it prints the int64_t value.
   std::string DebugString(bool print_bits);

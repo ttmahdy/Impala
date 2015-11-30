@@ -45,6 +45,7 @@
 namespace impala {
 
 class CountingBarrier;
+class Bitmap;
 class DataStreamMgr;
 class DataSink;
 class DebugOptions;
@@ -179,6 +180,8 @@ class Coordinator {
   }
 
   SpinLock& GetExecSummaryLock() const { return exec_summary_lock_; }
+
+  void ReceiveFilters(const TPublishFilterParams& params);
 
  private:
   class FragmentInstanceState;
@@ -349,6 +352,38 @@ class Coordinator {
   /// Total time spent in finalization (typically 0 except for INSERT into hdfs tables)
   RuntimeProfile::Counter* finalization_timer_;
 
+  /// Barrier that is released when all fragment instances have been started. Initialised
+  /// during StartRemoteFragments().
+  boost::scoped_ptr<CountingBarrier> fragment_start_barrier_;
+
+  struct Filter {
+    TPlanNodeId src;
+    TPlanNodeId dst;
+
+    // Index into fragment_instance_states_
+    std::vector<int> fragment_instance_idxs;
+
+    /// Number of remaining backends to hear from before filter is complete.
+    int pending_count;
+
+    /// Bitmap aggregated from all source plan nodes, to be broadcast to all destination
+    /// plan fragment instances.
+    Bitmap* bitmap;
+
+    Filter() : bitmap(NULL) { }
+  };
+
+  /// Protects filter_routing_table_.
+  SpinLock filter_lock_;
+
+  /// Map from filter ID to filter.
+  typedef boost::unordered_map<int32_t, Filter> FilterRoutingTable;
+  FilterRoutingTable filter_routing_table_;
+
+  RuntimeProfile::Counter* filters_received_;
+
+  std::string FilterDebugString();
+
   /// Fill in rpc_params based on parameters.
   /// 'fragment_instance_idx' is the 0-based query-wide ordinal of the fragment instance.
   /// 'fragment_idx' is the 0-based query-wide ordinal of the fragment of which it is an
@@ -366,7 +401,7 @@ class Coordinator {
   void ExecRemoteFragment(const FragmentExecParams* fragment_exec_params,
       const TPlanFragment* plan_fragment, DebugOptions* debug_options,
       QuerySchedule* schedule, int fragment_instance_idx, int fragment_idx,
-      int per_fragment_instance_idx, CountingBarrier* fragment_start_barrier);
+      int per_fragment_instance_idx);
 
   /// Determine fragment number, given fragment id.
   int GetFragmentNum(const TUniqueId& fragment_id);

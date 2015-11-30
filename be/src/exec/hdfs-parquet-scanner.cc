@@ -33,6 +33,7 @@
 #include "runtime/mem-pool.h"
 #include "runtime/raw-value.h"
 #include "runtime/row-batch.h"
+#include "runtime/runtime-filter.h"
 #include "runtime/tuple-row.h"
 #include "runtime/tuple.h"
 #include "runtime/string-value.h"
@@ -420,10 +421,7 @@ class HdfsParquetScanner::BaseScalarColumnReader :
   BaseScalarColumnReader(HdfsParquetScanner* parent, const SchemaNode& node,
       const SlotDescriptor* slot_desc)
     : ColumnReader(parent, node, slot_desc),
-      bitmap_filter_(NULL),
       num_buffered_values_(0),
-      bitmap_filter_rows_processed_(0),
-      bitmap_filter_rows_rejected_(0),
       num_values_read_(0),
       metadata_(NULL),
       stream_(NULL),
@@ -432,10 +430,25 @@ class HdfsParquetScanner::BaseScalarColumnReader :
 
     RuntimeState* state = parent_->scan_node_->runtime_state();
     hash_seed_ = state->fragment_hash_seed();
-    // The bitmap filter is only valid for the top-level tuple
-    if (slot_desc_ != NULL &&
-        slot_desc_->parent() == parent_->scan_node_->tuple_desc()) {
-      bitmap_filter_ = state->GetBitmapFilter(slot_desc_->id());
+
+    // Check to see if filter expr is bound by this slot. Any filter is only valid for the
+    // top-level tuple.
+    HdfsScanNode* scan_node = parent_->scan_node_;
+    if (slot_desc != NULL &&
+        slot_desc_->parent() == scan_node->tuple_desc()) {
+      if (scan_node->HasFilters()) {
+        for (int i = 0; i < scan_node->filter_exprs().size(); ++i) {
+          vector<SlotId> slot_ids;
+          scan_node->filter_exprs()[i]->root()->GetSlotIds(&slot_ids);
+          if (slot_ids.size() == 1 && slot_ids[0] == slot_desc->id()) {
+            filter_idxs_.push_back(i);
+            runtime_filters_.push_back(scan_node->GetFilter(i));
+          }
+        }
+      }
+      filter_rows_total_.resize(filter_idxs_.size(), 0);
+      filter_rows_processed_.resize(filter_idxs_.size(), 0);
+      filter_rows_rejected_.resize(filter_idxs_.size(), 0);
     }
   }
 
@@ -467,6 +480,14 @@ class HdfsParquetScanner::BaseScalarColumnReader :
   /// Called once when the scanner is complete for final cleanup.
   void Close() {
     if (decompressor_.get() != NULL) decompressor_->Close();
+    for (int i = 0; i < filter_rows_processed_.size(); ++i) {
+      HdfsScanNode::FilterStats* stats =
+          parent_->scan_node_->filter_stats(filter_idxs_[i]);
+
+      stats->rows_total->Add(filter_rows_total_[i]);
+      stats->rows_processed->Add(filter_rows_processed_[i]);
+      stats->rows_rejected->Add(filter_rows_rejected_[i]);
+    }
   }
 
   int64_t total_len() const { return metadata_->total_compressed_size; }
@@ -492,8 +513,11 @@ class HdfsParquetScanner::BaseScalarColumnReader :
   // Class members that are accessed for every column should be included up here so they
   // fit in as few cache lines as possible.
 
-  /// Cache of the bitmap_filter_ (if any) for this slot.
-  const Bitmap* bitmap_filter_;
+  /// Cached runtime filters
+  vector<const RuntimeFilter*> runtime_filters_;
+
+  /// Indexes of all applicable filters in the parent scan node's list of slot filters.
+  vector<int32_t> filter_idxs_;
 
   /// Pointer to start of next value in data page
   uint8_t* data_;
@@ -513,13 +537,13 @@ class HdfsParquetScanner::BaseScalarColumnReader :
   /// Cache of hash_seed_ to use with bitmap_filter_.
   uint32_t hash_seed_;
 
-  /// Bitmap filters are optional (i.e. they can be ignored and the results will be
-  /// correct). Keep track of stats to determine if the filter is not effective. If the
-  /// number of rows filtered out is too low, this is not worth the cost.
-  /// TODO: this should be cost based taking into account how much we save when we
-  /// filter a row.
-  int64_t bitmap_filter_rows_processed_;
-  int64_t bitmap_filter_rows_rejected_;
+  /// Track statistics of each filter (one for each filter in runtime_filters_). We count
+  /// the total number of rows a filter *could* have applied to if it was available from
+  /// the start, the total number it *did* apply to and the total number of rows it
+  /// rejected.
+  vector<int64_t> filter_rows_processed_;
+  vector<int64_t> filter_rows_rejected_;
+  vector<int64_t> filter_rows_total_;
 
   // Less frequently used members that are not accessed in inner loop should go below
   // here so they do not occupy precious cache line space.
@@ -692,13 +716,7 @@ class HdfsParquetScanner::ScalarColumnReader :
       dict_decoder_.SetData(data, size);
     }
 
-    // Check if we should disable the bitmap filter. We'll do this if the filter
-    // is not removing a lot of rows.
-    // TODO: how to pick the selectivity?
-    if (bitmap_filter_ != NULL && bitmap_filter_rows_processed_ > 10000 &&
-        bitmap_filter_rows_rejected_ < bitmap_filter_rows_processed_ * .1) {
-      bitmap_filter_ = NULL;
-    }
+    // TODO: Perform filter selectivity checks here.
     return Status::OK();
   }
 
@@ -723,15 +741,25 @@ class HdfsParquetScanner::ScalarColumnReader :
       data_ += ParquetPlainEncoder::Decode<T>(data_, fixed_len_size_, val_ptr);
     }
     if (NeedsConversion()) ConvertSlot(&val, reinterpret_cast<T*>(slot), pool);
-    // Avoid branch by using & instead of &&.
-    if (*conjuncts_passed & (bitmap_filter_ != NULL)) {
-      uint32_t h = RawValue::GetHashValue(slot, slot_desc()->type(), hash_seed_);
-      *conjuncts_passed = bitmap_filter_->Get<true>(h);
-      ++bitmap_filter_rows_processed_;
-      // TODO: always incrementing bitmap_filter_rows_rejected_ is a known bug. Before
-      // fixing it we need to investigate performance implications of disabling bitmap
-      // filters.
-      ++bitmap_filter_rows_rejected_;
+
+    for (int i = 0; i < filter_idxs_.size(); ++i) {
+      const RuntimeFilter* filter = runtime_filters_[i];
+      ++filter_rows_total_[i];
+      if (*conjuncts_passed) {
+        ++filter_rows_processed_[i];
+        // TODO: At this point we don't have a tuple to evaluate
+        // parent_->scan_node_->filter_exprs[...]->GetValue() over. For now, all filter
+        // exprs are slot refs, but if the expression becomes more complex we will need to
+        // synthesise a tuple here.
+        if (!filter->Eval<T*>(reinterpret_cast<T*>(slot), slot_desc()->type())) {
+          *conjuncts_passed = false;
+          ++filter_rows_rejected_[i];
+          break;
+        }
+        // TODO: We should track selectivity per filter (since there may be many for a
+        // single scan). That should probably be in the parent scan node for consistency
+        // across file formats.
+      }
     }
     return NextLevels<IN_COLLECTION>();
   }
@@ -912,6 +940,7 @@ Status HdfsParquetScanner::Prepare(ScannerContext* context) {
       ADD_COUNTER(scan_node_->runtime_profile(), "NumRowGroups", TUnit::UNIT);
 
   scan_node_->IncNumScannersCodegenDisabled();
+
   return Status::OK();
 }
 
@@ -1383,9 +1412,11 @@ bool HdfsParquetScanner::CollectionColumnReader::ReadSlot(
   *coll_slot = CollectionValue();
   CollectionValueBuilder builder(
       coll_slot, *slot_desc_->collection_item_descriptor(), pool);
+  bool filter_row_group = false;
   bool continue_execution = parent_->AssembleRows<true, true>(
       slot_desc_->collection_item_descriptor(), children_, new_collection_rep_level(), -1,
-      &builder);
+      &builder, &filter_row_group);
+  DCHECK(filter_row_group) << "Filter applied to collection type";
   if (!continue_execution) return false;
 
   // AssembleRows() advances child readers, so we don't need to call NextLevels()
@@ -1550,12 +1581,13 @@ Status HdfsParquetScanner::ProcessSplit() {
       DCHECK(parse_status_.ok()) << "Invalid parse_status_" << parse_status_.GetDetail();
     }
 
+    bool filter_row_group = false;
     if (continue_execution) {
       continue_execution = in_collection ?
           AssembleRows<true, false>(scan_node_->tuple_desc(), column_readers_, -1, i,
-              NULL) :
+              NULL, &filter_row_group) :
           AssembleRows<false, false>(scan_node_->tuple_desc(), column_readers_, -1, i,
-              NULL);
+              NULL, &filter_row_group);
       assemble_rows_timer_.Stop();
     }
 
@@ -1564,6 +1596,7 @@ Status HdfsParquetScanner::ProcessSplit() {
 
     if (scan_node_->ReachedLimit()) return Status::OK();
     if (context_->cancelled()) return Status::OK();
+    if (filter_row_group) return Status::OK();
     RETURN_IF_ERROR(state_->CheckQueryState());
 
     DCHECK(continue_execution || !state_->abort_on_error());
@@ -1580,7 +1613,8 @@ Status HdfsParquetScanner::ProcessSplit() {
 template <bool IN_COLLECTION, bool MATERIALIZING_COLLECTION>
 bool HdfsParquetScanner::AssembleRows(const TupleDescriptor* tuple_desc,
     const vector<ColumnReader*>& column_readers, int new_collection_rep_level,
-    int row_group_idx, CollectionValueBuilder* coll_value_builder) {
+    int row_group_idx, CollectionValueBuilder* coll_value_builder,
+    bool* filter_row_group) {
   DCHECK(!column_readers.empty());
   if (MATERIALIZING_COLLECTION) {
     DCHECK_GE(new_collection_rep_level, 0);
@@ -1605,6 +1639,17 @@ bool HdfsParquetScanner::AssembleRows(const TupleDescriptor* tuple_desc,
   if (coll_value_builder != NULL) DCHECK(!end_of_collection);
 
   while (!end_of_collection && continue_execution) {
+    if (!MATERIALIZING_COLLECTION) {
+      // Apply any runtime filters to static tuples containing the partition keys for this
+      // partition. If any filter fails, we return immediately and stop processing this
+      // row group.
+      if (!scan_node_->PartitionPassesFilters(context_->partition_descriptor()->id(),
+              HdfsScanNode::FilterStats::ROW_GROUP, &filter_exprs_)) {
+        *filter_row_group = true;
+        return false;
+      }
+    }
+
     MemPool* pool;
     Tuple* tuple;
     TupleRow* row = NULL;

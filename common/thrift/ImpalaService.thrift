@@ -181,8 +181,6 @@ enum TImpalaQueryOptions {
   // Determines tie breaking policy when picking locations.
   RANDOM_REPLICA,
 
-  OPTIMIZE_PARTITION_KEY_SCANS
-
   // If true, enable runtime filter propagation
   ENABLE_RUNTIME_FILTER_PROPAGATION
 }

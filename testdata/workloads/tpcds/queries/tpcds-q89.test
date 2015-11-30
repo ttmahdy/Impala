@@ -22,7 +22,7 @@ where ss_item_sk = i_item_sk and
       or (i_category in ('Jewelry','Books','Sports') and
           i_class in ('costume','travel','football')
         ))
-      and ss_sold_date_sk between 2451545 and 2451910  -- partition key filter
+      -- and ss_sold_date_sk between 2451545 and 2451910  -- partition key filter
 group by i_category, i_class, i_brand,
          s_store_name, s_company_name, d_moy) tmp1
 where case when (avg_monthly_sales <> 0) then (abs(sum_sales - avg_monthly_sales) / avg_monthly_sales) else null end > 0.1
