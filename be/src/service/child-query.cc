@@ -120,7 +120,7 @@ void ChildQuery::SetQueryOptions(const TQueryOptions& parent_options,
     TExecuteStatementReq* exec_stmt_req) {
   // If this DCHECK is hit then handle the missing query option below.
   DCHECK_EQ(_TImpalaQueryOptions_VALUES_TO_NAMES.size(),
-      TImpalaQueryOptions::EXEC_SINGLE_NODE_ROWS_THRESHOLD + 1);
+      TImpalaQueryOptions::ENABLE_DYNAMIC_PARTITION_PRUNING + 1);
   SET_QUERY_OPTION(abort_on_default_limit_exceeded, ABORT_ON_DEFAULT_LIMIT_EXCEEDED);
   SET_QUERY_OPTION(abort_on_error, ABORT_ON_ERROR);
   SET_QUERY_OPTION(allow_unsupported_formats, ALLOW_UNSUPPORTED_FORMATS);

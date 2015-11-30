@@ -417,6 +417,25 @@ Status Coordinator::Exec(QuerySchedule& schedule,
     // set up exec states
     int num_hosts = params.hosts.size();
     DCHECK_GT(num_hosts, 0);
+
+    BOOST_FOREACH(const TPlanNode& plan_node, request.fragments[fragment_idx].plan.nodes) {
+      if (plan_node.__isset.hash_join_node &&
+          plan_node.hash_join_node.__isset.runtime_filters) {
+        BOOST_FOREACH(const TRuntimeFilter& filter,
+            plan_node.hash_join_node.runtime_filters) {
+          Filter* f = &(filter_routing_table_[filter.filter_id]);
+          f->src = plan_node.node_id;
+        }
+      } else if (plan_node.__isset.hdfs_scan_node &&
+          plan_node.hdfs_scan_node.__isset.runtime_filters) {
+        BOOST_FOREACH(const TRuntimeFilter& filter,
+            plan_node.hdfs_scan_node.runtime_filters) {
+          Filter* f = &(filter_routing_table_[filter.filter_id]);
+          f->dst = plan_node.node_id;
+        }
+      }
+    }
+
     for (int instance_idx = 0; instance_idx < num_hosts; ++instance_idx) {
       DebugOptions* backend_debug_options =
           (debug_options.phase != TExecNodePhase::INVALID
@@ -458,6 +477,10 @@ Status Coordinator::Exec(QuerySchedule& schedule,
     }
     // Clear the ObjectPool as rpc_params are no longer needed
     rpc_params_pool.Clear();
+  }
+
+  BOOST_FOREACH(const FilterRoutingTable::value_type& route, filter_routing_table_) {
+    LOG(INFO) << "FILTER ROUTING: From node " << route.second.src << " to node " << route.second.dst << ", id: " << route.first;
   }
 
   query_events_->MarkEvent("Remote fragments started");

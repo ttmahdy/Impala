@@ -351,6 +351,19 @@ class Coordinator {
   /// Total time spent in finalization (typically 0 except for INSERT into hdfs tables)
   RuntimeProfile::Counter* finalization_timer_;
 
+  struct Filter {
+    TPlanNodeId src;
+    TPlanNodeId dst;
+
+    // Index into backend_exec_states_
+    std::vector<int> backend_idxs;
+
+    // Then some aggregation data - num remaining, current filter etc.
+  };
+
+  typedef boost::unordered_map<int32_t, Filter> FilterRoutingTable;
+  FilterRoutingTable filter_routing_table_;
+
   /// Fill in rpc_params based on parameters.
   void SetExecPlanFragmentParams(QuerySchedule& schedule,
       int backend_num, const TPlanFragment& fragment,
