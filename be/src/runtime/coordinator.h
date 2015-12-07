@@ -43,6 +43,7 @@
 
 namespace impala {
 
+class Bitmap;
 class DataStreamMgr;
 class DataSink;
 class RowBatch;
@@ -351,6 +352,8 @@ class Coordinator {
   /// Total time spent in finalization (typically 0 except for INSERT into hdfs tables)
   RuntimeProfile::Counter* finalization_timer_;
 
+  SpinLock filter_lock_;
+
   struct Filter {
     TPlanNodeId src;
     TPlanNodeId dst;
@@ -358,11 +361,18 @@ class Coordinator {
     // Index into backend_exec_states_
     std::vector<int> backend_idxs;
 
+    int pending_count;
     // Then some aggregation data - num remaining, current filter etc.
+    // TODO: this probably gets copied a lot. Allocate from ObjPool?
+    Bitmap* bitmap;
+
+    Filter() : bitmap(NULL) { }
   };
 
   typedef boost::unordered_map<int32_t, Filter> FilterRoutingTable;
   FilterRoutingTable filter_routing_table_;
+
+  void ReceiveFilters(const TReceiveFiltersParams& params);
 
   /// Fill in rpc_params based on parameters.
   void SetExecPlanFragmentParams(QuerySchedule& schedule,

@@ -177,6 +177,8 @@ class RuntimeState {
     return slot_bitmap_filters_[slot];
   }
 
+  void CommitBitmapFilter(SlotId slot, uint32_t filter_id);
+
   PartitionStatusMap* per_partition_status() { return &per_partition_status_; }
 
   /// Returns runtime state profile

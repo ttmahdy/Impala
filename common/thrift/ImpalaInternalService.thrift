@@ -473,6 +473,17 @@ struct TPoolConfigResult {
   3: required i64 mem_limit
 }
 
+struct TReceiveFiltersResult {
+
+}
+
+struct TReceiveFiltersParams {
+  1: required i32 filter_id
+  2: required Types.TUniqueId src_instance_id
+  3: required Types.TUniqueId query_id
+  4: required binary bitmap
+}
+
 service ImpalaInternalService {
   // Called by coord to start asynchronous execution of plan fragment in backend.
   // Returns as soon as all incoming data streams have been set up.
@@ -490,4 +501,6 @@ service ImpalaInternalService {
   // Called by sender to transmit single row batch. Returns error indication
   // if params.fragmentId or params.destNodeId are unknown or if data couldn't be read.
   TTransmitDataResult TransmitData(1:TTransmitDataParams params);
+
+  TReceiveFiltersResult ReceiveFilters(1:TReceiveFiltersParams params);
 }

@@ -34,6 +34,14 @@ class Bitmap {
     num_bits_ = num_bits;
   }
 
+  // Assumed to be completely padded to
+  Bitmap(const uint64_t* from_buf, int64_t num_bits) {
+    buffer_.resize(BitUtil::RoundUpNumi64(num_bits));
+    for (int i = 0; i < buffer_.size(); ++i) {
+      buffer_[i] = from_buf[i];
+    }
+  }
+
   /// Resize bitmap and set all bits to zero.
   void Reset(int64_t num_bits) {
     DCHECK_GE(num_bits, 0);

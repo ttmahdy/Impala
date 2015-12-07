@@ -60,6 +60,11 @@ class ImpalaInternalService : public ImpalaInternalServiceIf {
     impala_server_->TransmitData(return_val, params);
   }
 
+  virtual void ReceiveFilters(TReceiveFiltersResult& return_val,
+      const TReceiveFiltersParams& params) {
+    impala_server_->ReceiveFilters(return_val, params);
+  }
+
  private:
   /// Manages fragment reporting and data transmission
   boost::shared_ptr<ImpalaServer> impala_server_;

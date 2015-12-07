@@ -59,7 +59,8 @@ PartitionedHashJoinNode::PartitionedHashJoinNode(
     process_probe_batch_fn_(NULL),
     process_probe_batch_fn_level0_(NULL) {
   memset(hash_tbls_, 0, sizeof(HashTable*) * PARTITION_FANOUT);
-  can_add_probe_filters_ = tnode.hash_join_node.add_probe_filters;
+
+  can_add_probe_filters_ = tnode.hash_join_node.runtime_filters.size() > 0;
   can_add_probe_filters_ &= FLAGS_enable_phj_probe_side_filtering;
 }
 

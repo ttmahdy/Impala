@@ -49,6 +49,7 @@
 #include "scheduling/scheduler.h"
 #include "exec/data-sink.h"
 #include "exec/scan-node.h"
+#include "util/bitmap.h"
 #include "util/container-util.h"
 #include "util/debug-util.h"
 #include "util/error-util.h"
@@ -1724,4 +1725,26 @@ void Coordinator::SetExecPlanDescriptorTable(const TPlanFragment& fragment,
 
   rpc_params->__set_desc_tbl(thrift_desc_tbl);
 }
+
+void Coordinator::ReceiveFilters(const TReceiveFiltersParams& params) {
+  lock_guard<SpinLock> l(filter_lock_);
+  FilterRoutingTable::iterator it = filter_routing_table_.find(params.filter_id);
+  if (it == filter_routing_table_.end()) {
+    LOG(INFO) << "Could not find filter with id: " << params.filter_id;
+    return;
+  }
+
+  if (it->second.bitmap == NULL) {
+    it->second.bitmap = obj_pool()->Add(
+        new Bitmap(reinterpret_cast<const uint64_t*>(params.bitmap.c_str()), params.bitmap.size() / 8));
+  } else {
+    // TODO: Aggregate bitmap
+  }
+
+  if (--it->second.pending_count == 0) {
+    // Create a transmit payload and offer it to the queue
+  }
+  // DCHECK pending_count >= 0? No because RPCs may be retried.
+}
+
 }
