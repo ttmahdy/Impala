@@ -1914,9 +1914,7 @@ void ImpalaServer::ReceiveFilters(TReceiveFiltersResult& result,
   }
 
   lock_guard<mutex> l(*query_exec_state->lock(), adopt_lock_t());
-  // Call exec_state->coord()->ReceiveFilters()
-
-
+  query_exec_state->coord()->ReceiveFilters(params);
 }
 
 }

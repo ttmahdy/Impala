@@ -178,6 +178,8 @@ class Coordinator {
 
   SpinLock& GetExecSummaryLock() const { return exec_summary_lock_; }
 
+  void ReceiveFilters(const TReceiveFiltersParams& params);
+
  private:
   class BackendExecState;
 
@@ -371,8 +373,6 @@ class Coordinator {
 
   typedef boost::unordered_map<int32_t, Filter> FilterRoutingTable;
   FilterRoutingTable filter_routing_table_;
-
-  void ReceiveFilters(const TReceiveFiltersParams& params);
 
   /// Fill in rpc_params based on parameters.
   void SetExecPlanFragmentParams(QuerySchedule& schedule,

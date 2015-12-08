@@ -295,6 +295,8 @@ class PartitionedHashJoinNode : public BlockingJoinNode {
   /// build_expr_ctxs_ (over child(1)) and probe_expr_ctxs_ (over child(0))
   std::vector<ExprContext*> probe_expr_ctxs_;
   std::vector<ExprContext*> build_expr_ctxs_;
+  std::vector<ExprContext*> filter_expr_ctxs_;
+  std::vector<TRuntimeFilter> filters_;
 
   /// Non-equi-join conjuncts from the ON clause.
   std::vector<ExprContext*> other_join_conjunct_ctxs_;
@@ -512,7 +514,7 @@ class PartitionedHashJoinNode : public BlockingJoinNode {
 
   /// Used for concentrating the existence bits from all the partitions, used by the
   /// probe-side filter optimization. The bitmaps are owned by this node.
-  std::vector<std::pair<SlotId, Bitmap*> > probe_filters_;
+  std::vector<std::pair<uint32_t, Bitmap*> > probe_filters_;
 };
 
 }

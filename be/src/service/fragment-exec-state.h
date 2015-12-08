@@ -25,6 +25,8 @@
 
 namespace impala {
 
+class Bitmap;
+
 /// Execution state of a single plan fragment.
 class FragmentMgr::FragmentExecState {
  public:
@@ -66,6 +68,8 @@ class FragmentMgr::FragmentExecState {
   /// Set the execution thread, taking ownership of the object.
   void set_exec_thread(Thread* exec_thread) { exec_thread_.reset(exec_thread); }
 
+  void ReceiveFilters(const TReceiveFiltersParams& params);
+
  private:
   TPlanFragmentInstanceCtx fragment_instance_ctx_;
   PlanFragmentExecutor executor_;
@@ -85,6 +89,8 @@ class FragmentMgr::FragmentExecState {
   /// Callback for executor; updates exec_status_ if 'status' indicates an error
   /// or if there was a thrift error.
   void ReportStatusCb(const Status& status, RuntimeProfile* profile, bool done);
+
+  void FilterCallback(uint32_t filter_id, Bitmap* bitmap);
 
   /// Update exec_status_ w/ status, if the former isn't already an error.
   /// Returns current exec_status_.

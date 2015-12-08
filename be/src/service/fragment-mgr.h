@@ -54,6 +54,8 @@ class FragmentMgr {
   boost::shared_ptr<FragmentExecState> GetFragmentExecState(
       const TUniqueId& fragment_instance_id);
 
+  void ReceiveFilters(TReceiveFiltersResult& return_val, const TReceiveFiltersParams& params);
+
  private:
   /// Call exec_state->Exec(), and then removes exec_state from the fragment map. Run in
   /// the fragment's execution thread.

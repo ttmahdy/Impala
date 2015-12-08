@@ -141,3 +141,14 @@ void FragmentMgr::CancelPlanFragment(TCancelPlanFragmentResult& return_val,
   // running in exec_state->exec_thread_)
   exec_state->Cancel().SetTStatus(&return_val);
 }
+
+void FragmentMgr::ReceiveFilters(TReceiveFiltersResult& return_val,
+    const TReceiveFiltersParams& params) {
+  shared_ptr<FragmentExecState> fragment_exec_state = GetFragmentExecState(params.dst_instance_id);
+  if (fragment_exec_state.get() == NULL) {
+    LOG(INFO) << "Unknown fragment for filter with ID: " << params.dst_instance_id;
+    return;
+  }
+
+  fragment_exec_state->ReceiveFilters(params);
+}

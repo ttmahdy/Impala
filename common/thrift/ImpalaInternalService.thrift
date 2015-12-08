@@ -482,6 +482,9 @@ struct TReceiveFiltersParams {
   2: required Types.TUniqueId src_instance_id
   3: required Types.TUniqueId query_id
   4: required binary bitmap
+  5: required i64 num_bits
+  6: required bool is_for_coord
+  7: required Types.TUniqueId dst_instance_id
 }
 
 service ImpalaInternalService {

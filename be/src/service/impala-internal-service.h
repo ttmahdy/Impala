@@ -62,7 +62,11 @@ class ImpalaInternalService : public ImpalaInternalServiceIf {
 
   virtual void ReceiveFilters(TReceiveFiltersResult& return_val,
       const TReceiveFiltersParams& params) {
-    impala_server_->ReceiveFilters(return_val, params);
+    if (params.is_for_coord) {
+      impala_server_->ReceiveFilters(return_val, params);
+    } else {
+      fragment_mgr_->ReceiveFilters(return_val, params);
+    }
   }
 
  private:

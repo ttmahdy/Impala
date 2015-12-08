@@ -41,6 +41,7 @@
 
 namespace impala {
 
+class Bitmap;
 class DescriptorTbl;
 class HdfsScanner;
 class RowBatch;
@@ -144,6 +145,8 @@ class HdfsScanNode : public ScanNode {
   const AvroSchemaElement& avro_schema() { return *avro_schema_.get(); }
 
   RuntimeState* runtime_state() { return runtime_state_; }
+
+  const std::vector<ExprContext*>& filter_exprs() { return filter_exprs_; }
 
   DiskIoMgr::RequestContext* reader_context() { return reader_context_; }
 
@@ -282,6 +285,9 @@ class HdfsScanNode : public ScanNode {
   /// Description string for the per volume stats output.
   static const std::string HDFS_SPLIT_STATS_DESC;
 
+  bool HasFilters() const { return filters_.size() > 0; }
+  const Bitmap* WaitForFilter();
+
  private:
   friend class ScannerContext;
 
@@ -347,6 +353,9 @@ class HdfsScanNode : public ScanNode {
   /// Maps from a slot's path to its index into materialized_slots_.
   typedef boost::unordered_map<std::vector<int>, int> PathToSlotIdxMap;
   PathToSlotIdxMap path_to_materialized_slot_idx_;
+
+  std::vector<TRuntimeFilter> filters_;
+  std::vector<ExprContext*> filter_exprs_;
 
   /// is_materialized_col_[i] = <true i-th column should be materialized, false otherwise>
   /// for 0 <= i < total # columns

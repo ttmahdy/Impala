@@ -19,6 +19,7 @@
 #include "codegen/llvm-codegen.h"
 #include "gen-cpp/ImpalaInternalService.h"
 #include "rpc/thrift-util.h"
+#include "util/bitmap.h"
 
 #include "common/names.h"
 
@@ -42,6 +43,7 @@ Status FragmentMgr::FragmentExecState::Prepare(
     const TExecPlanFragmentParams& exec_params) {
   exec_params_ = exec_params;
   RETURN_IF_ERROR(executor_.Prepare(exec_params));
+  executor_.runtime_state()->SetFilterCallback(bind<void>(mem_fn(&FragmentMgr::FragmentExecState::FilterCallback), this, _1, _2));
   return Status::OK();
 }
 
@@ -49,6 +51,29 @@ void FragmentMgr::FragmentExecState::Exec() {
   // Open() does the full execution, because all plan fragments have sinks
   executor_.Open();
   executor_.Close();
+}
+
+void FragmentMgr::FragmentExecState::FilterCallback(uint32_t filter_id, Bitmap* filter) {
+  LOG(INFO) << "FILTER CALLBACK";
+  LOG(INFO) << filter->DebugString(false);
+  Status coord_status;
+  ImpalaInternalServiceConnection coord(client_cache_, coord_address(), &coord_status);
+  if (!coord_status.ok()) {
+    stringstream s;
+    s << "couldn't get a client for " << coord_address();
+    UpdateStatus(Status(ErrorMsg(TErrorCode::INTERNAL_ERROR, s.str())));
+    return;
+  }
+  TReceiveFiltersParams params;
+  params.filter_id = filter_id;
+  params.query_id = fragment_instance_ctx_.query_ctx.query_id;
+  filter->ToString(&params.bitmap);
+  params.num_bits = filter->num_bits();
+  params.is_for_coord = true;
+  LOG(INFO) << "Params bitmap: " << params.bitmap.size();
+  TReceiveFiltersResult res;
+  Status rpc_status =
+      coord.DoRpc(&ImpalaInternalServiceClient::ReceiveFilters, params, &res);
 }
 
 // There can only be one of these callbacks in-flight at any moment, because
@@ -109,4 +134,12 @@ void FragmentMgr::FragmentExecState::ReportStatusCb(
     // we need to cancel the execution of this fragment
     executor_.Cancel();
   }
+}
+
+void FragmentMgr::FragmentExecState::ReceiveFilters(const TReceiveFiltersParams& params) {
+  Bitmap* bitmap = new Bitmap(
+      reinterpret_cast<const uint64_t*>(params.bitmap.data()), params.num_bits);
+  bool acquired = false;
+  executor_.runtime_state()->AddBitmapFilter(params.filter_id, bitmap, false, &acquired);
+  if (!acquired) delete bitmap;
 }

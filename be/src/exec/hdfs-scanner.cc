@@ -36,6 +36,7 @@
 #include "runtime/string-value.h"
 #include "runtime/tuple-row.h"
 #include "runtime/tuple.h"
+#include "util/bitmap.h"
 #include "util/codec.h"
 #include "util/debug-util.h"
 #include "util/runtime-profile.h"
@@ -281,6 +282,16 @@ bool HdfsScanner::WriteCompleteTuple(MemPool* pool, FieldLocation* fields,
   }
 
   tuple_row->SetTuple(scan_node_->tuple_idx(), tuple);
+  if (scan_node_->HasFilters()) {
+    const Bitmap* bitmap = scan_node_->WaitForFilter();
+    void* e = scan_node_->filter_exprs()[0]->GetValue(tuple_row);
+    uint32_t h =
+        RawValue::GetHashValue(e, scan_node_->filter_exprs()[0]->root()->type(), 1234);
+    if (!bitmap->Get<true>(h)) {
+      LOG(INFO) << "Skipping row";
+      return false;
+    }
+  }
   return EvalConjuncts(tuple_row);
 }
 

@@ -40,6 +40,7 @@ class Bitmap {
     for (int i = 0; i < buffer_.size(); ++i) {
       buffer_[i] = from_buf[i];
     }
+    num_bits_ = num_bits;
   }
 
   /// Resize bitmap and set all bits to zero.
@@ -106,6 +107,10 @@ class Bitmap {
   }
 
   int64_t num_bits() const { return num_bits_; }
+
+  void ToString(std::string* s) {
+    *s = std::string(reinterpret_cast<const char*>(&buffer_[0]), buffer_.size() * 8);
+  }
 
   /// If 'print_bits' prints 0/1 per bit, otherwise it prints the int64_t value.
   std::string DebugString(bool print_bits);

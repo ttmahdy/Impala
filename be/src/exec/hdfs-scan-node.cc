@@ -111,6 +111,7 @@ HdfsScanNode::HdfsScanNode(ObjectPool* pool, const TPlanNode& tnode,
         10 * (DiskInfo::num_disks() + DiskIoMgr::REMOTE_NUM_DISKS);
   }
   materialized_row_batches_.reset(new RowBatchQueue(max_materialized_row_batches_));
+  filters_ = tnode.hdfs_scan_node.runtime_filters;
 }
 
 HdfsScanNode::~HdfsScanNode() {
@@ -131,6 +132,13 @@ Status HdfsScanNode::Init(const TPlanNode& tnode) {
   // Add row batch conjuncts
   DCHECK(conjuncts_map_[tuple_id_].empty());
   conjuncts_map_[tuple_id_] = conjunct_ctxs_;
+
+
+  BOOST_FOREACH(const TRuntimeFilter& filter, filters_) {
+    ExprContext* ctx;
+    RETURN_IF_ERROR(Expr::CreateExprTree(pool_, filter.filter_expr, &ctx));
+    filter_exprs_.push_back(ctx);
+  }
   return Status::OK();
 }
 
@@ -355,6 +363,8 @@ Status HdfsScanNode::Prepare(RuntimeState* state) {
     scanner_threads_.SetCgroup(state->cgroup());
   }
 
+  RETURN_IF_ERROR(Expr::Prepare(filter_exprs_, state, row_desc(), expr_mem_tracker()));
+
   // One-time initialisation of state that is constant across scan ranges
   DCHECK(tuple_desc_->table_desc() != NULL);
   hdfs_table_ = static_cast<const HdfsTableDescriptor*>(tuple_desc_->table_desc());
@@ -572,6 +582,8 @@ Status HdfsScanNode::Open(RuntimeState* state) {
     RETURN_IF_ERROR(Expr::Open(iter->second, state));
   }
 
+  RETURN_IF_ERROR(Expr::Open(filter_exprs_, state));
+
   // We need at least one scanner thread to make progress. We need to make this
   // reservation before any ranges are issued.
   runtime_state_->resource_pool()->ReserveOptionalTokens(1);
@@ -670,7 +682,10 @@ Status HdfsScanNode::Open(RuntimeState* state) {
   stringstream ss;
   ss << "Splits complete (node=" << id() << "):";
   progress_ = ProgressUpdater(ss.str(), total_splits);
-
+  if (filters_.size() > 0) {
+    WaitForFilter();
+    LOG(INFO) << "Got filter!";
+  }
   return Status::OK();
 }
 
@@ -731,7 +746,7 @@ void HdfsScanNode::Close(RuntimeState* state) {
     if (iter->first == tuple_id_) continue;
     Expr::Close(iter->second, state);
   }
-
+  Expr::Close(filter_exprs_, state);
   ScanNode::Close(state);
 }
 
@@ -1167,4 +1182,14 @@ void HdfsScanNode::PrintHdfsSplitStats(const PerVolumnStats& per_volume_stats,
      (*ss) << i->first << ":" << i->second.first << "/"
          << PrettyPrinter::Print(i->second.second, TUnit::BYTES) << " ";
   }
+}
+
+const Bitmap* HdfsScanNode::WaitForFilter() {
+  const Bitmap* ret = runtime_state_->GetBitmapFilter(0);
+  while (ret == NULL) {
+    SleepForMs(50);
+    ret = runtime_state_->GetBitmapFilter(0);
+  }
+
+  return ret;
 }

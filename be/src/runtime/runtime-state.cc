@@ -94,14 +94,14 @@ RuntimeState::RuntimeState(const TQueryCtx& query_ctx)
 RuntimeState::~RuntimeState() {
   block_mgr_.reset();
 
-  typedef boost::unordered_map<SlotId, Bitmap*>::iterator SlotBitmapIterator;
-  for (SlotBitmapIterator it = slot_bitmap_filters_.begin();
-       it != slot_bitmap_filters_.end(); ++it) {
-    if (it->second != NULL) {
-      delete it->second;
-      it->second = NULL;
-    }
-  }
+  // typedef boost::unordered_map<SlotId, Bitmap*>::iterator SlotBitmapIterator;
+  // for (SlotBitmapIterator it = slot_bitmap_filters_.begin();
+  //      it != slot_bitmap_filters_.end(); ++it) {
+  //   if (it->second != NULL) {
+  //     delete it->second;
+  //     it->second = NULL;
+  //   }
+  // }
 
   // query_mem_tracker_ must be valid as long as instance_mem_tracker_ is so
   // delete instance_mem_tracker_ first.
@@ -292,22 +292,24 @@ Status RuntimeState::CheckQueryState() {
   return GetQueryStatus();
 }
 
-void RuntimeState::AddBitmapFilter(SlotId slot, Bitmap* bitmap,
+void RuntimeState::AddBitmapFilter(uint32_t filter_id, Bitmap* bitmap, bool is_sender,
     bool* acquired_ownership) {
   *acquired_ownership = false;
   if (bitmap != NULL) {
     lock_guard<SpinLock> l(bitmap_lock_);
-    if (slot_bitmap_filters_.find(slot) != slot_bitmap_filters_.end()) {
-      Bitmap* existing_bitmap = slot_bitmap_filters_[slot];
+    if (slot_bitmap_filters_.find(filter_id) != slot_bitmap_filters_.end()) {
+      Bitmap* existing_bitmap = slot_bitmap_filters_[filter_id];
       DCHECK(existing_bitmap != NULL);
       existing_bitmap->And(bitmap);
     } else {
       // This is the first time we set the slot_bitmap_filters_[slot]. We avoid
       // allocating a new bitmap by using the passed bitmap.
-      slot_bitmap_filters_[slot] = bitmap;
+      slot_bitmap_filters_[filter_id] = bitmap;
       *acquired_ownership = true;
     }
   }
+  // TODO: This doesn't work with lifetime etc.
+  if (is_sender) filter_callback_(filter_id, bitmap);
 }
 
 Status RuntimeState::GetCodegen(LlvmCodeGen** codegen, bool initialize) {

@@ -64,6 +64,8 @@ typedef std::map<std::string, TInsertStats> PartitionInsertStats;
 /// deleted.
 typedef std::map<std::string, std::string> FileMoveMap;
 
+typedef boost::function<void (uint32_t filter_id, Bitmap* filter)> FilterCallback;
+
 /// A collection of items that are part of the global state of a
 /// query and shared across all execution nodes of that query.
 class RuntimeState {
@@ -88,6 +90,8 @@ class RuntimeState {
 
   /// Gets/Creates the query wide block mgr.
   Status CreateBlockMgr();
+
+  void SetFilterCallback(const FilterCallback& cb) { filter_callback_ = cb; }
 
   ObjectPool* obj_pool() const { return obj_pool_.get(); }
   const DescriptorTbl& desc_tbl() const { return *desc_tbl_; }
@@ -166,15 +170,17 @@ class RuntimeState {
   /// If it is the first call to add a bitmap filter for the specific slot, indicated by
   /// 'acquired_ownership', then the passed bitmap should not be deleted by the caller.
   /// Thread safe.
-  void AddBitmapFilter(SlotId slot, Bitmap* bitmap, bool* acquired_ownership);
+  void AddBitmapFilter(uint32_t filter_id, Bitmap* bitmap, bool is_sender,
+      bool* acquired_ownership);
 
   /// Returns bitmap filter on 'slot'. Returns NULL if there are no bitmap filters on this
   /// slot.
   /// It is not safe to concurrently call AddBitmapFilter() and GetBitmapFilter().
   /// All calls to AddBitmapFilter() should happen before.
-  const Bitmap* GetBitmapFilter(SlotId slot) {
-    if (slot_bitmap_filters_.find(slot) == slot_bitmap_filters_.end()) return NULL;
-    return slot_bitmap_filters_[slot];
+  const Bitmap* GetBitmapFilter(uint32_t filter_id) {
+    boost::lock_guard<SpinLock> l(bitmap_lock_);
+    if (slot_bitmap_filters_.find(filter_id) == slot_bitmap_filters_.end()) return NULL;
+    return slot_bitmap_filters_[filter_id];
   }
 
   void CommitBitmapFilter(SlotId slot, uint32_t filter_id);
@@ -382,12 +388,14 @@ class RuntimeState {
   /// details.
   PlanNodeId root_node_id_;
 
+  FilterCallback filter_callback_;
+
   /// Lock protecting slot_bitmap_filters_
   SpinLock bitmap_lock_;
 
   /// Bitmap filter on the hash for 'SlotId'. If bitmap[hash(slot]] is unset, this
   /// value can be filtered out. These filters are generated during the query execution.
-  boost::unordered_map<SlotId, Bitmap*> slot_bitmap_filters_;
+  boost::unordered_map<uint32_t, Bitmap*> slot_bitmap_filters_;
 
   /// prohibit copies
   RuntimeState(const RuntimeState&);

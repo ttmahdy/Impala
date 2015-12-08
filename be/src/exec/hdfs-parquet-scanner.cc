@@ -432,11 +432,16 @@ class HdfsParquetScanner::BaseScalarColumnReader :
 
     RuntimeState* state = parent_->scan_node_->runtime_state();
     hash_seed_ = state->fragment_hash_seed();
-    // The bitmap filter is only valid for the top-level tuple
-    if (slot_desc_ != NULL &&
-        slot_desc_->parent() == parent_->scan_node_->tuple_desc()) {
-      bitmap_filter_ = state->GetBitmapFilter(slot_desc_->id());
+    bitmap_filter_ = state->GetBitmapFilter(0);
+    while (bitmap_filter_ == NULL) {
+      SleepForMs(10);
+      bitmap_filter_ = state->GetBitmapFilter(0);
     }
+    // The bitmap filter is only valid for the top-level tuple
+    // if (slot_desc_ != NULL &&
+    //     slot_desc_->parent() == parent_->scan_node_->tuple_desc()) {
+    //   bitmap_filter_ = state->GetBitmapFilter(slot_desc_->id());
+    // }
   }
 
   virtual ~BaseScalarColumnReader() { }

@@ -426,6 +426,7 @@ Status Coordinator::Exec(QuerySchedule& schedule,
             plan_node.hash_join_node.runtime_filters) {
           Filter* f = &(filter_routing_table_[filter.filter_id]);
           f->src = plan_node.node_id;
+          f->pending_count = num_hosts;
         }
       } else if (plan_node.__isset.hdfs_scan_node &&
           plan_node.hdfs_scan_node.__isset.runtime_filters) {
@@ -433,6 +434,9 @@ Status Coordinator::Exec(QuerySchedule& schedule,
             plan_node.hdfs_scan_node.runtime_filters) {
           Filter* f = &(filter_routing_table_[filter.filter_id]);
           f->dst = plan_node.node_id;
+          for (int i = backend_num; i < num_hosts; ++i) {
+            f->backend_idxs.push_back(i);
+          }
         }
       }
     }
@@ -482,6 +486,7 @@ Status Coordinator::Exec(QuerySchedule& schedule,
 
   BOOST_FOREACH(const FilterRoutingTable::value_type& route, filter_routing_table_) {
     LOG(INFO) << "FILTER ROUTING: From node " << route.second.src << " to node " << route.second.dst << ", id: " << route.first;
+    LOG(INFO) << "FILTER ROUTING: Destination backends: " << route.second.backend_idxs.size();
   }
 
   query_events_->MarkEvent("Remote fragments started");
@@ -1734,11 +1739,28 @@ void Coordinator::ReceiveFilters(const TReceiveFiltersParams& params) {
     return;
   }
 
+  LOG(INFO) << "Received filter update: " << params.filter_id;
+
   if (it->second.bitmap == NULL) {
     it->second.bitmap = obj_pool()->Add(
-        new Bitmap(reinterpret_cast<const uint64_t*>(params.bitmap.c_str()), params.bitmap.size() / 8));
+        new Bitmap(reinterpret_cast<const uint64_t*>(params.bitmap.c_str()), params.num_bits));
+    LOG(INFO) << it->second.bitmap->DebugString(false);
   } else {
     // TODO: Aggregate bitmap
+  }
+
+  for (int i = 0; i < it->second.backend_idxs.size(); ++i) {
+    BackendExecState* backend = backend_exec_states_[it->second.backend_idxs[i]];
+    Status status;
+    ImpalaInternalServiceConnection backend_client(
+        exec_env_->impalad_client_cache(), backend->backend_address, &status);
+    if (!status.ok()) return;
+    TReceiveFiltersParams fragment_params;
+    fragment_params = params;
+    fragment_params.is_for_coord = false;
+    fragment_params.dst_instance_id = backend->fragment_instance_id;
+    TReceiveFiltersResult res;
+    backend_client.DoRpc(&ImpalaInternalServiceClient::ReceiveFilters, fragment_params, &res);
   }
 
   if (--it->second.pending_count == 0) {
