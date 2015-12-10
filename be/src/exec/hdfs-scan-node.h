@@ -286,7 +286,9 @@ class HdfsScanNode : public ScanNode {
   static const std::string HDFS_SPLIT_STATS_DESC;
 
   bool HasFilters() const { return filters_.size() > 0; }
-  const Bitmap* WaitForFilter();
+
+  // Indexed from 0-filters_.size() - 1
+  const Bitmap* GetFilter(uint32_t filter_idx);
 
  private:
   friend class ScannerContext;
@@ -356,6 +358,7 @@ class HdfsScanNode : public ScanNode {
 
   std::vector<TRuntimeFilter> filters_;
   std::vector<ExprContext*> filter_exprs_;
+  std::vector<const Bitmap*> filter_bitmaps_;
 
   /// is_materialized_col_[i] = <true i-th column should be materialized, false otherwise>
   /// for 0 <= i < total # columns

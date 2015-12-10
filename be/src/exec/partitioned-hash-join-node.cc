@@ -431,7 +431,7 @@ Status PartitionedHashJoinNode::Partition::BuildHashTableInternal(
           void* e = parent_->filter_expr_ctxs_[j]->GetValue(row);
 
           uint32_t h = RawValue::GetHashValue(
-              e, parent_->filter_expr_ctxs_[j]->root()->type(), seed0);
+              e, parent_->filter_expr_ctxs_[j]->root()->type(), 1234); // seed0);
           parent_->probe_filters_[j].second->Set<true>(h, true);
         }
         // // Update the probe filters for this row.

@@ -283,14 +283,27 @@ bool HdfsScanner::WriteCompleteTuple(MemPool* pool, FieldLocation* fields,
 
   tuple_row->SetTuple(scan_node_->tuple_idx(), tuple);
   if (scan_node_->HasFilters()) {
-    const Bitmap* bitmap = scan_node_->WaitForFilter();
-    void* e = scan_node_->filter_exprs()[0]->GetValue(tuple_row);
-    uint32_t h =
-        RawValue::GetHashValue(e, scan_node_->filter_exprs()[0]->root()->type(), 1234);
-    if (!bitmap->Get<true>(h)) {
-      LOG(INFO) << "Skipping row";
-      return false;
+    for (int i = 0; i < scan_node_->filter_exprs().size(); ++i) {
+      const Bitmap* bitmap = scan_node_->GetFilter(i);
+      while (bitmap == NULL) {
+        SleepForMs(50);
+        bitmap = scan_node_->GetFilter(i);
+      }
+      if (bitmap == NULL) continue;
+      void* e = scan_node_->filter_exprs()[i]->GetValue(tuple_row);
+      uint32_t h =
+          RawValue::GetHashValue(e, scan_node_->filter_exprs()[i]->root()->type(), 1234);
+      int32_t t = *(int32_t*)(tuple_row);
+      LOG(INFO) << "Probe val: " << *(int32_t*)(e) << ", in bitmap: " << bitmap->Get<true>(h) << ", hash: " << h;
+      // if (t == 1 && !bitmap->Get<true>(h)) {
+
+      // }
+      if (!bitmap->Get<true>(h)) {
+        return false;
+      }
     }
+  } else {
+    LOG(INFO) << "HNR: No filters";
   }
   return EvalConjuncts(tuple_row);
 }

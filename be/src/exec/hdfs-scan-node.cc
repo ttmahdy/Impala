@@ -112,6 +112,7 @@ HdfsScanNode::HdfsScanNode(ObjectPool* pool, const TPlanNode& tnode,
   }
   materialized_row_batches_.reset(new RowBatchQueue(max_materialized_row_batches_));
   filters_ = tnode.hdfs_scan_node.runtime_filters;
+  filter_bitmaps_.resize(filters_.size());
 }
 
 HdfsScanNode::~HdfsScanNode() {
@@ -682,10 +683,10 @@ Status HdfsScanNode::Open(RuntimeState* state) {
   stringstream ss;
   ss << "Splits complete (node=" << id() << "):";
   progress_ = ProgressUpdater(ss.str(), total_splits);
-  if (filters_.size() > 0) {
-    WaitForFilter();
-    LOG(INFO) << "Got filter!";
-  }
+  // if (filters_.size() > 0) {
+  //   WaitForFilter();
+  //   LOG(INFO) << "Got filter!";
+  // }
   return Status::OK();
 }
 
@@ -1184,12 +1185,13 @@ void HdfsScanNode::PrintHdfsSplitStats(const PerVolumnStats& per_volume_stats,
   }
 }
 
-const Bitmap* HdfsScanNode::WaitForFilter() {
-  const Bitmap* ret = runtime_state_->GetBitmapFilter(0);
-  while (ret == NULL) {
-    SleepForMs(50);
-    ret = runtime_state_->GetBitmapFilter(0);
+const Bitmap* HdfsScanNode::GetFilter(uint32_t filter_idx) {
+  const Bitmap* bitmap = filter_bitmaps_[filter_idx];
+  if (bitmap != NULL) return bitmap;
+  bitmap = runtime_state_->GetBitmapFilter(filter_idx);
+  if (bitmap != NULL) {
+    filter_bitmaps_[filter_idx] = bitmap;
+    LOG(INFO) << "HNR: GOT BITMAP FILTER";
   }
-
-  return ret;
+  return bitmap;
 }

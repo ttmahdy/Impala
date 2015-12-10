@@ -153,7 +153,7 @@ void ChildQuery::SetQueryOptions(const TQueryOptions& parent_options,
   SET_QUERY_OPTION(seq_compression_mode, SEQ_COMPRESSION_MODE);
   SET_QUERY_OPTION(exec_single_node_rows_threshold,
       EXEC_SINGLE_NODE_ROWS_THRESHOLD);
-  SET_QUERY_OPTION(enable_dynamic_partition_pruning, ENABLE_DYNAMIC_PARTITION_PRUNING);
+  SET_QUERY_OPTION(enable_dynamic_partition_pruning, ENABLE_DYNAMIC_PARTITION_chPRUNING);
 }
 
 void ChildQuery::Cancel() {
