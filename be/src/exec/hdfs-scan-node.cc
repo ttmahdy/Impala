@@ -1190,8 +1190,8 @@ const Bitmap* HdfsScanNode::GetFilter(uint32_t filter_idx) {
   if (bitmap != NULL) return bitmap;
   bitmap = runtime_state_->GetBitmapFilter(filter_idx);
   if (bitmap != NULL) {
+    lock_guard<SpinLock> l(filter_bitmap_lock_);
     filter_bitmaps_[filter_idx] = bitmap;
-    LOG(INFO) << "HNR: GOT BITMAP FILTER";
   }
   return bitmap;
 }

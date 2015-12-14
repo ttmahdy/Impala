@@ -285,20 +285,40 @@ bool HdfsScanner::WriteCompleteTuple(MemPool* pool, FieldLocation* fields,
   if (scan_node_->HasFilters()) {
     for (int i = 0; i < scan_node_->filter_exprs().size(); ++i) {
       const Bitmap* bitmap = scan_node_->GetFilter(i);
-      while (bitmap == NULL) {
-        SleepForMs(50);
-        bitmap = scan_node_->GetFilter(i);
-      }
+      // while (bitmap == NULL) {
+      //   SleepForMs(50);
+      //   bitmap = scan_node_->GetFilter(i);
+      // }
       if (bitmap == NULL) continue;
       void* e = scan_node_->filter_exprs()[i]->GetValue(tuple_row);
+      int32_t v1 = *(int32_t*)e;
       uint32_t h =
-          RawValue::GetHashValue(e, scan_node_->filter_exprs()[i]->root()->type(), 1234);
-      int32_t t = *(int32_t*)(tuple_row);
-      LOG(INFO) << "Probe val: " << *(int32_t*)(e) << ", in bitmap: " << bitmap->Get<true>(h) << ", hash: " << h;
+          RawValue::GetHashValue(&v1, TYPE_INT, 1234); //scan_node_->filter_exprs()[i]->root()->type(), 1234);
+      int32_t v2 = *(int32_t*)e;
+      // if (*(int32_t*)(e) == 1) {
+      //   LOG(INFO) << "HNR COUNT 1";
+      //   h = 180808862;
+      // } else {
+      //   LOG(INFO) << "HNR COUNT 2";
+      //   h = 0;
+      // }
+      // int32_t t = *(int32_t*)(tuple_row);
+      // if (t == 2) return false;
+      // LOG(INFO) << "Probe val: " << *(int32_t*)(e) << ", in bitmap: " << bitmap->Get<true>(h) << ", hash: " << h;
       // if (t == 1 && !bitmap->Get<true>(h)) {
 
       // }
+      int32_t two = 2;
+      uint32_t h2 = RawValue::GetHashValue(&two, TYPE_INT, 1234);
+      //uint32_t h3 = RawValue::GetHashValue(e, TYPE_INT, 1234);
+
+      DCHECK(v1 == v2) << v1 << " != " << v2;
       if (!bitmap->Get<true>(h)) {
+        if (*(int32_t*)(e) == 1) {
+          LOG(INFO) << "HNR: " << const_cast<Bitmap*>(bitmap)->DebugString(false);
+          LOG(INFO) << "HASH: " << h << " (h2: " << h2 << ")";
+          LOG(INFO) << "No really: " << RawValue::GetHashValue(e, TYPE_INT, 1234);
+        }
         return false;
       }
     }

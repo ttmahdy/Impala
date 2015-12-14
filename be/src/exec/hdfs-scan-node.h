@@ -358,6 +358,7 @@ class HdfsScanNode : public ScanNode {
 
   std::vector<TRuntimeFilter> filters_;
   std::vector<ExprContext*> filter_exprs_;
+  SpinLock filter_bitmap_lock_;
   std::vector<const Bitmap*> filter_bitmaps_;
 
   /// is_materialized_col_[i] = <true i-th column should be materialized, false otherwise>
