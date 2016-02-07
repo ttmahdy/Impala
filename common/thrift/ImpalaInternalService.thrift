@@ -139,7 +139,7 @@ struct TQueryOptions {
   34: optional bool random_replica = 0
 
   // If true, runtime filter propagation is enabled
-  35: optional bool enable_runtime_filter_propagation = 0
+  35: optional bool enable_runtime_filter_propagation = 1
 }
 
 // Impala currently has two types of sessions: Beeswax and HiveServer2
