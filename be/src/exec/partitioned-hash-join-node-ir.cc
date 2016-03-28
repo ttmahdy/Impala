@@ -444,17 +444,37 @@ int PartitionedHashJoinNode::ProcessProbeBatchBucketed(
 	  int32_t probe_value = ht_ctx->GetIntCol(probe_batch_->GetRow(i));
 	  ht_ctx->HashQuickInt(probe_value, &hash_value);
 	  const uint32_t partition_idx = hash_value >> (32 - NUM_PARTITIONING_BITS);
-	  hash_partitions_probe_count[partition_idx]++;
+	  //hash_partitions_probe_count[partition_idx]++;
 	  ProbeTuple tuple;
 	  tuple.hash_value = hash_value;
 	  tuple.probe_value = probe_value;
+	  uint32_t partition_id =  hash_value >> (32 - NUM_PARTITIONING_BITS);
+	  hash_tbls_[partition_id]->Prefetch(hash_value);
 	  //tuple.row = probe_batch_->GetRow(i);
 	  batched_probe_rows[partition_idx].push_back(tuple);
 	}
 
-
 	int probe_count = 0;
-	//int matched_count = 0;
+	for (int i = 0; i < PARTITION_FANOUT; ++i) {
+	  int partition_row_count = batched_probe_rows[i].size();
+	  for (int j = 0; j < partition_row_count; j++) {
+		uint32 hash_value = batched_probe_rows[i].at(j).hash_value;
+		uint32_t partition_id =  hash_value >> (32 - NUM_PARTITIONING_BITS);
+		hash_tbls_[partition_id]->Prefetch(hash_value);
+	  }
+	}
+
+	probe_count = 0;
+	for (int i = 0; i < PARTITION_FANOUT; ++i) {
+	  int partition_row_count = batched_probe_rows[i].size();
+	  for (int j = 0; j < partition_row_count; j++) {
+		uint32 hash_value = batched_probe_rows[i].at(j).hash_value;
+		uint32_t partition_id =  hash_value >> (32 - NUM_PARTITIONING_BITS);
+		hash_tbls_[partition_id]->PrefetchBucketData(hash_value);
+	  }
+	}
+
+	probe_count = 0;
 	for (int i = 0; i < PARTITION_FANOUT; ++i) {
 	  int partition_row_count = batched_probe_rows[i].size();
 	  for (int j = 0; j < partition_row_count; j++) {
@@ -594,75 +614,61 @@ int PartitionedHashJoinNode::ProcessProbeBatchFast(
 		probe_batch_pos_++;
 	  }
 
-	  for (int i =0; i < num_probe_rows; i++) {
-		while (!hash_table_iterators[i].AtEnd()) {
-		  TupleRow* matched_build_row = hash_table_iterators[i].GetRow();
-		  DCHECK(matched_build_row != NULL);
-		  CreateOutputRow(out_row, probe_batch_->GetRow(i), matched_build_row);
-		  hash_table_iterators[i].NextDuplicate();
-		  ++num_rows_added;
-		  out_row = out_row->next_row(out_batch);
-		}
+	  i =0;
+	  for (; i < unrolled_num_probe_rows; i+=4) {
+	    int num_rows_added_1 = 0;
+	    int num_rows_added_2 = 0;
+	    int num_rows_added_3 = 0;
+	    int num_rows_added_4 = 0;
+
+	    while (!hash_table_iterators[i].AtEnd()) {
+	      TupleRow* matched_build_row = hash_table_iterators[i].GetRow();
+	      DCHECK(matched_build_row != NULL);
+	      CreateOutputRow(out_row, probe_batch_->GetRow(i), matched_build_row);
+	      hash_table_iterators[i].NextDuplicate();
+	      ++num_rows_added_1;
+	      out_row = out_row->next_row(out_batch);
+	    }
+
+	    while (!hash_table_iterators[i+1].AtEnd()) {
+	      TupleRow* matched_build_row = hash_table_iterators[i+1].GetRow();
+	      DCHECK(matched_build_row != NULL);
+	      CreateOutputRow(out_row, probe_batch_->GetRow(i+1), matched_build_row);
+	      hash_table_iterators[i+1].NextDuplicate();
+	      ++num_rows_added_2;
+	      out_row = out_row->next_row(out_batch);
+	    }
+
+	    while (!hash_table_iterators[i+2].AtEnd()) {
+	      TupleRow* matched_build_row = hash_table_iterators[i+2].GetRow();
+	      DCHECK(matched_build_row != NULL);
+	      CreateOutputRow(out_row, probe_batch_->GetRow(i+2), matched_build_row);
+	      hash_table_iterators[i+2].NextDuplicate();
+	      ++num_rows_added_3;
+	      out_row = out_row->next_row(out_batch);
+	    }
+
+	    while (!hash_table_iterators[i+3].AtEnd()) {
+	      TupleRow* matched_build_row = hash_table_iterators[i+3].GetRow();
+	      DCHECK(matched_build_row != NULL);
+	      CreateOutputRow(out_row, probe_batch_->GetRow(i+3), matched_build_row);
+	      hash_table_iterators[i+3].NextDuplicate();
+	      ++num_rows_added_4;
+	      out_row = out_row->next_row(out_batch);
+	    }
+        num_rows_added += num_rows_added_1 + num_rows_added_2 + num_rows_added_3 + num_rows_added_4;
 	  }
 
-	  /*
-		i =0;
-		for (; i < unrolled_num_probe_rows; i+=4) {
-
-		  int num_rows_added_1 = 0;
-		  int num_rows_added_2 = 0;
-		  int num_rows_added_3 = 0;
-		  int num_rows_added_4 = 0;
-
-		  while (!hash_table_iterators[i].AtEnd()) {
-			TupleRow* matched_build_row = hash_table_iterators[i].GetRow();
-			DCHECK(matched_build_row != NULL);
-			CreateOutputRow(out_row, probe_batch_->GetRow(i), matched_build_row);
-			hash_table_iterators[i].NextDuplicate();
-			++num_rows_added_1;
-			out_row = out_row->next_row(out_batch);
-		  }
-
-		  while (!hash_table_iterators[i+1].AtEnd()) {
-			TupleRow* matched_build_row = hash_table_iterators[i+1].GetRow();
-			DCHECK(matched_build_row != NULL);
-			CreateOutputRow(out_row, probe_batch_->GetRow(i+1), matched_build_row);
-			hash_table_iterators[i+1].NextDuplicate();
-			++num_rows_added_2;
-			out_row = out_row->next_row(out_batch);
-		  }
-
-		  while (!hash_table_iterators[i+2].AtEnd()) {
-			TupleRow* matched_build_row = hash_table_iterators[i+2].GetRow();
-			DCHECK(matched_build_row != NULL);
-			CreateOutputRow(out_row, probe_batch_->GetRow(i+2), matched_build_row);
-			hash_table_iterators[i+2].NextDuplicate();
-			++num_rows_added_3;
-			out_row = out_row->next_row(out_batch);
-		  }
-
-		  while (!hash_table_iterators[i+3].AtEnd()) {
-			TupleRow* matched_build_row = hash_table_iterators[i+3].GetRow();
-			DCHECK(matched_build_row != NULL);
-			CreateOutputRow(out_row, probe_batch_->GetRow(i+3), matched_build_row);
-			hash_table_iterators[i+3].NextDuplicate();
-			++num_rows_added_4;
-			out_row = out_row->next_row(out_batch);
-		  }
-
-		  num_rows_added_1 += num_rows_added_1 + num_rows_added_2 + num_rows_added_3 + num_rows_added_4;
-		}
-
-		for (; i < num_probe_rows; i++) {
-		  while (!hash_table_iterators[i].AtEnd()) {
-			TupleRow* matched_build_row = hash_table_iterators[i].GetRow();
-			DCHECK(matched_build_row != NULL);
-			CreateOutputRow(out_row, probe_batch_->GetRow(i), matched_build_row);
-			hash_table_iterators[i].NextDuplicate();
-			++num_rows_added;
-			out_row = out_row->next_row(out_batch);
-		  }
-		}*/
+	  for (; i < num_probe_rows; i++) {
+	    while (!hash_table_iterators[i].AtEnd()) {
+	      TupleRow* matched_build_row = hash_table_iterators[i].GetRow();
+	      DCHECK(matched_build_row != NULL);
+	      CreateOutputRow(out_row, probe_batch_->GetRow(i), matched_build_row);
+	      hash_table_iterators[i].NextDuplicate();
+	      ++num_rows_added;
+	      out_row = out_row->next_row(out_batch);
+	    }
+	  }
 
 	  if(num_rows_added >= max_rows)
 		break;

@@ -37,6 +37,7 @@ ADD_BE_BENCHMARK(overflow-benchmark)
 ADD_BE_BENCHMARK(bloom-filter-benchmark)
 ADD_BE_BENCHMARK(int-hash-benchmark)
 ADD_BE_BENCHMARK(bitmap-benchmark)
+ADD_BE_BENCHMARK(simd-demo)
 
 add_executable(hash-benchmark hash-benchmark.cc)
 target_link_libraries(hash-benchmark Experiments ${IMPALA_LINK_LIBS})

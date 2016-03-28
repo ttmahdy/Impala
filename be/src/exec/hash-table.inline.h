@@ -43,8 +43,10 @@ inline int32_t HashTableCtx::GetIntCol(TupleRow* row) {
 }
 
 inline int64_t HashTableCtx::GetBigIntCol(TupleRow* row) {
-  Expr* root = probe_expr_ctxs_[0]->root();
-  return ((SlotRef*) (root))->GetBigInt(row);
+  //Expr* root = probe_expr_ctxs_[0]->root();
+  //return ((SlotRef*) (root))->GetBigInt(row);
+  Tuple* t = row->GetTuple(0);
+  return *reinterpret_cast<int64_t*>(t->GetSlot(8));
 }
 
 inline bool HashTableCtx::HashQuick(TupleRow* row, uint32_t* hash) {

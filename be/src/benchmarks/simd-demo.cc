@@ -41,7 +41,7 @@ struct Bucket {
   /// row in the bucket has been matched.
   /// From an abstraction point of view, this is an awkward place to store this
   /// information but it is efficient. This space is otherwise unused.
-  bool matched;
+  int matched;
 
   /// Used in case of duplicates. If true, then the bucketData union should be used as
   /// 'duplicates'.
@@ -218,8 +218,13 @@ static void simd_probe_hash_table(Bucket *hash_table, int hash_table_size,
             Bucket current_bucket_base_1 = hash_table[buckdt_id_1];
             Bucket current_bucket_base_2 = hash_table[buckdt_id_2];
 
-            __m128i hash_indexes = _mm_set_epi32(buckdt_id_1 * 12/8,buckdt_id_2* 12/8,
-                                                 buckdt_id_3* 12/8,buckdt_id_4* 12/8);
+            __builtin_prefetch(&hash_table[buckdt_id_1], 0, 1);
+            __builtin_prefetch(&hash_table[buckdt_id_2], 0, 1);
+            __builtin_prefetch(&hash_table[buckdt_id_3], 0, 1);
+            __builtin_prefetch(&hash_table[buckdt_id_4], 0, 1);
+
+            __m128i hash_indexes = _mm_set_epi32(buckdt_id_1 * 2,buckdt_id_2* 2,
+                                                 buckdt_id_3* 2,buckdt_id_4* 2);
 
             void *p_gathered_buckets = (void *) gathered_buckets;
             long *p_gathered_pointers = (long *)gathered_buckets;

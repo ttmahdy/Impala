@@ -132,16 +132,6 @@ Status PartitionedHashJoinNode::Prepare(RuntimeState* state) {
 
   RETURN_IF_ERROR(BlockingJoinNode::Prepare(state));
   runtime_state_ = state;
-  /*int query_option_pc = state->query_options().partition_count;
-  int fanout_bits = 0;
-  while (query_option_pc >>= 1) {
-	  fanout_bits++;
-  }
-
-  PARTITION_FANOUT = query_option_pc;
-  NUM_PARTITIONING_BITS = fanout_bits;
-
-  hash_tbls_[PARTITION_FANOUT]; */
 
   use_batched_join = state->query_options().enable_batched_join;
   enable_join_prefetch = state->query_options().enable_join_prefetch;
@@ -481,6 +471,16 @@ Status PartitionedHashJoinNode::Partition::BuildHashTableInternal(
     int num_rows = batch.num_rows();
     DCHECK_LE(num_rows, hash_tbl_->EmptyBuckets()) << build_rows()->RowConsumesMemory();
     SCOPED_TIMER(parent_->build_timer_);
+
+    if (parent_->enable_join_prefetch){
+      for (int i = 0; i < num_rows; ++i) {
+        uint32_t hash_value;
+        int32_t probe_value = ctx->GetIntCol(batch.GetRow(i));
+        ctx->HashQuickInt(probe_value, &hash_value);
+        hash_tbl_->Prefetch(hash_value);
+      }
+    }
+
     for (int i = 0; i < num_rows; ++i) {
       TupleRow* row = batch.GetRow(i);
       uint32_t hash = 0;
