@@ -22,9 +22,10 @@
 #include "codegen/llvm-codegen.h"
 #include "exprs/expr.h"
 #include "exprs/expr-context.h"
-#include "exprs/slot-ref.h"
+//#include "exprs/slot-ref.h"
 #include "runtime/buffered-block-mgr.h"
 #include "runtime/mem-tracker.h"
+#include "runtime/raw-value.h"
 #include "runtime/raw-value.inline.h"
 #include "runtime/runtime-state.h"
 #include "runtime/string-value.inline.h"
@@ -253,6 +254,7 @@ void HashTable::Close() {
   const int64_t LARGE_HT = 128 * 1024;
   const int64_t HEAVILY_USED = 1024 * 1024;
   // TODO: These statistics should go to the runtime profile as well.
+  VLOG(1) << PrintStats();
   if ((num_buckets_ > LARGE_HT) || (num_probes_ > HEAVILY_USED)) VLOG(2) << PrintStats();
   for (int i = 0; i < data_pages_.size(); ++i) {
     data_pages_[i]->Delete();

@@ -37,6 +37,29 @@ inline bool HashTableCtx::EvalAndHashProbe(TupleRow* row, uint32_t* hash) {
   return true;
 }
 
+inline int32_t HashTableCtx::GetIntCol(TupleRow* row) {
+  Tuple* t = row->GetTuple(0);
+  return *reinterpret_cast<int32_t*>(t->GetSlot(4));
+}
+
+inline int64_t HashTableCtx::GetBigIntCol(TupleRow* row) {
+  Expr* root = probe_expr_ctxs_[0]->root();
+  return ((SlotRef*) (root))->GetBigInt(row);
+}
+
+inline bool HashTableCtx::HashQuick(TupleRow* row, uint32_t* hash) {
+  int32_t val2 =  GetIntCol(row);
+   *hash  = HashUtil::CrcHash4(&val2, seeds_[level_]);
+  return true;
+}
+
+inline void HashTableCtx::HashQuickInt(int32_t val, uint32_t* hash) {
+  *hash  = HashUtil::CrcHash4(&val, seeds_[level_]);
+}
+
+inline void HashTableCtx::HashQuickBigInt(int64_t val, uint32_t* hash) {
+  *hash  = HashUtil::CrcHash8(&val, seeds_[level_]);
+}
 template <bool FORCE_NULL_EQUALITY>
 inline int64_t HashTable::Probe(Bucket* buckets, int64_t num_buckets,
     HashTableCtx* ht_ctx, uint32_t hash, bool* found) {
@@ -77,6 +100,73 @@ inline int64_t HashTable::Probe(Bucket* buckets, int64_t num_buckets,
   DCHECK_EQ(num_filled_buckets_, num_buckets) << "Probing of a non-full table "
       << "failed: " << quadratic_probing_ << " " << hash;
   return Iterator::BUCKET_NOT_FOUND;
+}
+
+
+template <bool FORCE_NULL_EQUALITY>
+inline int64_t HashTable::Probe(Bucket* buckets, int64_t num_buckets,
+    HashTableCtx* ht_ctx, uint32_t hash, bool* found, int32_t probe_value,
+    DuplicateNode* dups) {
+  DCHECK(buckets != NULL);
+  DCHECK_GT(num_buckets, 0);
+  *found = false;
+  int64_t bucket_idx = hash & (num_buckets - 1);
+
+  // In case of linear probing it counts the total number of steps for statistics and
+  // for knowing when to exit the loop (e.g. by capping the total travel length). In case
+  // of quadratic probing it is also used for calculating the length of the next jump.
+  int64_t step = 0;
+  do {
+    Bucket* bucket = &buckets[bucket_idx];
+    if (!bucket->filled) return bucket_idx;
+    if (hash == bucket->hash) {
+      if (ht_ctx != NULL) {
+        TupleRow* buildRow = GetRow(bucket, ht_ctx->row_);
+		int32_t build_value = ht_ctx->GetIntCol(buildRow);
+        if (build_value == probe_value) {
+          *found = true;
+          dups = bucket->bucketData.duplicates;
+          return bucket_idx;
+        }
+      }
+      // Row equality failed, or not performed. This is a hash collision. Continue
+      // searching.
+      ++num_hash_collisions_;
+    }
+    // Move to the next bucket.
+    ++step;
+    ++travel_length_;
+    if (quadratic_probing_) {
+      // The i-th probe location is idx = (hash + (step * (step + 1)) / 2) mod num_buckets.
+      // This gives num_buckets unique idxs (between 0 and N-1) when num_buckets is a power
+      // of 2.
+      bucket_idx = (bucket_idx + step) & (num_buckets - 1);
+    } else {
+      bucket_idx = (bucket_idx + 1) & (num_buckets - 1);
+    }
+  } while (LIKELY(step < num_buckets));
+  DCHECK_EQ(num_filled_buckets_, num_buckets) << "Probing of a non-full table "
+      << "failed: " << quadratic_probing_ << " " << hash;
+  return Iterator::BUCKET_NOT_FOUND;
+}
+
+inline void HashTable::Prefetch(uint32_t hash) {
+  int64_t bucket_idx = hash & (num_buckets_ - 1);
+  __builtin_prefetch(&buckets_[bucket_idx], 0, 1);
+}
+
+inline void HashTable::PrefetchBucketData(uint32_t hash) {
+  int64_t bucket_idx = hash & (num_buckets_ - 1);
+  Bucket* bucket = &buckets_[bucket_idx];
+  DCHECK(bucket != NULL);
+  if (!bucket->filled) return;
+  if (UNLIKELY(bucket->hasDuplicates)) {
+    DuplicateNode* duplicate = bucket->bucketData.duplicates;
+	DCHECK(duplicate != NULL);
+	 __builtin_prefetch(duplicate->htdata.tuple, 0, 1);
+  } else {
+    __builtin_prefetch(bucket->bucketData.htdata.tuple, 0, 1);
+  }
 }
 
 inline HashTable::HtData* HashTable::InsertInternal(HashTableCtx* ht_ctx,
@@ -130,6 +220,17 @@ inline HashTable::Iterator HashTable::FindProbeRow(HashTableCtx* ht_ctx, uint32_
   return End();
 }
 
+inline HashTable::Iterator HashTable::FindProbeRow(HashTableCtx* ht_ctx, uint32_t hash, int32_t keyValue) {
+  ++num_probes_;
+  bool found = false;
+  DuplicateNode* dups = NULL;
+  int64_t bucket_idx = Probe<false>(buckets_, num_buckets_, ht_ctx, hash, &found, keyValue, dups);
+  if (found) {
+    return Iterator(this, ht_ctx->row(), bucket_idx,
+    		dups);
+  }
+  return End();
+}
 inline HashTable::Iterator HashTable::FindBuildRowBucket(
     HashTableCtx* ht_ctx, uint32_t hash, bool* found) {
   ++num_probes_;

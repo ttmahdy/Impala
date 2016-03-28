@@ -118,6 +118,14 @@ Status impala::SetQueryOption(const string& key, const string& value,
         query_options->__set_disable_codegen(
             iequals(value, "true") || iequals(value, "1"));
         break;
+      case TImpalaQueryOptions::ENABLE_BATCHED_JOIN:
+        query_options->__set_enable_batched_join(atoi(value.c_str()));
+//            iequals(value, "true") || iequals(value, "1"));ENABLE_JOIN_PREFETCH
+        break;
+      case TImpalaQueryOptions::ENABLE_JOIN_PREFETCH:
+        query_options->__set_enable_join_prefetch(
+            iequals(value, "true") || iequals(value, "1"));
+        break;
       case TImpalaQueryOptions::BATCH_SIZE:
         query_options->__set_batch_size(atoi(value.c_str()));
         break;

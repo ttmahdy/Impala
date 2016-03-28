@@ -76,6 +76,13 @@ class PartitionedHashJoinNode : public BlockingJoinNode {
   virtual Status ConstructBuildSide(RuntimeState* state);
 
  private:
+
+  struct ProbeTuple {
+    //TupleRow* row;
+    int32_t probe_value;
+    uint32_t hash_value;
+  };
+
   class Partition;
 
   /// Implementation details:
@@ -121,9 +128,11 @@ class PartitionedHashJoinNode : public BlockingJoinNode {
   /// Number of initial partitions to create. Must be a power of two.
   /// TODO: this is set to a lower than actual value for testing.
   static const int PARTITION_FANOUT = 16;
+  //int PARTITION_FANOUT;
 
   /// Needs to be the log(PARTITION_FANOUT)
   static const int NUM_PARTITIONING_BITS = 4;
+  //int NUM_PARTITIONING_BITS;
 
   /// Maximum number of times we will repartition. The maximum build table we
   /// can process is:
@@ -180,6 +189,16 @@ class PartitionedHashJoinNode : public BlockingJoinNode {
   /// set).
   template<int const JoinOp>
   int ProcessProbeBatch(RowBatch* out_batch, HashTableCtx* ht_ctx, Status* status);
+
+  template<int const JoinOp>
+  int ProcessProbeBatchBase(RowBatch* out_batch, HashTableCtx* ht_ctx, Status* status);
+
+  template<bool const prefetch>
+  int ProcessProbeBatchFast(RowBatch* out_batch, HashTableCtx* ht_ctx, Status* status);
+
+  template<int const JoinOp>
+  int ProcessProbeBatchBucketed(RowBatch* out_batch, HashTableCtx* ht_ctx, Status* status);
+
 
   /// Wrapper that calls the templated version of ProcessProbeBatch() based on 'join_op'.
   int ProcessProbeBatch(const TJoinOp::type join_op, RowBatch* out_batch,
@@ -372,6 +391,7 @@ class PartitionedHashJoinNode : public BlockingJoinNode {
   /// This is not used when processing a single partition.
   /// After CleanUpHashPartitions() is called this vector should be empty.
   std::vector<Partition*> hash_partitions_;
+  long* hash_partitions_probe_count;
 
   /// The list of partitions that have been spilled on both sides and still need more
   /// processing. These partitions could need repartitioning, in which case more
@@ -385,6 +405,7 @@ class PartitionedHashJoinNode : public BlockingJoinNode {
   /// In the case where we don't need to partition the probe:
   ///  hash_tbls_[i] = input_partition_->hash_tbl();
   HashTable* hash_tbls_[PARTITION_FANOUT];
+  //HashTable* hash_tbls_;
 
   /// The current input partition to be processed (not in spilled_partitions_).
   /// This partition can either serve as the source for a repartitioning step, or
@@ -427,6 +448,9 @@ class PartitionedHashJoinNode : public BlockingJoinNode {
   /// The current index into null_probe_rows_/matched_null_probe_ that we are
   /// outputting.
   int64_t null_probe_output_idx_;
+
+  int use_batched_join;
+  bool enable_join_prefetch;
 
   /// END: Members that must be Reset()
   /////////////////////////////////////////

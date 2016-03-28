@@ -392,6 +392,15 @@ IntVal SlotRef::GetIntVal(ExprContext* context, TupleRow* row) {
   return IntVal(*reinterpret_cast<int32_t*>(t->GetSlot(slot_offset_)));
 }
 
+int32_t  SlotRef::GetInt( TupleRow* row) {
+  Tuple* t = row->GetTuple(tuple_idx_);
+  return *reinterpret_cast<int32_t*>(t->GetSlot(slot_offset_));
+}
+
+int64_t  SlotRef::GetBigInt( TupleRow* row) {
+  Tuple* t = row->GetTuple(tuple_idx_);
+  return *reinterpret_cast<int64_t*>(t->GetSlot(slot_offset_));
+}
 BigIntVal SlotRef::GetBigIntVal(ExprContext* context, TupleRow* row) {
   DCHECK_EQ(type_.type, TYPE_BIGINT);
   Tuple* t = row->GetTuple(tuple_idx_);

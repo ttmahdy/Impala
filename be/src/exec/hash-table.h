@@ -21,6 +21,7 @@
 #include <boost/scoped_ptr.hpp>
 #include "codegen/impala-ir.h"
 #include "common/logging.h"
+#include "exprs/slot-ref.h"
 #include "common/compiler-util.h"
 #include "runtime/buffered-block-mgr.h"
 #include "runtime/buffered-tuple-stream.h"
@@ -155,7 +156,10 @@ class HashTableCtx {
   /// EvalBuildRow()/EvalProbeRow().
   bool IR_ALWAYS_INLINE EvalAndHashBuild(TupleRow* row, uint32_t* hash);
   bool IR_ALWAYS_INLINE EvalAndHashProbe(TupleRow* row, uint32_t* hash);
+  bool IR_ALWAYS_INLINE HashQuick(TupleRow* row, uint32_t* hash);
 
+  void IR_ALWAYS_INLINE HashQuickInt(int32_t val, uint32_t* hash);
+  void IR_ALWAYS_INLINE HashQuickBigInt(int64_t val, uint32_t* hash);
   int ALWAYS_INLINE results_buffer_size() const { return results_buffer_size_; }
 
   /// Codegen for evaluating a tuple row.  Codegen'd function matches the signature
@@ -176,6 +180,9 @@ class HashTableCtx {
   /// If 'use_murmur' is true, murmur hash is used, otherwise CRC is used if the hardware
   /// supports it (see hash-util.h).
   Status CodegenHashCurrentRow(RuntimeState* state, bool use_murmur, llvm::Function** fn);
+
+  int32_t GetIntCol(TupleRow* row);
+  int64_t GetBigIntCol(TupleRow* row);
 
   static const char* LLVM_CLASS_NAME;
 
@@ -393,6 +400,7 @@ class HashTable {
   /// the nodes of a bucket are duplicates. One scan can be in progress for each 'ht_ctx'.
   /// Used during the probe phase of hash joins.
   Iterator IR_ALWAYS_INLINE FindProbeRow(HashTableCtx* ht_ctx, uint32_t hash);
+  Iterator IR_ALWAYS_INLINE FindProbeRow(HashTableCtx* ht_ctx, uint32_t hash, int32_t keyValue);
 
   /// If a match is found in the table, return an iterator as in FindProbeRow(). If a
   /// match was not present, return an iterator pointing to the empty bucket where the key
@@ -476,6 +484,9 @@ class HashTable {
 
   /// Number of hash collisions so far in the lifetime of this object
   int64_t NumHashCollisions() const { return num_hash_collisions_; }
+
+  void IR_ALWAYS_INLINE Prefetch(uint32_t hash);
+  void IR_ALWAYS_INLINE PrefetchBucketData(uint32_t hash);
 
   /// stl-like iterator interface.
   class Iterator {
@@ -583,6 +594,10 @@ class HashTable {
   template <bool FORCE_NULL_EQUALITY>
   int64_t IR_ALWAYS_INLINE Probe(Bucket* buckets, int64_t num_buckets,
       HashTableCtx* ht_ctx, uint32_t hash, bool* found);
+
+  template <bool FORCE_NULL_EQUALITY>
+  int64_t IR_ALWAYS_INLINE Probe(Bucket* buckets, int64_t num_buckets,
+      HashTableCtx* ht_ctx, uint32_t hash, bool* found, int32_t probe_value,DuplicateNode* duplicates);
 
   /// Performs the insert logic. Returns the HtData* of the bucket or duplicate node
   /// where the data should be inserted. Returns NULL if the insert was not successful.

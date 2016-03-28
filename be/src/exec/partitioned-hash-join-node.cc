@@ -132,6 +132,19 @@ Status PartitionedHashJoinNode::Prepare(RuntimeState* state) {
 
   RETURN_IF_ERROR(BlockingJoinNode::Prepare(state));
   runtime_state_ = state;
+  /*int query_option_pc = state->query_options().partition_count;
+  int fanout_bits = 0;
+  while (query_option_pc >>= 1) {
+	  fanout_bits++;
+  }
+
+  PARTITION_FANOUT = query_option_pc;
+  NUM_PARTITIONING_BITS = fanout_bits;
+
+  hash_tbls_[PARTITION_FANOUT]; */
+
+  use_batched_join = state->query_options().enable_batched_join;
+  enable_join_prefetch = state->query_options().enable_join_prefetch;
 
   // build and probe exprs are evaluated in the context of the rows produced by our
   // right and left children, respectively
@@ -625,8 +638,11 @@ Status PartitionedHashJoinNode::ProcessBuildInput(RuntimeState* state, int level
     RETURN_IF_ERROR(input_partition_->build_rows()->PrepareForRead(true));
   }
 
+  hash_partitions_probe_count = new long[PARTITION_FANOUT];
+
   for (int i = 0; i < PARTITION_FANOUT; ++i) {
     Partition* new_partition = new Partition(state, this, level);
+    hash_partitions_probe_count[i] = 0;
     DCHECK(new_partition != NULL);
     hash_partitions_.push_back(partition_pool_->Add(new_partition));
     RETURN_IF_ERROR(new_partition->build_rows()->Init(id(), runtime_profile(), true));

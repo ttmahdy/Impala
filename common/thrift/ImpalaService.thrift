@@ -204,7 +204,9 @@ enum TImpalaQueryOptions {
 
   // If true, use UTF-8 annotation for string columns. Note that char and varchar columns
   // always use the annotation.
-  PARQUET_ANNOTATE_STRINGS_UTF8
+  PARQUET_ANNOTATE_STRINGS_UTF8,
+  ENABLE_BATCHED_JOIN,
+  ENABLE_JOIN_PREFETCH
 }
 
 // The summary of an insert.

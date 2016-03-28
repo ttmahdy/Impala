@@ -53,6 +53,8 @@ class SlotRef : public Expr {
   virtual impala_udf::DecimalVal GetDecimalVal(ExprContext* context, TupleRow*);
   virtual impala_udf::CollectionVal GetCollectionVal(ExprContext* context, TupleRow*);
 
+  int32_t  GetInt( TupleRow* row);
+  int64_t  GetBigInt( TupleRow* row);
  protected:
   int tuple_idx_;  // within row
   int slot_offset_;  // within tuple
