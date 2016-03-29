@@ -166,6 +166,8 @@ Status PartitionedAggregationNode::Prepare(RuntimeState* state) {
   RETURN_IF_ERROR(ExecNode::Prepare(state));
   state_ = state;
 
+  enable_prefetch = state_->query_options().enable_join_prefetch;
+
   mem_pool_.reset(new MemPool(mem_tracker()));
   agg_fn_pool_.reset(new MemPool(expr_mem_tracker()));
 

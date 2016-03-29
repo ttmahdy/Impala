@@ -523,10 +523,11 @@ int PartitionedHashJoinNode::ProcessProbeBatchFast(
   TupleRow* out_row = out_batch->GetRow(out_batch->AddRow());
   int const max_rows = out_batch->capacity() - out_batch->num_rows();
   int rows_to_add = max_rows;
-  int num_probe_rows = std::min((probe_batch_->num_rows() - probe_batch_pos_),max_rows);
+  int const probe_limit = probe_batch_->num_rows();
+  int num_probe_rows = std::min((probe_limit - probe_batch_pos_),max_rows);
   int num_rows_added = 0;
 
-  if (UNLIKELY(probe_batch_pos_ >= probe_batch_->num_rows())) {
+  if (UNLIKELY(probe_batch_pos_ >= probe_limit)) {
 	// Finished this batch.
 	current_probe_row_ = NULL;
 	return num_rows_added;
@@ -537,10 +538,10 @@ int PartitionedHashJoinNode::ProcessProbeBatchFast(
   uint32_t *hash_values = new uint32_t[num_probe_rows];
   uint32_t *partition_ids = new uint32_t[num_probe_rows];
 
-  while ((probe_batch_pos_ < probe_batch_->num_rows())) {
+  while ((probe_batch_pos_ < probe_limit)) {
 	if (probe_batch_pos_ >= 0) {
 	  rows_to_add = max_rows - num_rows_added;
-	  num_probe_rows = std::min((probe_batch_->num_rows() - probe_batch_pos_), rows_to_add);
+	  num_probe_rows = std::min((probe_limit - probe_batch_pos_), rows_to_add);
 	  int unrolled_num_probe_rows = num_probe_rows & -4;
 
 	  int i =0;
@@ -674,7 +675,7 @@ int PartitionedHashJoinNode::ProcessProbeBatchFast(
 		break;
 	}
 
-	if ((probe_batch_pos_ >= probe_batch_->num_rows()) || (num_rows_added >= max_rows))
+	if ((probe_batch_pos_ >= probe_limit) || (num_rows_added >= max_rows))
 	  break;
   }
   delete hash_table_iterators;

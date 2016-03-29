@@ -190,6 +190,8 @@ class PartitionedAggregationNode : public ExecNode {
   /// Contains any evaluators that require the serialize step.
   bool needs_serialize_;
 
+  bool enable_prefetch;
+
   std::vector<AggFnEvaluator*> aggregate_evaluators_;
 
   /// FunctionContext for each aggregate function and backing MemPool. String data
