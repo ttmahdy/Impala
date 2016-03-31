@@ -939,6 +939,48 @@ Status PartitionedHashJoinNode::GetNext(RuntimeState* state, RowBatch* out_batch
       // in the xcompiled function, so call it here instead.
       int rows_added = 0;
       SCOPED_TIMER(probe_timer_);
+      //
+      if(enable_join_prefetch && use_batched_join == 0) {
+        HashTableCtx* ht_ctx = ht_ctx_.get();
+        int const max_rows = out_batch->capacity() - out_batch->num_rows();
+        int const probe_limit = probe_batch_->num_rows();
+        int num_probe_rows = std::min((probe_limit - probe_batch_pos_),max_rows);
+        int unrolled_num_probe_rows = num_probe_rows & -4;
+
+        int i =0;
+        for (; i < unrolled_num_probe_rows; i+=4) {
+            int32_t probe_values_1 = ht_ctx->GetIntCol(probe_batch_->GetRow(i));
+            int32_t probe_values_2 = ht_ctx->GetIntCol(probe_batch_->GetRow(i+1));
+            int32_t probe_values_3 = ht_ctx->GetIntCol(probe_batch_->GetRow(i+2));
+            int32_t probe_values_4 = ht_ctx->GetIntCol(probe_batch_->GetRow(i+3));
+            uint32_t hash_values_1, hash_values_2, hash_values_3, hash_values_4;
+
+            ht_ctx->HashQuickInt(probe_values_1, &hash_values_1);
+            ht_ctx->HashQuickInt(probe_values_2, &hash_values_2);
+            ht_ctx->HashQuickInt(probe_values_3, &hash_values_3);
+            ht_ctx->HashQuickInt(probe_values_4, &hash_values_4);
+            uint32_t partition_id_1 = hash_values_1 >> (32 - NUM_PARTITIONING_BITS);
+            uint32_t partition_id_2 = hash_values_2 >> (32 - NUM_PARTITIONING_BITS);
+            uint32_t partition_id_3 = hash_values_3 >> (32 - NUM_PARTITIONING_BITS);
+            uint32_t partition_id_4 = hash_values_4 >> (32 - NUM_PARTITIONING_BITS);
+
+            hash_tbls_[partition_id_1]->Prefetch(hash_values_1);
+            hash_tbls_[partition_id_2]->Prefetch(hash_values_2);
+            hash_tbls_[partition_id_3]->Prefetch(hash_values_3);
+            hash_tbls_[partition_id_4]->Prefetch(hash_values_4);
+
+        }
+
+	    for (; i < num_probe_rows; i++) {
+	      uint32_t hash_value;
+	      int32_t probe_value  = ht_ctx->GetIntCol(probe_batch_->GetRow(i));
+		  ht_ctx->HashQuickInt(probe_value, &hash_value);
+		  uint32_t partition_id = hash_value >> (32 - NUM_PARTITIONING_BITS);
+		  hash_tbls_[partition_id]->Prefetch(hash_value);
+	    }
+      }
+      //
+
       if (process_probe_batch_fn_ == NULL || ht_ctx_->level() != 0) {
         rows_added = ProcessProbeBatch(join_op_, out_batch, ht_ctx_.get(), &status);
       } else {

@@ -409,6 +409,9 @@ class HashTable {
   Iterator IR_ALWAYS_INLINE FindBuildRowBucket(HashTableCtx* ht_ctx, uint32_t hash,
       bool* found);
 
+  Iterator IR_ALWAYS_INLINE FindBuildRowBucket(HashTableCtx* ht_ctx, uint32_t hash,
+      int32_t keyValue, bool* found);
+
   /// Returns number of elements inserted in the hash table
   int64_t size() const {
     return num_filled_buckets_ - num_buckets_with_duplicates_ + num_duplicate_nodes_;

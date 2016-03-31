@@ -233,11 +233,23 @@ inline HashTable::Iterator HashTable::FindProbeRow(HashTableCtx* ht_ctx, uint32_
   }
   return End();
 }
+
 inline HashTable::Iterator HashTable::FindBuildRowBucket(
     HashTableCtx* ht_ctx, uint32_t hash, bool* found) {
   ++num_probes_;
   int64_t bucket_idx = Probe<true>(buckets_, num_buckets_, ht_ctx, hash, found);
   DuplicateNode* duplicates = LIKELY(bucket_idx != Iterator::BUCKET_NOT_FOUND) ?
+      buckets_[bucket_idx].bucketData.duplicates : NULL;
+  return Iterator(this, ht_ctx->row(), bucket_idx, duplicates);
+}
+
+inline HashTable::Iterator HashTable::FindBuildRowBucket(
+    HashTableCtx* ht_ctx, uint32_t hash, int32_t keyValue,
+     bool* found) {
+  ++num_probes_;
+  DuplicateNode* duplicates = NULL;
+  int64_t bucket_idx = Probe<true>(buckets_, num_buckets_, ht_ctx, hash, found, keyValue, duplicates);
+  duplicates = LIKELY(bucket_idx != Iterator::BUCKET_NOT_FOUND) ?
       buckets_[bucket_idx].bucketData.duplicates : NULL;
   return Iterator(this, ht_ctx->row(), bucket_idx, duplicates);
 }

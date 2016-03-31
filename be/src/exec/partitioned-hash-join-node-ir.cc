@@ -443,15 +443,13 @@ int PartitionedHashJoinNode::ProcessProbeBatchBucketed(
 	  uint32_t hash_value;
 	  int32_t probe_value = ht_ctx->GetIntCol(probe_batch_->GetRow(i));
 	  ht_ctx->HashQuickInt(probe_value, &hash_value);
-	  const uint32_t partition_idx = hash_value >> (32 - NUM_PARTITIONING_BITS);
-	  //hash_partitions_probe_count[partition_idx]++;
 	  ProbeTuple tuple;
 	  tuple.hash_value = hash_value;
 	  tuple.probe_value = probe_value;
 	  uint32_t partition_id =  hash_value >> (32 - NUM_PARTITIONING_BITS);
 	  hash_tbls_[partition_id]->Prefetch(hash_value);
 	  //tuple.row = probe_batch_->GetRow(i);
-	  batched_probe_rows[partition_idx].push_back(tuple);
+	  batched_probe_rows[partition_id].push_back(tuple);
 	}
 
 	int probe_count = 0;

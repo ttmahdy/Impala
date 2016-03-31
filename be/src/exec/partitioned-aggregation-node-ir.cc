@@ -44,20 +44,6 @@ Status PartitionedAggregationNode::ProcessBatch(RowBatch* batch, HashTableCtx* h
   int num_rows = batch->num_rows();
   RETURN_IF_ERROR(CheckAndResizeHashPartitions(num_rows, ht_ctx));
 
-
-  if (enable_prefetch) {
-    for (int i = 0; i < num_rows; ++i) {
-      uint32_t hash_value;
-      int32_t probe_value = ht_ctx->GetIntCol(batch->GetRow(i));
-      ht_ctx->HashQuickInt(probe_value, &hash_value);
-      Partition* dst_partition = hash_partitions_[hash_value >> (32 - NUM_PARTITIONING_BITS)];
-      if (dst_partition->is_spilled())
-        continue;
-      HashTable* ht = dst_partition->hash_tbl.get();
-      ht->Prefetch(hash_value);
-    }
-  }
-
   for (int i = 0; i < num_rows; ++i) {
     RETURN_IF_ERROR(ProcessRow<AGGREGATED_ROWS>(batch->GetRow(i), ht_ctx));
   }
@@ -68,7 +54,10 @@ Status PartitionedAggregationNode::ProcessBatch(RowBatch* batch, HashTableCtx* h
 template<bool AGGREGATED_ROWS>
 Status PartitionedAggregationNode::ProcessRow(TupleRow* row, HashTableCtx* ht_ctx) {
   uint32_t hash = 0;
+  //int32_t key_value = 0;
   if (AGGREGATED_ROWS) {
+	//key_value = ht_ctx->GetIntCol(row);
+	//ht_ctx->HashQuickInt(key_value, &hash);
     if (!ht_ctx->EvalAndHashBuild(row, &hash)) return Status::OK();
   } else {
     if (!ht_ctx->EvalAndHashProbe(row, &hash)) return Status::OK();

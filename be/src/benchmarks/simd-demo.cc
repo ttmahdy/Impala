@@ -206,10 +206,11 @@ static void simd_probe_hash_table(Bucket *hash_table, int hash_table_size,
     //long * mypointer;
     //*mypointer = 10;
     //std::cout << "mypointer is " << (long)mypointer << '\n';
+    int unrolled_num_probe_rows = key_count & -4;
 
 
     for (int j = 0; j < probe_multiplyer; j ++) {
-        for (int i = 0; i < key_count; i+=4) {
+        for (int i = 0; i < unrolled_num_probe_rows; i+=4) {
 
             int buckdt_id_1 = hash32shift(key_values[i]) & (hash_table_size -1);
             int buckdt_id_2 = hash32shift(key_values[i+1]) & (hash_table_size -1);

@@ -332,6 +332,21 @@ Status PartitionedAggregationNode::Open(RuntimeState* state) {
       }
     }
 
+    HashTableCtx* ht_ctx = ht_ctx_.get();
+    if (enable_prefetch && (ht_ctx != NULL)) {
+      int num_rows = batch.num_rows();
+      for (int i = 0; i < num_rows; ++i) {
+        uint32_t hash_value;
+        int32_t probe_value = ht_ctx->GetIntCol(batch.GetRow(i));
+        ht_ctx->HashQuickInt(probe_value, &hash_value);
+        Partition* dst_partition = hash_partitions_[hash_value >> (32 - NUM_PARTITIONING_BITS)];
+        if (dst_partition->is_spilled())
+          continue;
+        HashTable* ht = dst_partition->hash_tbl.get();
+        ht->Prefetch(hash_value);
+      }
+    }
+
     SCOPED_TIMER(build_timer_);
     if (process_row_batch_fn_ != NULL) {
       RETURN_IF_ERROR(process_row_batch_fn_(this, &batch, ht_ctx_.get()));
