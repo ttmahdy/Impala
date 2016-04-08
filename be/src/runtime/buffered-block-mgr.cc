@@ -27,6 +27,7 @@
 #include <openssl/evp.h>
 #include <openssl/sha.h>
 #include <openssl/err.h>
+#include <sys/mman.h>
 
 #include <gutil/strings/substitute.h>
 
@@ -1084,6 +1085,7 @@ Status BufferedBlockMgr::FindBuffer(unique_lock<mutex>& lock,
   if ((free_io_buffers_.size() < block_write_threshold_ || disable_spill_) &&
       mem_tracker_->TryConsume(max_block_size_)) {
     uint8_t* new_buffer = new uint8_t[max_block_size_];
+    madvise(reinterpret_cast<void*>(new_buffer), max_block_size_ * sizeof(max_block_size_), MADV_HUGEPAGE);
     *buffer_desc = obj_pool_.Add(new BufferDescriptor(new_buffer, max_block_size_));
     (*buffer_desc)->all_buffers_it = all_io_buffers_.insert(
         all_io_buffers_.end(), *buffer_desc);

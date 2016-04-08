@@ -17,6 +17,7 @@
 #include <functional>
 #include <numeric>
 #include <gutil/strings/substitute.h>
+#include <sys/mman.h>
 
 #include "codegen/codegen-anyval.h"
 #include "codegen/llvm-codegen.h"
@@ -245,6 +246,7 @@ bool HashTable::Init() {
   }
   buckets_ = reinterpret_cast<Bucket*>(malloc(buckets_byte_size));
   memset(buckets_, 0, buckets_byte_size);
+  madvise(reinterpret_cast<void*>(buckets_), buckets_byte_size,  MADV_HUGEPAGE);
   return true;
 }
 
