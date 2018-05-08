@@ -308,6 +308,12 @@ enum TImpalaQueryOptions {
   // exprs in the second phase which is not required when omitting the distinct exprs in
   // the first phase. Shuffling by both is better if the grouping exprs have low NDVs.
   SHUFFLE_DISTINCT_EXPRS,
+
+  // Maximum number of bytes a query will scan
+  MAX_SCAN_BYTES,
+
+  // Maximum CPU time a query will consume
+  MAX_CPU_TIME_NS,
 }
 
 // The summary of a DML statement.
