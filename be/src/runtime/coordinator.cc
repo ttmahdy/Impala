@@ -728,12 +728,29 @@ void Coordinator::ComputeQuerySummary() {
   }
 
   stringstream info;
+  stringstream cpu_user_info;
+  stringstream cpu_system_info;
+  stringstream bytes_read_info;
+
   for (BackendState* backend_state: backend_states_) {
     info << backend_state->impalad_address() << "("
          << PrettyPrinter::Print(backend_state->GetPeakConsumption(), TUnit::BYTES)
          << ") ";
+	cpu_user_info << backend_state->impalad_address() << "("
+       << PrettyPrinter::Print(backend_state->GetUserCpu(), TUnit::TIME_NS)
+       << ") ";
+	cpu_system_info << backend_state->impalad_address() << "("
+       << PrettyPrinter::Print(backend_state->GetSysCpu(), TUnit::TIME_NS)
+       << ") ";
+	bytes_read_info << backend_state->impalad_address() << "("
+       << PrettyPrinter::Print(backend_state->GetBytesRead(), TUnit::BYTES)
+       << ") ";
   }
+
   query_profile_->AddInfoString("Per Node Peak Memory Usage", info.str());
+  query_profile_->AddInfoString("Per Node User time Usage", cpu_user_info.str());
+  query_profile_->AddInfoString("Per Node System time Usage", cpu_system_info.str());
+  query_profile_->AddInfoString("Per Node Bytes read", bytes_read_info.str());
 }
 
 string Coordinator::GetErrorLog() {

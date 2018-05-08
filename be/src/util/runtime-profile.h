@@ -193,6 +193,12 @@ class RuntimeProfile { // NOLINT: This struct is not packed, but there are not s
   /// that the caller can update.  The counter is owned by the RuntimeProfile object.
   ThreadCounters* AddThreadCounters(const std::string& prefix);
 
+  /// Add a set of thread counters prefixed with 'prefix'. Returns a ThreadCounters object
+  /// that the caller can update.  The counter is owned by the RuntimeProfile object.
+  ThreadCounters* GetThreadCounters() {
+	  return threads_counters_;
+  }
+
   // Add a derived counter to capture the local time. This function can be called at most
   // once.
   void AddLocalTimeCounter(const DerivedCounterFunction& counter_fn);
@@ -449,6 +455,8 @@ class RuntimeProfile { // NOLINT: This struct is not packed, but there are not s
   mutable SpinLock summary_stats_map_lock_;
 
   Counter counter_total_time_;
+
+  ThreadCounters* threads_counters_;
 
   /// Total time spent waiting (on non-children) that should not be counted when
   /// computing local_time_percent_. This is updated for example in the exchange

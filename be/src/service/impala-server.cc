@@ -1202,6 +1202,7 @@ void ImpalaServer::ReportExecStatus(
     return;
   }
   request_state->coord()->UpdateBackendExecStatus(params).SetTStatus(&return_val);
+  //RuntimeProfile::ThreadCounters* thread_statistics = request_state->coord()->runtime_state()->total_thread_statistics();
 }
 
 void ImpalaServer::TransmitData(
