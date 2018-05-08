@@ -213,6 +213,21 @@ int64_t Coordinator::BackendState::GetPeakConsumption() {
   return peak_consumption_;
 }
 
+int64_t Coordinator::BackendState::GetUserCpu() {
+  lock_guard<mutex> l(lock_);
+  return backend_cpu_user_;
+}
+
+int64_t Coordinator::BackendState::GetSysCpu() {
+  lock_guard<mutex> l(lock_);
+  return backend_cpu_sys_;
+}
+
+int64_t Coordinator::BackendState::GetBytesRead() {
+  lock_guard<mutex> l(lock_);
+  return backend_bytes_read_;
+}
+
 void Coordinator::BackendState::MergeErrorLog(ErrorLogMap* merged) {
   lock_guard<mutex> l(lock_);
   if (error_log_.size() > 0)  MergeErrorMaps(error_log_, merged);
@@ -240,7 +255,6 @@ bool Coordinator::BackendState::ApplyExecStatusReport(
   lock_guard<SpinLock> l1(exec_summary->lock);
   lock_guard<mutex> l2(lock_);
   last_report_time_ms_ = MonotonicMillis();
-
   // If this backend completed previously, don't apply the update.
   if (IsDone()) return false;
   for (const TFragmentInstanceExecStatus& instance_exec_status:
@@ -260,6 +274,13 @@ bool Coordinator::BackendState::ApplyExecStatusReport(
       peak_consumption_ =
         max(peak_consumption_, instance_stats->peak_mem_counter_->value());
     }
+
+    // Update the per backend counters
+    backend_cpu_user_ += instance_stats->total_cpu_user_;
+    backend_cpu_sys_ += instance_stats->total_cpu_sys_;
+    backend_bytes_read_ += instance_stats->total_bytes_read_;
+    VLOG_QUERY << "XXX current backend: " << this->impalad_address() << " " << instance_exec_status.fragment_instance_id << " CPU user "
+        << backend_cpu_user_ << " CPU system " << backend_cpu_sys_  << " Bytes read " << backend_bytes_read_;
 
     // If a query is aborted due to an error encountered by a single fragment instance,
     // all other fragment instances will report a cancelled status; make sure not to mask
@@ -437,6 +458,10 @@ void Coordinator::BackendState::InstanceStats::InitCounters() {
     RuntimeProfile::Counter* c =
         p->GetCounter(ScanNode::SCAN_RANGES_COMPLETE_COUNTER);
     if (c != nullptr) scan_ranges_complete_counters_.push_back(c);
+
+    RuntimeProfile::Counter* bytes_read_counter =
+        p->GetCounter(ScanNode::BYTES_READ_COUNTER);
+    if (bytes_read_counter != nullptr) bytes_read_counters_.push_back(bytes_read_counter);
   }
 
   peak_mem_counter_ =
@@ -477,6 +502,7 @@ void Coordinator::BackendState::InstanceStats::Update(
 
     RuntimeProfile::Counter* rows_counter = child->GetCounter("RowsReturned");
     RuntimeProfile::Counter* mem_counter = child->GetCounter("PeakMemoryUsage");
+
     if (rows_counter != nullptr) instance_stats.__set_cardinality(rows_counter->value());
     if (mem_counter != nullptr) instance_stats.__set_memory_used(mem_counter->value());
     instance_stats.__set_latency_ns(child->local_time());
@@ -490,6 +516,23 @@ void Coordinator::BackendState::InstanceStats::Update(
   int64_t delta = total - total_ranges_complete_;
   total_ranges_complete_ = total;
   scan_range_progress->Update(delta);
+
+  // Get user Cpu
+  RuntimeProfile::Counter* profile_user_time_counter = profile_->GetCounter("TotalThreadsUserTime");
+  if (profile_user_time_counter != nullptr) {
+    total_cpu_user_ += profile_user_time_counter->value();
+  }
+
+  // Get sys Cpu
+  RuntimeProfile::Counter* profile_system_time_counter = profile_->GetCounter("TotalThreadsSysTime");
+  if (profile_system_time_counter != nullptr) {
+    total_cpu_sys_ += profile_system_time_counter->value();
+  }
+
+  // Get bytes read
+  int total_bytes = 0;
+  for (RuntimeProfile::Counter* c: bytes_read_counters_) total_bytes += c->value();
+  total_bytes_read_ += total_bytes;
 
   // extract the current execution state of this instance
   current_state_ = exec_status.current_state;

@@ -261,13 +261,15 @@ class RuntimeProfile::SummaryStatsCounter : public RuntimeProfile::Counter {
 
 /// A set of counters that measure thread info, such as total time, user time, sys time.
 class RuntimeProfile::ThreadCounters {
- private:
-  friend class ThreadCounterMeasurement;
-  friend class RuntimeProfile;
 
+ public:
   Counter* total_time_; // total wall clock time
   Counter* user_time_;  // user CPU time
   Counter* sys_time_;   // system CPU time
+
+ private:
+  friend class ThreadCounterMeasurement;
+  friend class RuntimeProfile;
 
   /// The number of times a context switch resulted due to a process voluntarily giving
   /// up the processor before its time slice was completed.

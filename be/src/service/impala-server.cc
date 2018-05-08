@@ -1202,6 +1202,7 @@ void ImpalaServer::ReportExecStatus(
     return;
   }
   request_state->coord()->UpdateBackendExecStatus(params).SetTStatus(&return_val);
+  //RuntimeProfile::ThreadCounters* thread_statistics = request_state->coord()->runtime_state()->total_thread_statistics();
 }
 
 void ImpalaServer::TransmitData(
@@ -1904,6 +1905,15 @@ void ImpalaServer::UnregisterSessionTimeout(int32_t session_timeout) {
           expiration_event = queries_by_timestamp_.erase(expiration_event);
           continue;
         }
+
+        // Here we have all the needed parts to implement the cancellation for
+        // CPU and bytes read
+        int64_t max_cpu_time_ns = query_state->query_options().max_cpu_time_ns;
+        int64_t max_scan_bytes = query_state->query_options().max_scan_bytes;
+        int64_t cpu_time_ns =0 , scan_bytes =0;
+        query_state->coord()->GetBackendResourceUsage(cpu_time_ns, scan_bytes);
+        VLOG_QUERY << "XXX Max CPU time is " << max_cpu_time_ns << " Max scan bytes is " << max_scan_bytes;
+        VLOG_QUERY << "XXX Current CPU time is " << cpu_time_ns << " Current scan bytes is " << scan_bytes;
 
         // If the query time limit expired, we must cancel the query.
         if (expiration_event->kind == ExpirationKind::EXEC_TIME_LIMIT) {

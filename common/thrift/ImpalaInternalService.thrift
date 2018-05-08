@@ -308,6 +308,12 @@ struct TQueryOptions {
   // exprs in the second phase which is not required when omitting the distinct exprs in
   // the first phase. Shuffling by both is better if the grouping exprs have low NDVs.
   64: optional bool shuffle_distinct_exprs = true;
+
+  // Scan bytes limit, after which a query will be cancelled
+  65: optional i64 max_scan_bytes = 0;
+
+  // CPU time limit, after which a query will be cancelled
+  66: optional i64 max_cpu_time_ns = 0;
 }
 
 // Impala currently has two types of sessions: Beeswax and HiveServer2

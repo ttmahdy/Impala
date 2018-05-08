@@ -651,6 +651,26 @@ Status impala::SetQueryOption(const string& key, const string& value,
                 iequals(value, "true") || iequals(value, "1"));
         break;
       }
+      case TImpalaQueryOptions::MAX_SCAN_BYTES: {
+        // Parse the mem limit spec and validate it.
+        int64_t bytes_limit;
+        RETURN_IF_ERROR(ParseMemValue(value, "query scan bytes limit", &bytes_limit));
+        query_options->__set_max_scan_bytes(bytes_limit);
+        break;
+      }
+      case TImpalaQueryOptions::MAX_CPU_TIME_NS: {
+        StringParser::ParseResult result;
+        const int64_t max_cpu_time_ns =
+            StringParser::StringToInt<int64_t>(value.c_str(), value.length(), &result);
+        if (result != StringParser::PARSE_SUCCESS || max_cpu_time_ns < 0) {
+          return Status(
+              Substitute("Invalid max Cpu time limit: '$0'. "
+                         "Only non-negative numbers are allowed.", value));
+        }
+        LOG(INFO) << "Max CPU time is : " << max_cpu_time_ns << "ns";
+        query_options->__set_max_cpu_time_ns(max_cpu_time_ns);
+        break;
+      }
       default:
         // We hit this DCHECK(false) if we forgot to add the corresponding entry here
         // when we add a new query option.
