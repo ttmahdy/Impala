@@ -67,7 +67,6 @@ void Coordinator::BackendState::Init(
       prev_fragment_idx = fragment_idx;
     }
     fragments_.insert(fragment_idx);
-
     instance_stats_map_.emplace(
         GetInstanceIdx(instance_params->instance_id),
         obj_pool->Add(
@@ -228,6 +227,19 @@ int64_t Coordinator::BackendState::GetBytesRead() {
   return backend_bytes_read_;
 }
 
+void Coordinator::BackendState::GetBackendResourceUsage(int64_t& user_cpu, int64_t& sys_cpu, int64_t& bytes_read, int64_t& peak_mem) {
+  lock_guard<mutex> l(lock_);
+  peak_mem = peak_consumption_;
+  user_cpu = backend_cpu_user_;
+  sys_cpu = backend_cpu_sys_;
+  bytes_read = backend_bytes_read_;
+  VLOG_QUERY << "XXX current backend: " << this->impalad_address()
+    <<  " user_cpu " << user_cpu
+    <<  " sys_cpu " << sys_cpu
+    << " fetched bytes read " << backend_bytes_read_
+    << " memory consumption " << peak_consumption_;
+}
+
 void Coordinator::BackendState::MergeErrorLog(ErrorLogMap* merged) {
   lock_guard<mutex> l(lock_);
   if (error_log_.size() > 0)  MergeErrorMaps(error_log_, merged);
@@ -275,13 +287,6 @@ bool Coordinator::BackendState::ApplyExecStatusReport(
         max(peak_consumption_, instance_stats->peak_mem_counter_->value());
     }
 
-    // Update the per backend counters
-    backend_cpu_user_ += instance_stats->total_cpu_user_;
-    backend_cpu_sys_ += instance_stats->total_cpu_sys_;
-    backend_bytes_read_ += instance_stats->total_bytes_read_;
-    VLOG_QUERY << "XXX current backend: " << this->impalad_address() << " " << instance_exec_status.fragment_instance_id << " CPU user "
-        << backend_cpu_user_ << " CPU system " << backend_cpu_sys_  << " Bytes read " << backend_bytes_read_;
-
     // If a query is aborted due to an error encountered by a single fragment instance,
     // all other fragment instances will report a cancelled status; make sure not to mask
     // the original error status.
@@ -311,6 +316,9 @@ bool Coordinator::BackendState::ApplyExecStatusReport(
       // all backends have completed.
     }
   }
+
+  // Update the backend counters
+  AggregateBackendStats();
 
   // status_ has incorporated the status from all fragment instances. If the overall
   // backend status is not OK, but no specific fragment instance reported an error, then
@@ -348,6 +356,28 @@ void Coordinator::BackendState::UpdateExecStats(
     }
     f->avg_profile_->UpdateAverage(instance_stats.profile_);
   }
+
+  AggregateBackendStats();
+}
+
+void Coordinator::BackendState::AggregateBackendStats() {
+
+  //lock_guard<mutex> l(lock_);
+
+  // AggregateBackendStats gets called multiple times, so recet the counters
+  backend_cpu_user_ = 0;
+  backend_cpu_sys_ = 0;
+  backend_bytes_read_ = 0;
+
+  for (const auto& entry: instance_stats_map_) {
+    const InstanceStats& instance_stats = *entry.second;
+    backend_cpu_user_ += instance_stats.cpu_user_;
+    backend_cpu_sys_ += instance_stats.cpu_sys_;
+    backend_bytes_read_ += instance_stats.bytes_read_;
+  }
+
+  VLOG_QUERY << "XXX current backend: " << this->impalad_address() << " "  << " CPU user "
+        << backend_cpu_user_ << " CPU system " << backend_cpu_sys_  << " Bytes read " << backend_bytes_read_ << " peak memory consumption " << peak_consumption_;
 }
 
 bool Coordinator::BackendState::Cancel() {
@@ -520,19 +550,19 @@ void Coordinator::BackendState::InstanceStats::Update(
   // Get user Cpu
   RuntimeProfile::Counter* profile_user_time_counter = profile_->GetCounter("TotalThreadsUserTime");
   if (profile_user_time_counter != nullptr) {
-    total_cpu_user_ += profile_user_time_counter->value();
+    cpu_user_ = profile_user_time_counter->value();
   }
 
   // Get sys Cpu
   RuntimeProfile::Counter* profile_system_time_counter = profile_->GetCounter("TotalThreadsSysTime");
   if (profile_system_time_counter != nullptr) {
-    total_cpu_sys_ += profile_system_time_counter->value();
+    cpu_sys_ = profile_system_time_counter->value();
   }
 
   // Get bytes read
   int total_bytes = 0;
   for (RuntimeProfile::Counter* c: bytes_read_counters_) total_bytes += c->value();
-  total_bytes_read_ += total_bytes;
+  bytes_read_ = total_bytes;
 
   // extract the current execution state of this instance
   current_state_ = exec_status.current_state;

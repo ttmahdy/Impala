@@ -110,6 +110,8 @@ class Coordinator::BackendState {
   /// Return total Sys Cpu.
   int64_t GetSysCpu();
 
+  void GetBackendResourceUsage(int64_t& user_cpu, int64_t& sys_cpu, int64_t& bytes_read, int64_t& peak_mem);
+
   /// Return total Sys Cpu.
   int64_t GetBytesRead();
 
@@ -193,13 +195,13 @@ class Coordinator::BackendState {
     std::vector<RuntimeProfile::Counter*> scan_ranges_complete_counters_;
 
     /// total scan ranges complete across all scan nodes
-    int64_t total_bytes_read_ = 0;
+    int64_t bytes_read_ = 0;
 
     /// total user cpu consumed
-    int64_t total_cpu_user_ = 0;
+    int64_t cpu_user_ = 0;
 
     /// total system cpu consumed
-    int64_t total_cpu_sys_ = 0;
+    int64_t cpu_sys_ = 0;
 
     /// BYTES_READ_COUNTERs in profile_
     std::vector<RuntimeProfile::Counter*> bytes_read_counters_;
@@ -288,6 +290,11 @@ class Coordinator::BackendState {
 
   /// Return true if execution at this backend is done. Caller must hold lock_.
   bool IsDone() const;
+
+  /// Aggregate per instance stats for this backend
+  /// No locks required as it is called from ApplyExecStatusReport which acquires the
+  /// The necessary lock
+  void AggregateBackendStats();
 };
 
 /// Per fragment execution statistics.

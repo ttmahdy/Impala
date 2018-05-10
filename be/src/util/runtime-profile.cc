@@ -601,8 +601,6 @@ RuntimeProfile::ThreadCounters* RuntimeProfile::AddThreadCounters(
       AddCounter(prefix + THREAD_VOLUNTARY_CONTEXT_SWITCHES, TUnit::UNIT);
   counter->involuntary_context_switches_ =
       AddCounter(prefix + THREAD_INVOLUNTARY_CONTEXT_SWITCHES, TUnit::UNIT);
-  threads_counters_ = counter;
-  LOG(INFO) << "User time counter " << prefix + THREAD_USER_TIME;
   return counter;
 }
 

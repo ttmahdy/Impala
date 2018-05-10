@@ -734,32 +734,38 @@ void Coordinator::ComputeQuerySummary() {
   stringstream cpu_total_info;
   stringstream bytes_total_info;
   int64_t total_cpu =0, total_bytes_read =0;
-  int64_t backend_user_cpu = 0, backend_sys_cpu = 0, backend_bytes_read = 0;
+  int64_t backend_user_cpu = 0, backend_sys_cpu = 0, backend_bytes_read = 0, peak_memory = 0;
 
   for (BackendState* backend_state: backend_states_) {
+
+    backend_state->GetBackendResourceUsage(backend_user_cpu, backend_sys_cpu, backend_bytes_read, peak_memory);
+
     mem_info << backend_state->impalad_address() << "("
-         << PrettyPrinter::Print(backend_state->GetPeakConsumption(), TUnit::BYTES)
+         << PrettyPrinter::Print(peak_memory, TUnit::BYTES)
          << ") ";
 
-    backend_user_cpu = backend_state->GetUserCpu();
-    cpu_user_info << backend_state->impalad_address() << "("
-       << PrettyPrinter::Print(backend_user_cpu, TUnit::TIME_NS)
-       << ") ";
-
-    backend_sys_cpu = backend_state->GetSysCpu();
-    cpu_system_info << backend_state->impalad_address() << "("
-       << PrettyPrinter::Print(backend_sys_cpu, TUnit::TIME_NS)
-       << ") ";
-
-    backend_bytes_read = backend_state->GetBytesRead();
     bytes_read_info << backend_state->impalad_address() << "("
        << PrettyPrinter::Print(backend_bytes_read, TUnit::BYTES)
        << ") ";
 
+    cpu_user_info << backend_state->impalad_address() << "("
+       << PrettyPrinter::Print(backend_user_cpu, TUnit::TIME_NS)
+       << ") ";
+
+    cpu_system_info << backend_state->impalad_address() << "("
+       << PrettyPrinter::Print(backend_sys_cpu, TUnit::TIME_NS)
+       << ") ";
+
+    /*
+    backend_user_cpu = backend_state->GetUserCpu();
+    backend_sys_cpu = backend_state->GetSysCpu();
+    backend_bytes_read = backend_state->GetBytesRead();
+    */
+
     total_cpu += backend_user_cpu + backend_sys_cpu;
     total_bytes_read += backend_bytes_read;
   }
-
+  LOG(INFO) << "XXX total " << " total cpu " << total_cpu << " bytes read " << total_bytes_read;
   cpu_total_info << PrettyPrinter::Print(total_cpu, TUnit::TIME_NS);
   bytes_total_info << PrettyPrinter::Print(total_bytes_read, TUnit::BYTES);
 
